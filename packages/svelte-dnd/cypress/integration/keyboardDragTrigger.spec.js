@@ -1,10 +1,14 @@
-import {dndzone} from "../../src/keyboardAction";
-import {dndzone as fullDndzone} from "../../src/action";
-import {TRIGGERS} from "../../src/constants";
-import {dragHandle, dragHandleZone} from "../../src/wrappers/withDragHandles";
-import {getKeyboardDragTrigger, isKeyboardDragTriggerKey, setKeyboardDragTrigger} from "../../src/keyboardDragTrigger";
+import { dndzone } from "../../src/keyboardAction";
+import { dndzone as fullDndzone } from "../../src/action";
+import { TRIGGERS } from "../../src/constants";
+import { dragHandle, dragHandleZone } from "../../src/wrappers/withDragHandles";
+import {
+    getKeyboardDragTrigger,
+    isKeyboardDragTriggerKey,
+    setKeyboardDragTrigger,
+} from "../../src/keyboardDragTrigger";
 import * as publicApi from "../../src/index";
-import {destroyAria, initAria} from "../../src/helpers/aria";
+import { destroyAria, initAria } from "../../src/helpers/aria";
 
 describe("keyboardDragTrigger", () => {
     const actions = [];
@@ -15,20 +19,20 @@ describe("keyboardDragTrigger", () => {
         items.forEach(() => zone.appendChild(document.createElement("div")));
         document.body.appendChild(zone);
         zones.push(zone);
-        const action = dndzoneFn(zone, {items, ...options});
+        const action = dndzoneFn(zone, { items, ...options });
         actions.push(action);
-        return {zone, action, children: Array.from(zone.children)};
+        return { zone, action, children: Array.from(zone.children) };
     }
 
     function press(el, key) {
-        const event = new KeyboardEvent("keydown", {key, bubbles: true, cancelable: true});
+        const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
         el.dispatchEvent(event);
         return event;
     }
 
     function recordTriggers(zone) {
         const triggers = [];
-        zone.addEventListener("consider", e => triggers.push(e.detail.info.trigger));
+        zone.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
         return triggers;
     }
 
@@ -36,8 +40,8 @@ describe("keyboardDragTrigger", () => {
         actions
             .splice(0)
             .reverse()
-            .forEach(action => action.destroy());
-        zones.splice(0).forEach(zone => zone.remove());
+            .forEach((action) => action.destroy());
+        zones.splice(0).forEach((zone) => zone.remove());
     });
 
     afterEach(() => {
@@ -48,8 +52,8 @@ describe("keyboardDragTrigger", () => {
         it("starts and stops a drag with both Enter and Space by default", () => {
             const {
                 zone,
-                children: [item]
-            } = createZone([{id: "a"}, {id: "b"}]);
+                children: [item],
+            } = createZone([{ id: "a" }, { id: "b" }]);
             const triggers = recordTriggers(zone);
             item.focus();
             press(item, "Enter");
@@ -62,11 +66,11 @@ describe("keyboardDragTrigger", () => {
             setKeyboardDragTrigger("space");
             const {
                 zone,
-                children: [item]
-            } = createZone([{id: "a"}, {id: "b"}]);
+                children: [item],
+            } = createZone([{ id: "a" }, { id: "b" }]);
             const triggers = recordTriggers(zone);
             let bubbledEvent;
-            const bodyListener = e => (bubbledEvent = e);
+            const bodyListener = (e) => (bubbledEvent = e);
             document.body.addEventListener("keydown", bodyListener);
             item.focus();
             const event = press(item, "Enter");
@@ -80,8 +84,8 @@ describe("keyboardDragTrigger", () => {
             setKeyboardDragTrigger("space");
             const {
                 zone,
-                children: [item]
-            } = createZone([{id: "a"}, {id: "b"}]);
+                children: [item],
+            } = createZone([{ id: "a" }, { id: "b" }]);
             const triggers = recordTriggers(zone);
             item.focus();
             press(item, " ");
@@ -94,13 +98,13 @@ describe("keyboardDragTrigger", () => {
             setKeyboardDragTrigger("space");
             const {
                 zone,
-                children: [item]
-            } = createZone([{id: "a"}, {id: "b"}]);
+                children: [item],
+            } = createZone([{ id: "a" }, { id: "b" }]);
             const triggers = recordTriggers(zone);
             item.focus();
             press(item, " ");
             let bubbledEvent;
-            const bodyListener = e => (bubbledEvent = e);
+            const bodyListener = (e) => (bubbledEvent = e);
             document.body.addEventListener("keydown", bodyListener);
             const enterEvent = press(item, "Enter");
             document.body.removeEventListener("keydown", bodyListener);
@@ -115,8 +119,8 @@ describe("keyboardDragTrigger", () => {
             setKeyboardDragTrigger("enter");
             const {
                 zone,
-                children: [item]
-            } = createZone([{id: "a"}, {id: "b"}]);
+                children: [item],
+            } = createZone([{ id: "a" }, { id: "b" }]);
             const triggers = recordTriggers(zone);
             item.focus();
             const spaceEvent = press(item, " ");
@@ -129,26 +133,29 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("ends a drag on Escape under every trigger", () => {
-            ["space", "enter", "space_or_enter"].forEach(trigger => {
+            ["space", "enter", "space_or_enter"].forEach((trigger) => {
                 setKeyboardDragTrigger(trigger);
                 const {
                     zone,
-                    children: [item]
-                } = createZone([{id: "a"}, {id: "b"}]);
+                    children: [item],
+                } = createZone([{ id: "a" }, { id: "b" }]);
                 const triggers = recordTriggers(zone);
                 item.focus();
                 press(item, trigger === "enter" ? "Enter" : " ");
                 expect(triggers, `${trigger}: should have started`).to.deep.equal([TRIGGERS.DRAG_STARTED]);
                 press(item, "Escape");
-                expect(triggers, `${trigger}: Escape should still drop`).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DRAG_STOPPED]);
+                expect(triggers, `${trigger}: Escape should still drop`).to.deep.equal([
+                    TRIGGERS.DRAG_STARTED,
+                    TRIGGERS.DRAG_STOPPED,
+                ]);
             });
         });
 
         it("applies a trigger change made after the zones have mounted", () => {
             const {
                 zone,
-                children: [item]
-            } = createZone([{id: "a"}, {id: "b"}]);
+                children: [item],
+            } = createZone([{ id: "a" }, { id: "b" }]);
             const triggers = recordTriggers(zone);
             setKeyboardDragTrigger("space");
             item.focus();
@@ -164,9 +171,9 @@ describe("keyboardDragTrigger", () => {
             const {
                 zone: zoneA,
                 action: actionA,
-                children: [itemA]
-            } = createZone([{id: "a"}, {id: "b"}]);
-            const {zone: zoneB, action: actionB} = createZone([]);
+                children: [itemA],
+            } = createZone([{ id: "a" }, { id: "b" }]);
+            const { zone: zoneB, action: actionB } = createZone([]);
             const triggersB = recordTriggers(zoneB);
 
             itemA.focus();
@@ -175,13 +182,13 @@ describe("keyboardDragTrigger", () => {
             // simulate a consumer's finalize handler moving the grabbed item into zoneB
             zoneA.removeChild(itemA);
             zoneB.appendChild(itemA);
-            actionA.update({items: [{id: "b"}]});
-            actionB.update({items: [{id: "a"}]});
+            actionA.update({ items: [{ id: "b" }] });
+            actionB.update({ items: [{ id: "a" }] });
 
             expect(document.activeElement, "should keep the moved item focused").to.equal(itemA);
 
             let bubbledEvent;
-            const bodyListener = e => (bubbledEvent = e);
+            const bodyListener = (e) => (bubbledEvent = e);
             document.body.addEventListener("keydown", bodyListener);
             const enterEvent = press(itemA, "Enter");
             document.body.removeEventListener("keydown", bodyListener);
@@ -190,7 +197,9 @@ describe("keyboardDragTrigger", () => {
             expect(bubbledEvent, "the event should propagate past the new zone").to.equal(enterEvent);
 
             press(itemA, " ");
-            expect(triggersB, "Space should still drop the item in the new zone").to.deep.equal([TRIGGERS.DRAG_STOPPED]);
+            expect(triggersB, "Space should still drop the item in the new zone").to.deep.equal([
+                TRIGGERS.DRAG_STOPPED,
+            ]);
         });
 
         it("no longer accepts keyboardDragTrigger as a zone option", () => {
@@ -200,12 +209,14 @@ describe("keyboardDragTrigger", () => {
             const warnings = [];
             console.warn = (...args) => warnings.push(args);
             try {
-                createZone([], {keyboardDragTrigger: "space"}, fullDndzone);
+                createZone([], { keyboardDragTrigger: "space" }, fullDndzone);
             } finally {
                 console.warn = originalWarn;
             }
-            const ignoredOptions = warnings.flatMap(args => Object.keys(args[1] || {}));
-            expect(ignoredOptions, "the option should be gone, not silently honoured").to.contain("keyboardDragTrigger");
+            const ignoredOptions = warnings.flatMap((args) => Object.keys(args[1] || {}));
+            expect(ignoredOptions, "the option should be gone, not silently honoured").to.contain(
+                "keyboardDragTrigger",
+            );
         });
     });
 
@@ -273,7 +284,7 @@ describe("keyboardDragTrigger", () => {
             try {
                 setKeyboardDragTrigger("space");
                 expect(document.getElementById("dnd-zone-active").textContent).to.equal(
-                    "Tab to one the items and press space-bar to start dragging it"
+                    "Tab to one the items and press space-bar to start dragging it",
                 );
             } finally {
                 destroyAria();
@@ -287,7 +298,7 @@ describe("keyboardDragTrigger", () => {
             initAria();
             try {
                 expect(document.getElementById("dnd-zone-active").textContent).to.equal(
-                    "Tab to one the items and press space-bar to start dragging it"
+                    "Tab to one the items and press space-bar to start dragging it",
                 );
             } finally {
                 destroyAria();
@@ -304,14 +315,14 @@ describe("keyboardDragTrigger", () => {
             zone.appendChild(item);
             document.body.appendChild(zone);
             zones.push(zone);
-            const zoneAction = dragHandleZone(zone, {items: [{id: "a"}], ...options});
+            const zoneAction = dragHandleZone(zone, { items: [{ id: "a" }], ...options });
             const handleAction = dragHandle(handle);
             actions.push(handleAction, zoneAction);
-            return {zone, item, handle, zoneAction};
+            return { zone, item, handle, zoneAction };
         }
 
         it("unlocks dragging from Enter on the handle by default", () => {
-            const {handle} = createHandleZone();
+            const { handle } = createHandleZone();
             press(handle, "Enter");
             expect(handle.style.cursor).to.equal("grabbing");
             press(handle, "Enter");
@@ -320,7 +331,7 @@ describe("keyboardDragTrigger", () => {
 
         it("ignores Enter on the handle when the trigger is 'space'", () => {
             setKeyboardDragTrigger("space");
-            const {handle} = createHandleZone();
+            const { handle } = createHandleZone();
             expect(handle.style.cursor).to.equal("grab");
             press(handle, "Enter");
             expect(handle.style.cursor, "Enter should not unlock dragging").to.equal("grab");
@@ -335,7 +346,7 @@ describe("keyboardDragTrigger", () => {
             setKeyboardDragTrigger("space");
             const first = createHandleZone();
             const second = createHandleZone();
-            [first, second].forEach(({handle}, i) => {
+            [first, second].forEach(({ handle }, i) => {
                 press(handle, "Enter");
                 expect(handle.style.cursor, `handle ${i} should ignore Enter`).to.equal("grab");
                 press(handle, " ");
@@ -346,7 +357,7 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("follows a trigger change made after the handles have mounted", () => {
-            const {handle} = createHandleZone();
+            const { handle } = createHandleZone();
             setKeyboardDragTrigger("space");
             press(handle, "Enter");
             expect(handle.style.cursor, "Enter should no longer unlock dragging").to.equal("grab");

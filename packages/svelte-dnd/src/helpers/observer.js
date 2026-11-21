@@ -1,14 +1,14 @@
-import {findWouldBeIndex, resetIndexesCache} from "./listUtil";
-import {isElementOffDocument} from "./intersection";
+import { findWouldBeIndex, resetIndexesCache } from "./listUtil";
+import { isElementOffDocument } from "./intersection";
 import {
     dispatchDraggedElementEnteredContainer,
     dispatchDraggedElementLeftContainerForAnother,
     dispatchDraggedElementLeftContainerForNone,
     dispatchDraggedLeftDocument,
-    dispatchDraggedElementIsOverIndex
+    dispatchDraggedElementIsOverIndex,
 } from "./dispatcher";
-import {clearTimeoutIn, getDepth, getWindowOf, setTimeoutIn} from "./util";
-import {printDebug} from "../constants";
+import { clearTimeoutIn, getDepth, getWindowOf, setTimeoutIn } from "./util";
+import { printDebug } from "../constants";
 
 const INTERVAL_MS = 200;
 const TOLERANCE_PX = 10;
@@ -69,7 +69,7 @@ export function observe(draggedEl, dropZones, intervalMs = INTERVAL_MS, multiScr
                 // it is not inside
                 continue;
             }
-            const {index} = indexObj;
+            const { index } = indexObj;
             isDraggedInADropZone = true;
             // the element is over a container
             if (dz !== lastDropZoneFound) {

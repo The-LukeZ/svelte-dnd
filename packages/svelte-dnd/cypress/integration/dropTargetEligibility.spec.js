@@ -1,5 +1,5 @@
-import {TRIGGERS} from "../../src/constants";
-import {alertText, createFrame, createList, failOnListenerErrors, key, mouse} from "./helpers/otherWindow";
+import { TRIGGERS } from "../../src/constants";
+import { alertText, createFrame, createList, failOnListenerErrors, key, mouse } from "./helpers/otherWindow";
 
 failOnListenerErrors();
 
@@ -9,7 +9,7 @@ describe("drop-target eligibility", () => {
         cleanups
             .splice(0)
             .reverse()
-            .forEach(cleanup => cleanup())
+            .forEach((cleanup) => cleanup()),
     );
 
     function list(doc, options) {
@@ -30,13 +30,13 @@ describe("drop-target eligibility", () => {
         key(created.element(name), "Enter");
     }
 
-    [false, true].forEach(inFrame => {
+    [false, true].forEach((inFrame) => {
         const where = inFrame ? "in an iframe" : "in the same document";
-        [{type: "other"}, {dropFromOthersDisabled: true}].forEach(restriction => {
+        [{ type: "other" }, { dropFromOthersDisabled: true }].forEach((restriction) => {
             it(`does not move a keyboard-dragged item into ${JSON.stringify(restriction)} ${where}`, () => {
                 const targetDoc = inFrame ? frame().doc : document;
-                const source = list(targetDoc, {label: "Source", names: ["a"], type: "cards"});
-                const target = list(targetDoc, {label: "Target", names: ["b"], type: "cards", ...restriction});
+                const source = list(targetDoc, { label: "Source", names: ["a"], type: "cards" });
+                const target = list(targetDoc, { label: "Target", names: ["b"], type: "cards", ...restriction });
                 grab(source, "a");
                 const announcement = alertText(targetDoc);
                 expect(target.zone.tabIndex).to.equal(-1);
@@ -53,8 +53,8 @@ describe("drop-target eligibility", () => {
     });
 
     it("still receives a keyboard item when only pickup is disabled", () => {
-        const source = list(document, {label: "Source", names: ["a"]});
-        const target = list(document, {label: "Target", names: ["b"], dragDisabled: true});
+        const source = list(document, { label: "Source", names: ["a"] });
+        const target = list(document, { label: "Target", names: ["b"], dragDisabled: true });
         grab(source, "a");
         target.zone.focus();
         expect(target.names()).to.include("a");
@@ -62,8 +62,8 @@ describe("drop-target eligibility", () => {
     });
 
     it("rejects an incoming return to a dropFromOthersDisabled list after moving out", () => {
-        const source = list(document, {label: "Source", names: ["a"], dropFromOthersDisabled: true});
-        const target = list(document, {label: "Target", names: ["b"]});
+        const source = list(document, { label: "Source", names: ["a"], dropFromOthersDisabled: true });
+        const target = list(document, { label: "Target", names: ["b"] });
         grab(source, "a");
         target.zone.focus();
         // Once the grab has moved out, the old list is an incoming destination and is disabled.
@@ -74,12 +74,12 @@ describe("drop-target eligibility", () => {
         key(window, "Escape");
     });
 
-    [false, true].forEach(hasOtherDestination => {
+    [false, true].forEach((hasOtherDestination) => {
         it(`does not count or style a zone inside the grabbed item (${hasOtherDestination ? "another valid list" : "no other list"})`, () => {
-            const source = list(document, {label: "Source", names: ["a"]});
-            const nested = list(document, {label: "Nested", names: ["n"]});
+            const source = list(document, { label: "Source", names: ["a"] });
+            const nested = list(document, { label: "Nested", names: ["n"] });
             source.element("a").appendChild(nested.zone);
-            if (hasOtherDestination) list(document, {label: "Target", names: ["b"]});
+            if (hasOtherDestination) list(document, { label: "Target", names: ["b"] });
             grab(source, "a");
             expect(nested.zone.tabIndex).to.equal(-1);
             expect(nested.zone.style.outline).to.equal("");
@@ -97,19 +97,33 @@ describe("drop-target eligibility", () => {
         cleanups.push(() => source.win.dispatchEvent(mouse(source.win, "mouseup", 50, 20)));
     }
     function update(created, options) {
-        created.action.update({items: created.names().map(name => ({id: name, name})), dropAnimationDisabled: true, ...options});
+        created.action.update({
+            items: created.names().map((name) => ({ id: name, name })),
+            dropAnimationDisabled: true,
+            ...options,
+        });
     }
 
-    ["style", "classes", "enable incoming"].forEach(change => {
+    ["style", "classes", "enable incoming"].forEach((change) => {
         it(`does not style an other-type zone on a mid-drag ${change} change`, () => {
-            const source = list(document, {label: "Source", names: ["a"], type: "cards", dropAnimationDisabled: true});
-            const target = list(document, {label: "Target", names: ["b"], type: "other", dropFromOthersDisabled: true});
+            const source = list(document, {
+                label: "Source",
+                names: ["a"],
+                type: "cards",
+                dropAnimationDisabled: true,
+            });
+            const target = list(document, {
+                label: "Target",
+                names: ["b"],
+                type: "other",
+                dropFromOthersDisabled: true,
+            });
             startPointer(source);
             update(target, {
                 type: "other",
                 dropFromOthersDisabled: change !== "enable incoming",
-                dropTargetStyle: change === "classes" ? {} : {outline: "solid 4px red"},
-                dropTargetClasses: change === "classes" ? ["active-target"] : []
+                dropTargetStyle: change === "classes" ? {} : { outline: "solid 4px red" },
+                dropTargetClasses: change === "classes" ? ["active-target"] : [],
             });
             expect(target.zone.style.outline).to.equal("");
             expect(target.zone.classList.contains("active-target")).to.equal(false);
@@ -118,20 +132,20 @@ describe("drop-target eligibility", () => {
         });
     });
 
-    [false, true].forEach(empty => {
+    [false, true].forEach((empty) => {
         const targetNames = empty ? [] : ["b"];
         const description = empty ? "empty" : "populated";
         it(`replaces old ${description} target styles and classes and clears the replacements on drop`, () => {
-            const source = list(document, {label: "Source", names: ["a"], dropAnimationDisabled: true});
+            const source = list(document, { label: "Source", names: ["a"], dropAnimationDisabled: true });
             const target = list(document, {
                 label: "Target",
                 names: targetNames,
-                dropTargetStyle: {outline: "solid 2px blue"},
-                dropTargetClasses: ["old"]
+                dropTargetStyle: { outline: "solid 2px blue" },
+                dropTargetClasses: ["old"],
             });
             startPointer(source);
             expect(target.zone.classList.contains("old")).to.equal(true);
-            update(target, {dropTargetStyle: {border: "solid 3px red"}, dropTargetClasses: ["new"]});
+            update(target, { dropTargetStyle: { border: "solid 3px red" }, dropTargetClasses: ["new"] });
             expect(target.zone.style.outline).to.equal("");
             expect(target.zone.style.border).not.to.equal("");
             expect(target.zone.classList.contains("old")).to.equal(false);
@@ -143,10 +157,14 @@ describe("drop-target eligibility", () => {
         });
 
         it(`removes old ${description} target styling when disabling incoming drops and changing styles together`, () => {
-            const source = list(document, {label: "Source", names: ["a"], dropAnimationDisabled: true});
-            const target = list(document, {label: "Target", names: targetNames, dropTargetClasses: ["old"]});
+            const source = list(document, { label: "Source", names: ["a"], dropAnimationDisabled: true });
+            const target = list(document, { label: "Target", names: targetNames, dropTargetClasses: ["old"] });
             startPointer(source);
-            update(target, {dropFromOthersDisabled: true, dropTargetStyle: {border: "solid 3px red"}, dropTargetClasses: ["new"]});
+            update(target, {
+                dropFromOthersDisabled: true,
+                dropTargetStyle: { border: "solid 3px red" },
+                dropTargetClasses: ["new"],
+            });
             expect(target.zone.style.outline).to.equal("");
             expect(target.zone.style.border).to.equal("");
             expect(target.zone.classList.contains("old")).to.equal(false);
@@ -159,25 +177,25 @@ describe("drop-target eligibility", () => {
         });
 
         it(`styles an enabled same-type ${description} destination but not a disabled one`, () => {
-            const source = list(document, {label: "Source", names: ["a"], dropAnimationDisabled: true});
-            const target = list(document, {label: "Target", names: targetNames, dropFromOthersDisabled: true});
+            const source = list(document, { label: "Source", names: ["a"], dropAnimationDisabled: true });
+            const target = list(document, { label: "Target", names: targetNames, dropFromOthersDisabled: true });
             startPointer(source);
-            update(target, {dropFromOthersDisabled: true, dropTargetStyle: {border: "solid 3px red"}});
+            update(target, { dropFromOthersDisabled: true, dropTargetStyle: { border: "solid 3px red" } });
             expect(target.zone.style.border).to.equal("");
-            update(target, {dropFromOthersDisabled: false, dropTargetStyle: {border: "solid 3px red"}});
+            update(target, { dropFromOthersDisabled: false, dropTargetStyle: { border: "solid 3px red" } });
             expect(target.zone.style.border).not.to.equal("");
-            update(target, {dropFromOthersDisabled: true, dropTargetStyle: {border: "solid 3px red"}});
+            update(target, { dropFromOthersDisabled: true, dropTargetStyle: { border: "solid 3px red" } });
             expect(target.zone.style.border).to.equal("");
         });
     });
 
     it("reconciles an empty target in the drag's own iframe", () => {
-        const {doc} = frame();
-        const source = list(doc, {label: "Source", names: ["a"], dropAnimationDisabled: true});
-        const target = list(doc, {label: "Target", names: [], dropTargetClasses: ["old"]});
+        const { doc } = frame();
+        const source = list(doc, { label: "Source", names: ["a"], dropAnimationDisabled: true });
+        const target = list(doc, { label: "Target", names: [], dropTargetClasses: ["old"] });
         startPointer(source);
         expect(target.zone.classList.contains("old")).to.equal(true);
-        update(target, {dropTargetStyle: {border: "solid 3px red"}, dropTargetClasses: ["new"]});
+        update(target, { dropTargetStyle: { border: "solid 3px red" }, dropTargetClasses: ["new"] });
         expect(target.zone.classList.contains("old")).to.equal(false);
         expect(target.zone.classList.contains("new")).to.equal(true);
         source.win.dispatchEvent(mouse(source.win, "mouseup", 50, 20));
@@ -186,9 +204,9 @@ describe("drop-target eligibility", () => {
     });
 
     it("keeps the pointer origin styled when incoming drops are disabled", () => {
-        const source = list(document, {label: "Source", names: ["a"], dropAnimationDisabled: true});
+        const source = list(document, { label: "Source", names: ["a"], dropAnimationDisabled: true });
         startPointer(source);
-        update(source, {dropFromOthersDisabled: true});
+        update(source, { dropFromOthersDisabled: true });
         expect(source.zone.style.outline).not.to.equal("");
         source.win.dispatchEvent(mouse(source.win, "mouseup", 50, 20));
         expect(source.zone.style.outline).to.equal("");

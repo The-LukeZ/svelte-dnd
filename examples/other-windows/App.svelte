@@ -1,5 +1,5 @@
 <script>
-    import {onDestroy} from "svelte";
+    import { onDestroy } from "svelte";
     import Lists from "./Lists.svelte";
 
     let showFrame = true;
@@ -12,7 +12,7 @@
     // The same compiled component and library instance are used in all documents.
     // Svelte styles must also be available in the document into which the component is mounted.
     function mountLists(doc, prefix, title, sourceDoc) {
-        const component = new Lists({target: doc.body, props: {prefix, title}});
+        const component = new Lists({ target: doc.body, props: { prefix, title } });
         for (const style of sourceDoc.querySelectorAll("style")) {
             if (!style.id || !doc.getElementById(style.id)) doc.head.appendChild(style.cloneNode(true));
         }
@@ -24,7 +24,8 @@
         frameComponent?.$destroy();
         const frame = event.currentTarget;
         if (!frame.contentDocument) {
-            frameMessage = "Playground isolates iframe documents for visitors. To try this part, log in, fork/save this app and reload it, or use Download app and run it locally.";
+            frameMessage =
+                "Playground isolates iframe documents for visitors. To try this part, log in, fork/save this app and reload it, or use Download app and run it locally.";
             return;
         }
         frameMessage = "";
@@ -59,13 +60,15 @@
             popup.document.title = "svelte-dnd-action: separate window";
             popup.document.documentElement.lang = "en";
             popupComponent = mountLists(popup.document, "popup", "Separate popup window", sourceDoc);
-            popup.addEventListener("pagehide", releasePopup, {once: true});
-            message = "The popup has its own two lists. Move items between those lists; it is not a destination for drags in this page.";
+            popup.addEventListener("pagehide", releasePopup, { once: true });
+            message =
+                "The popup has its own two lists. Move items between those lists; it is not a destination for drags in this page.";
         } catch (error) {
             if (error.name !== "SecurityError") throw error;
             popup?.close();
             popup = undefined;
-            message = "Playground isolates popup documents for visitors. Log in, fork/save this app and reload it, or use Download app and run it locally.";
+            message =
+                "Playground isolates popup documents for visitors. Log in, fork/save this app and reload it, or use Download app and run it locally.";
         }
     }
 
@@ -82,14 +85,28 @@
 <main>
     <h1>Zones in other windows</h1>
     <p>The library is loaded once, in this page. The same action also powers lists in the iframe and popup.</p>
-    <p>Each document's two lists form an independent board. Neither mouse nor keyboard dragging moves items between documents.</p>
+    <p>
+        Each document's two lists form an independent board. Neither mouse nor keyboard dragging moves items between
+        documents.
+    </p>
     <details open>
         <summary>How to try it</summary>
         <ul>
-            <li><strong>Pointer:</strong> drag between the two lists inside each document. Pointer drags do not cross document boundaries.</li>
-            <li><strong>Keyboard:</strong> Tab to a card, press Enter or Space, then use arrows to reorder or Tab/Shift+Tab to move between the two lists in that same document. Escape finishes.</li>
-            <li><strong>Screen reader:</strong> each document has its own list instructions and automatic drag announcements.</li>
-            <li><strong>Iframe and popup:</strong> their lists work independently of the page's lists, using the same library instance loaded in the page.</li>
+            <li>
+                <strong>Pointer:</strong> drag between the two lists inside each document. Pointer drags do not cross document
+                boundaries.
+            </li>
+            <li>
+                <strong>Keyboard:</strong> Tab to a card, press Enter or Space, then use arrows to reorder or Tab/Shift+Tab
+                to move between the two lists in that same document. Escape finishes.
+            </li>
+            <li>
+                <strong>Screen reader:</strong> each document has its own list instructions and automatic drag announcements.
+            </li>
+            <li>
+                <strong>Iframe and popup:</strong> their lists work independently of the page's lists, using the same library
+                instance loaded in the page.
+            </li>
         </ul>
     </details>
     <div class="controls">
@@ -114,7 +131,9 @@
         margin: auto;
         padding: 16px;
         color: #243042;
-        font: 14px/1.5 system-ui, sans-serif;
+        font:
+            14px/1.5 system-ui,
+            sans-serif;
     }
     h1 {
         margin-top: 0;

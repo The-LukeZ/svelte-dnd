@@ -1,4 +1,4 @@
-import {getBoundingRectNoTransforms, isElementOffDocument} from "../../src/helpers/intersection";
+import { getBoundingRectNoTransforms, isElementOffDocument } from "../../src/helpers/intersection";
 
 function makeDiv(widthPx = 50, heightPx = 50) {
     const el = document.createElement("div");

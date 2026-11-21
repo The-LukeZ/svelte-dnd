@@ -1,4 +1,4 @@
-import {dndzone} from "../../../src/action";
+import { dndzone } from "../../../src/action";
 
 // Helpers for zones that live in another document than the one that loaded the library: a same-origin
 // iframe (its own Window and Document in the same tab) or a popup opened with window.open (its own tab).
@@ -6,14 +6,14 @@ import {dndzone} from "../../../src/action";
 /**
  * @param {{parent?: Document, style?: Object}} [options]
  */
-export function createFrame({parent = document, style = {}} = {}) {
+export function createFrame({ parent = document, style = {} } = {}) {
     const frame = parent.createElement("iframe");
-    Object.assign(frame.style, {display: "block", border: "0", width: "300px", height: "200px"}, style);
+    Object.assign(frame.style, { display: "block", border: "0", width: "300px", height: "200px" }, style);
     parent.body.appendChild(frame);
     const doc = frame.contentDocument;
     doc.write("<!DOCTYPE html><body style='margin:0'></body>");
     doc.close();
-    return {frame, win: frame.contentWindow, doc};
+    return { frame, win: frame.contentWindow, doc };
 }
 
 /**
@@ -29,19 +29,19 @@ export function openPopup(test) {
     }
     win.document.write("<!DOCTYPE html><body style='margin:0'></body>");
     win.document.close();
-    return {win, doc: win.document};
+    return { win, doc: win.document };
 }
 
 /**
  * A list that renders one element per item and re-renders on every consider and finalize, as a keyed
  * framework list would: an element is reused while its item stays in the list and recreated otherwise.
  */
-export function createList(doc, {label, names, style = {}, ...options}) {
+export function createList(doc, { label, names, style = {}, ...options }) {
     const zone = doc.createElement("div");
     zone.setAttribute("aria-label", label);
-    Object.assign(zone.style, {width: "100px", minHeight: "30px"}, style);
+    Object.assign(zone.style, { width: "100px", minHeight: "30px" }, style);
     doc.body.appendChild(zone);
-    let items = names.map(name => ({id: name, name}));
+    let items = names.map((name) => ({ id: name, name }));
     let elements = new Map();
     function render() {
         const nextElements = new Map();
@@ -59,7 +59,7 @@ export function createList(doc, {label, names, style = {}, ...options}) {
         zone.replaceChildren(...nextElements.values());
     }
     render();
-    const getOptions = () => ({items, flipDurationMs: 0, ...options});
+    const getOptions = () => ({ items, flipDurationMs: 0, ...options });
     const action = dndzone(zone, getOptions());
     const triggers = [];
     const events = [];
@@ -79,18 +79,18 @@ export function createList(doc, {label, names, style = {}, ...options}) {
         win: doc.defaultView,
         triggers,
         events,
-        names: () => items.map(item => item.name),
-        element: name => elements.get(name)
+        names: () => items.map((item) => item.name),
+        element: (name) => elements.get(name),
     };
 }
 
 export function key(target, k) {
-    const {KeyboardEvent} = target.ownerDocument ? target.ownerDocument.defaultView : target;
-    target.dispatchEvent(new KeyboardEvent("keydown", {key: k, bubbles: true, cancelable: true}));
+    const { KeyboardEvent } = target.ownerDocument ? target.ownerDocument.defaultView : target;
+    target.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
 }
 
 export function mouse(win, type, x, y = x) {
-    return new win.MouseEvent(type, {button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true});
+    return new win.MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
 }
 
 export function alertText(doc) {
@@ -98,7 +98,7 @@ export function alertText(doc) {
 }
 
 export function sleepIn(win, ms) {
-    return new Promise(resolve => win.setTimeout(resolve, ms));
+    return new Promise((resolve) => win.setTimeout(resolve, ms));
 }
 
 /**
@@ -106,8 +106,8 @@ export function sleepIn(win, ms) {
  * @return {{active: function(): string[], restore: function(): void}}
  */
 export function trackListeners(win, types) {
-    const {addEventListener, removeEventListener} = win;
-    const attached = new Map(types.map(type => [type, new Set()]));
+    const { addEventListener, removeEventListener } = win;
+    const attached = new Map(types.map((type) => [type, new Set()]));
     win.addEventListener = function (type, listener, options) {
         attached.get(type)?.add(listener);
         return addEventListener.call(this, type, listener, options);
@@ -117,11 +117,11 @@ export function trackListeners(win, types) {
         return removeEventListener.call(this, type, listener, options);
     };
     return {
-        active: () => types.filter(type => attached.get(type).size > 0),
+        active: () => types.filter((type) => attached.get(type).size > 0),
         restore: () => {
             win.addEventListener = addEventListener;
             win.removeEventListener = removeEventListener;
-        }
+        },
     };
 }
 
@@ -131,7 +131,7 @@ export function trackListeners(win, types) {
  */
 export function failOnListenerErrors() {
     let errors;
-    const onError = e => errors.push(e.message);
+    const onError = (e) => errors.push(e.message);
     beforeEach(() => {
         errors = [];
         window.addEventListener("error", onError);

@@ -1,4 +1,4 @@
-import type {ActionReturn} from "svelte/action";
+import type { ActionReturn } from "svelte/action";
 
 /**
  * A custom action to turn any container to a dnd zone and all of its direct children to draggables
@@ -6,11 +6,14 @@ import type {ActionReturn} from "svelte/action";
  * Dispatches two events that the container is expected to react to by modifying its list of items,
  * which will then feed back in to this action via the update function
  */
-export declare function dndzone<T extends Item>(node: HTMLElement, options: Options<T>): ActionReturn<Options<T>, DndZoneAttributes<T>>;
+export declare function dndzone<T extends Item>(
+    node: HTMLElement,
+    options: Options<T>,
+): ActionReturn<Options<T>, DndZoneAttributes<T>>;
 
 export declare function dndzone<T extends Item>(
     node: HTMLElement,
-    options: Options<T>
+    options: Options<T>,
 ): {
     update: (newOptions: Options<T>) => void;
     destroy: () => void;
@@ -20,10 +23,13 @@ export declare function dndzone<T extends Item>(
  * A wrapper action to make it easy to work with drag handles.
  * When using this you must also use the 'dragHandle' action on an element inside each item within the zone.
  */
-export declare function dragHandleZone<T extends Item>(node: HTMLElement, options: Options<T>): ActionReturn<Options<T>, DndZoneAttributes<T>>;
 export declare function dragHandleZone<T extends Item>(
     node: HTMLElement,
-    options: Options<T>
+    options: Options<T>,
+): ActionReturn<Options<T>, DndZoneAttributes<T>>;
+export declare function dragHandleZone<T extends Item>(
+    node: HTMLElement,
+    options: Options<T>,
 ): {
     update: (newOptions: Options<T>) => void;
     destroy: () => void;
@@ -40,7 +46,7 @@ export declare function dragHandle(node: HTMLElement): {
 export type TransformDraggedElementFunction = (
     element?: HTMLElement, // the dragged element.
     draggedElementData?: Item, // the data of the item from the items array
-    index?: number // the index the dragged element would get if dropped into the new dnd-zone
+    index?: number, // the index the dragged element would get if dropped into the new dnd-zone
 ) => void;
 
 export declare type Item = Record<string, any>;
@@ -87,12 +93,18 @@ export declare function alertToScreenReader(txt: string, doc?: Document): void;
 // Every message key receives the same core context - itemLabel, zoneLabel, position, count -
 // so a consumer can word any of them positionally. Only dragStarted carries an extra.
 export interface AriaStrings {
-    dragStarted?: (ctx: {itemLabel: string; zoneLabel: string; position: number; count: number; canMoveBetweenZones: boolean}) => string;
-    movedToPosition?: (ctx: {itemLabel: string; zoneLabel: string; position: number; count: number}) => string;
-    movedToZoneEnd?: (ctx: {itemLabel: string; zoneLabel: string; position: number; count: number}) => string;
-    movedToZoneStart?: (ctx: {itemLabel: string; zoneLabel: string; position: number; count: number}) => string;
-    dropped?: (ctx: {itemLabel: string; zoneLabel: string; position: number; count: number}) => string;
-    zoneActiveInstruction?: string | ((ctx: {keyboardDragTrigger: "space" | "enter" | "space_or_enter"}) => string);
+    dragStarted?: (ctx: {
+        itemLabel: string;
+        zoneLabel: string;
+        position: number;
+        count: number;
+        canMoveBetweenZones: boolean;
+    }) => string;
+    movedToPosition?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    movedToZoneEnd?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    movedToZoneStart?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    dropped?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    zoneActiveInstruction?: string | ((ctx: { keyboardDragTrigger: "space" | "enter" | "space_or_enter" }) => string);
     zoneDragDisabledInstruction?: string;
 }
 
@@ -131,12 +143,12 @@ export enum TRIGGERS {
     DROPPED_INTO_ZONE = "droppedIntoZone",
     DROPPED_INTO_ANOTHER = "droppedIntoAnother",
     DROPPED_OUTSIDE_OF_ANY = "droppedOutsideOfAny",
-    DRAG_STOPPED = "dragStopped" //only relevant for keyboard interactions - when the use exists dragging mode
+    DRAG_STOPPED = "dragStopped", //only relevant for keyboard interactions - when the use exists dragging mode
 }
 
 export enum SOURCES {
     POINTER = "pointer", // mouse or touch
-    KEYBOARD = "keyboard"
+    KEYBOARD = "keyboard",
 }
 
 export interface DndEventInfo {
@@ -162,6 +174,6 @@ export declare function setDebugMode(isDebug: boolean): void;
 
 export enum FEATURE_FLAG_NAMES {
     // Default value: false, This flag exists as a workaround for issue 454 (basically a browser bug) - seems like these rect values take time to update when in grid layout. Setting it to true can cause strange behaviour in the REPL for non-grid zones, see issue 470
-    USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT = "FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT"
+    USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT = "FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT",
 }
 export declare function setFeatureFlag(flagName: FEATURE_FLAG_NAMES, flagValue: boolean);

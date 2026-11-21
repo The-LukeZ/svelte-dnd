@@ -1,8 +1,8 @@
-import {SOURCES, TRIGGERS} from "../constants";
-import {isKeyboardDragTriggerKey} from "../keyboardDragTrigger";
-import {dndzone} from "../action";
-import {createStore} from "./simpleStore";
-import {getWindowOf} from "../helpers/util";
+import { SOURCES, TRIGGERS } from "../constants";
+import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
+import { dndzone } from "../action";
+import { createStore } from "./simpleStore";
+import { getWindowOf } from "../helpers/util";
 
 const isItemsDragDisabled = createStore(true);
 const userDragDisabled = createStore(false);
@@ -10,7 +10,7 @@ const userDragDisabled = createStore(false);
 function getAddedOptions() {
     return {
         dragDisabled: userDragDisabled.get() || isItemsDragDisabled.get(),
-        zoneItemTabIndex: -1
+        zoneItemTabIndex: -1,
     };
 }
 
@@ -31,13 +31,13 @@ export function dragHandleZone(node, options) {
 
     const zone = dndzone(node, {
         ...currentOptions,
-        ...getAddedOptions()
+        ...getAddedOptions(),
     });
 
     function updateZone() {
         zone.update({
             ...currentOptions,
-            ...getAddedOptions()
+            ...getAddedOptions(),
         });
     }
 
@@ -50,7 +50,7 @@ export function dragHandleZone(node, options) {
 
     function consider(e) {
         const {
-            info: {source, trigger}
+            info: { source, trigger },
         } = e.detail;
         // Ensure dragging is stopped on drag finish via keyboard
         if (source === SOURCES.KEYBOARD && trigger === TRIGGERS.DRAG_STOPPED) {
@@ -60,7 +60,7 @@ export function dragHandleZone(node, options) {
 
     function finalize(e) {
         const {
-            info: {source}
+            info: { source },
         } = e.detail;
         // Ensure dragging is stopped on drag finish via pointer (mouse, touch)
         if (source === SOURCES.POINTER) {
@@ -72,7 +72,7 @@ export function dragHandleZone(node, options) {
     node.addEventListener("finalize", finalize);
 
     return {
-        update: newOptions => {
+        update: (newOptions) => {
             currentOptions = newOptions;
             // keep store in sync with external prop
             userDragDisabled.set(currentOptions?.dragDisabled ?? false);
@@ -83,7 +83,7 @@ export function dragHandleZone(node, options) {
             node.removeEventListener("consider", consider);
             node.removeEventListener("finalize", finalize);
             isItemsDragDisabled.unsubscribe(updateZone);
-        }
+        },
     };
 }
 
@@ -148,6 +148,6 @@ export function dragHandle(handle) {
             handle.removeEventListener("keydown", handleKeyDown);
             userDragDisabled.unsubscribe(recomputeHandleState);
             isItemsDragDisabled.unsubscribe(recomputeHandleState);
-        }
+        },
     };
 }

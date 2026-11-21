@@ -1,7 +1,7 @@
-import {makeScroller} from "./scroller";
-import {printDebug} from "../constants";
-import {getDepth, getWindowOf} from "./util";
-import {isPointInsideRect} from "./intersection";
+import { makeScroller } from "./scroller";
+import { printDebug } from "../constants";
+import { getDepth, getWindowOf } from "./util";
+import { isPointInsideRect } from "./intersection";
 
 /**
  @typedef {Object} MultiScroller
@@ -15,8 +15,10 @@ import {isPointInsideRect} from "./intersection";
 export function createMultiScroller(baseElementsForScrolling = [], getPointerPosition) {
     printDebug(() => "creating multi-scroller");
     const scrollingContainersSet = findRelevantScrollContainers(baseElementsForScrolling);
-    const scrollingContainersDeepToShallow = Array.from(scrollingContainersSet).sort((dz1, dz2) => getDepth(dz2) - getDepth(dz1));
-    const {scrollIfNeeded, resetScrolling} = makeScroller();
+    const scrollingContainersDeepToShallow = Array.from(scrollingContainersSet).sort(
+        (dz1, dz2) => getDepth(dz2) - getDepth(dz1),
+    );
+    const { scrollIfNeeded, resetScrolling } = makeScroller();
 
     /**
      * @return {boolean} - was any container scrolled
@@ -27,7 +29,9 @@ export function createMultiScroller(baseElementsForScrolling = [], getPointerPos
             return false;
         }
         const scrollContainersUnderCursor = scrollingContainersDeepToShallow.filter(
-            el => isPointInsideRect(mousePosition, el.getBoundingClientRect()) || el === el.ownerDocument.scrollingElement
+            (el) =>
+                isPointInsideRect(mousePosition, el.getBoundingClientRect()) ||
+                el === el.ownerDocument.scrollingElement,
         );
         for (let i = 0; i < scrollContainersUnderCursor.length; i++) {
             const scrolled = scrollIfNeeded(mousePosition, scrollContainersUnderCursor[i]);
@@ -39,7 +43,7 @@ export function createMultiScroller(baseElementsForScrolling = [], getPointerPos
     }
     return {
         multiScrollIfNeeded: scrollingContainersSet.size > 0 ? tick : () => false,
-        destroy: () => resetScrolling()
+        destroy: () => resetScrolling(),
     };
 }
 
@@ -51,8 +55,8 @@ function findScrollableParents(element) {
     const scrollableContainers = [];
     let parent = element;
     while (parent) {
-        const {overflow} = getWindowOf(parent).getComputedStyle(parent);
-        if (overflow.split(" ").some(o => o.includes("auto") || o.includes("scroll"))) {
+        const { overflow } = getWindowOf(parent).getComputedStyle(parent);
+        if (overflow.split(" ").some((o) => o.includes("auto") || o.includes("scroll"))) {
             scrollableContainers.push(parent);
         }
         parent = parent.parentElement;
@@ -62,10 +66,13 @@ function findScrollableParents(element) {
 function findRelevantScrollContainers(dropZones) {
     const scrollingContainers = new Set();
     for (let dz of dropZones) {
-        findScrollableParents(dz).forEach(container => scrollingContainers.add(container));
+        findScrollableParents(dz).forEach((container) => scrollingContainers.add(container));
         // The scrolling element might have overflow visible and still be scrollable
-        const {scrollingElement} = dz.ownerDocument;
-        if (scrollingElement.scrollHeight > scrollingElement.clientHeight || scrollingElement.scrollWidth > scrollingElement.clientHeight) {
+        const { scrollingElement } = dz.ownerDocument;
+        if (
+            scrollingElement.scrollHeight > scrollingElement.clientHeight ||
+            scrollingElement.scrollWidth > scrollingElement.clientHeight
+        ) {
             scrollingContainers.add(scrollingElement);
         }
     }

@@ -1,5 +1,5 @@
-import {findWouldBeIndex} from "../../src/helpers/listUtil";
-import {findCenterOfElement} from "../../src/helpers/intersection";
+import { findWouldBeIndex } from "../../src/helpers/listUtil";
+import { findCenterOfElement } from "../../src/helpers/intersection";
 
 describe("listUtil", () => {
     describe("findWouldBeIndex", () => {
@@ -47,12 +47,18 @@ describe("listUtil", () => {
         it("works correctly, not proximity based", () => {
             draggedEl.style.top = "150px";
             draggedEl.style.left = "5px";
-            expect(findWouldBeIndex(findCenterOfElement(draggedEl), containerEl)).to.deep.equal({index: 1, isProximityBased: false});
+            expect(findWouldBeIndex(findCenterOfElement(draggedEl), containerEl)).to.deep.equal({
+                index: 1,
+                isProximityBased: false,
+            });
         });
         it("returns the trailing insertion slot when it is the closest", () => {
             draggedEl.style.top = "450px";
             draggedEl.style.left = "5px";
-            expect(findWouldBeIndex(findCenterOfElement(draggedEl), containerEl)).to.deep.equal({index: 3, isProximityBased: true});
+            expect(findWouldBeIndex(findCenterOfElement(draggedEl), containerEl)).to.deep.equal({
+                index: 3,
+                isProximityBased: true,
+            });
         });
     });
 });

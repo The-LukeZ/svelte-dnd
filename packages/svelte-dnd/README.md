@@ -16,16 +16,16 @@ It is being actively maintained.
 
 ### Features
 
--   Awesome drag and drop with minimal fuss
--   Supports horizontal, vertical or any other type of container (it doesn't care much about the shape)
--   Supports nested dnd-zones (draggable containers with other draggable elements inside, think Trello)
--   Rich animations (can be opted out of)
--   Touch support
--   Define what can be dropped where (dnd-zones optionally have a "type")
--   Scroll dnd-zones (of the relevant "type"), parent containers that contains them and/or the window horizontally or vertically by placing the dragged element next to the edge
--   Supports advanced use-cases such as various flavours of copy-on-drag and custom drag handles (see examples below)
--   Performant and small footprint (no external dependencies, no fluff code)
--   Fully accessible (beta) - keyboard support, aria attributes and assistive instructions for screen readers
+- Awesome drag and drop with minimal fuss
+- Supports horizontal, vertical or any other type of container (it doesn't care much about the shape)
+- Supports nested dnd-zones (draggable containers with other draggable elements inside, think Trello)
+- Rich animations (can be opted out of)
+- Touch support
+- Define what can be dropped where (dnd-zones optionally have a "type")
+- Scroll dnd-zones (of the relevant "type"), parent containers that contains them and/or the window horizontally or vertically by placing the dragged element next to the edge
+- Supports advanced use-cases such as various flavours of copy-on-drag and custom drag handles (see examples below)
+- Performant and small footprint (no external dependencies, no fluff code)
+- Fully accessible (beta) - keyboard support, aria attributes and assistive instructions for screen readers
 
 ### Why a svelte action rather than a higher order component?
 
@@ -60,13 +60,13 @@ npm install --save-dev svelte-dnd-action
 
 ```html
 <script>
-    import {flip} from "svelte/animate";
-    import {dndzone} from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
+    import { dndzone } from "svelte-dnd-action";
     let items = [
-        {id: 1, name: "item1"},
-        {id: 2, name: "item2"},
-        {id: 3, name: "item3"},
-        {id: 4, name: "item4"}
+        { id: 1, name: "item1" },
+        { id: 2, name: "item2" },
+        { id: 3, name: "item3" },
+        { id: 4, name: "item4" },
     ];
     const flipDurationMs = 300;
     function handleDndConsider(e) {
@@ -103,43 +103,44 @@ npm install --save-dev svelte-dnd-action
 ##### Input:
 
 An options-object with the following attributes:
-| Name | Type | Required? | Default Value | Description |
-| ------------------------- | -------------- | ------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------ |
-| `items` | Array&lt;Object&gt; | Yes. Each object in the array **has to have** an `id` property (key name can be overridden globally) with a unique value (within all dnd-zones of the same type) | N/A | The data array that is used to produce the list with the draggable items (the same thing you run your #each block on). The dndzone should not have children that don't originate in `items` |
-| `flipDurationMs` | Number | No | `0` | The same value you give the flip animation on the items (to make them animated as they "make space" for the dragged item). Set to zero if you dont want animations, if unset it defaults to 100ms |
-| `type` | String | No | Internal | dnd-zones that share the same type can have elements from one dragged into another. By default, all dnd-zones have the same type |
-| `dragDisabled` | Boolean | No | `false` | Setting it to true will make it impossible to drag elements out of the dnd-zone. You can change it at any time, and the zone will adjust on the fly |
-| `morphDisabled` | Boolean | No | `false` | By default, when dragging over a zone, the dragged element is morphed to look like it would if dropped. You can prevent it by setting this option. |
-| `dropFromOthersDisabled` | Boolean | No | `false` | Setting it to true will make it impossible to drop elements from other dnd-zones of the same type. Can be useful if you want to limit the max number of items for example. You can change it at any time, and the zone will adjust on the fly |
-| `zoneTabIndex` | Number | No | `0` | Allow user to set custom tabindex to the list container when not dragging. Can be useful if you want to make the screen reader to skip the list container. You can change it at any time. |
-| `zoneItemTabIndex` | Number | No | `0` | Allow user to set custom tabindex to the list container items when not dragging. Can be useful if you use [Drag handles](https://github.com/isaacHagoel/svelte-dnd-action#examples-and-recipes). You can change it at any time. |
-| `dropTargetStyle` | Object&lt;String&gt; | No | `{outline: 'rgba(255, 255, 102, 0.7) solid 2px'}` | An object of styles to apply to the dnd-zone when items can be dragged into it. Note: the styles override any inline styles applied to the dnd-zone. When the styles are removed, any original inline styles will be lost |
-| `dropTargetClasses`| Array&lt;String&gt; | No | `[]` | A list of classes to apply to the dnd-zone when items can be dragged into it. Note: make sure the classes you use are global. |
-| `transformDraggedElement` | Function | No | `() => {}` | A function that is invoked when the draggable element enters the dnd-zone or hover overs a new index in the current dnd-zone. <br />Signature:<br />function(element, data, index) {}<br />**element**: The dragged element. <br />**data**: The data of the item from the items array.<br />**index**: The index the dragged element will become in the new dnd-zone.<br /><br />This allows you to override properties on the dragged element, such as innerHTML to change how it displays. If what you are after is altering styles, do it to the children, not to the dragged element itself |
-| `autoAriaDisabled` | Boolean | No | `false` | Setting it to true will disable all the automatically added aria attributes and aria alerts (for example when the user starts/ stops dragging using the keyboard).<br /> **Use it only if you intend to implement your own custom instructions, roles and alerts.** In such a case, you might find the exported function `alertToScreenReader(string, document?)` useful (pass the zone's document when the zone is in another window, such as an iframe or a popup). <br />**If you only want to change the wording (ex: to translate it), use `setAriaStrings` instead and leave this off.** |
-| `centreDraggedOnCursor` | Boolean | No | `false` | Setting it to true will cause elements from this dnd-zone to position their center on the cursor on drag start, effectively turning the cursor to the focal point that triggers all the dnd events (ex: entering another zone). Useful for dnd-zones with large items that can be dragged over small items. |
-| `useCursorForDetection` | Boolean | No | `false` | Setting it to true will use the cursor position instead of the dragged element's center for drop zone detection. This improves accuracy when dragging large elements over small drop targets. Unlike `centreDraggedOnCursor`, this option does not reposition the dragged element. |
-| `dropAnimationDisabled` | Boolean | No | `false` | Setting it to true will disable the animation of the dropped element to its final place. |
-| `delayTouchStart` | Boolean \| Number | No | `false` | Prevents accidental drags on touch devices that should have been scrolls.  
- • `true` – enable with sensible default (80 ms).  
- • `number` – custom delay in milliseconds.  
- • `false` / omitted – legacy behaviour (drag starts immediately). |
+
+| Name                                                              | Type                 | Required?                                                                                                                                                        | Default Value                                     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `items`                                                           | Array&lt;Object&gt;  | Yes. Each object in the array **has to have** an `id` property (key name can be overridden globally) with a unique value (within all dnd-zones of the same type) | N/A                                               | The data array that is used to produce the list with the draggable items (the same thing you run your #each block on). The dndzone should not have children that don't originate in `items`                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `flipDurationMs`                                                  | Number               | No                                                                                                                                                               | `0`                                               | The same value you give the flip animation on the items (to make them animated as they "make space" for the dragged item). Set to zero if you dont want animations, if unset it defaults to 100ms                                                                                                                                                                                                                                                                                                                                                                                                |
+| `type`                                                            | String               | No                                                                                                                                                               | Internal                                          | dnd-zones that share the same type can have elements from one dragged into another. By default, all dnd-zones have the same type                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `dragDisabled`                                                    | Boolean              | No                                                                                                                                                               | `false`                                           | Setting it to true will make it impossible to drag elements out of the dnd-zone. You can change it at any time, and the zone will adjust on the fly                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `morphDisabled`                                                   | Boolean              | No                                                                                                                                                               | `false`                                           | By default, when dragging over a zone, the dragged element is morphed to look like it would if dropped. You can prevent it by setting this option.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `dropFromOthersDisabled`                                          | Boolean              | No                                                                                                                                                               | `false`                                           | Setting it to true will make it impossible to drop elements from other dnd-zones of the same type. Can be useful if you want to limit the max number of items for example. You can change it at any time, and the zone will adjust on the fly                                                                                                                                                                                                                                                                                                                                                    |
+| `zoneTabIndex`                                                    | Number               | No                                                                                                                                                               | `0`                                               | Allow user to set custom tabindex to the list container when not dragging. Can be useful if you want to make the screen reader to skip the list container. You can change it at any time.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `zoneItemTabIndex`                                                | Number               | No                                                                                                                                                               | `0`                                               | Allow user to set custom tabindex to the list container items when not dragging. Can be useful if you use [Drag handles](https://github.com/isaacHagoel/svelte-dnd-action#examples-and-recipes). You can change it at any time.                                                                                                                                                                                                                                                                                                                                                                  |
+| `dropTargetStyle`                                                 | Object&lt;String&gt; | No                                                                                                                                                               | `{outline: 'rgba(255, 255, 102, 0.7) solid 2px'}` | An object of styles to apply to the dnd-zone when items can be dragged into it. Note: the styles override any inline styles applied to the dnd-zone. When the styles are removed, any original inline styles will be lost                                                                                                                                                                                                                                                                                                                                                                        |
+| `dropTargetClasses`                                               | Array&lt;String&gt;  | No                                                                                                                                                               | `[]`                                              | A list of classes to apply to the dnd-zone when items can be dragged into it. Note: make sure the classes you use are global.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `transformDraggedElement`                                         | Function             | No                                                                                                                                                               | `() => {}`                                        | A function that is invoked when the draggable element enters the dnd-zone or hover overs a new index in the current dnd-zone. <br />Signature:<br />function(element, data, index) {}<br />**element**: The dragged element. <br />**data**: The data of the item from the items array.<br />**index**: The index the dragged element will become in the new dnd-zone.<br /><br />This allows you to override properties on the dragged element, such as innerHTML to change how it displays. If what you are after is altering styles, do it to the children, not to the dragged element itself |
+| `autoAriaDisabled`                                                | Boolean              | No                                                                                                                                                               | `false`                                           | Setting it to true will disable all the automatically added aria attributes and aria alerts (for example when the user starts/ stops dragging using the keyboard).<br /> **Use it only if you intend to implement your own custom instructions, roles and alerts.** In such a case, you might find the exported function `alertToScreenReader(string, document?)` useful (pass the zone's document when the zone is in another window, such as an iframe or a popup). <br />**If you only want to change the wording (ex: to translate it), use `setAriaStrings` instead and leave this off.**   |
+| `centreDraggedOnCursor`                                           | Boolean              | No                                                                                                                                                               | `false`                                           | Setting it to true will cause elements from this dnd-zone to position their center on the cursor on drag start, effectively turning the cursor to the focal point that triggers all the dnd events (ex: entering another zone). Useful for dnd-zones with large items that can be dragged over small items.                                                                                                                                                                                                                                                                                      |
+| `useCursorForDetection`                                           | Boolean              | No                                                                                                                                                               | `false`                                           | Setting it to true will use the cursor position instead of the dragged element's center for drop zone detection. This improves accuracy when dragging large elements over small drop targets. Unlike `centreDraggedOnCursor`, this option does not reposition the dragged element.                                                                                                                                                                                                                                                                                                               |
+| `dropAnimationDisabled`                                           | Boolean              | No                                                                                                                                                               | `false`                                           | Setting it to true will disable the animation of the dropped element to its final place.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `delayTouchStart`                                                 | Boolean \| Number    | No                                                                                                                                                               | `false`                                           | Prevents accidental drags on touch devices that should have been scrolls.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| • `true` – enable with sensible default (80 ms).                  |
+| • `number` – custom delay in milliseconds.                        |
+| • `false` / omitted – legacy behaviour (drag starts immediately). |
 
 ##### Output:
 
 The action dispatches two custom events:
 
--   `consider` - dispatched whenever the dragged element needs to make room for itself in a new position in the items list and when it leaves. The host (your component) is expected to update the items list (you can keep a copy of the original list if you need to)
--   `finalize` - dispatched on the target and origin dnd-zones when the dragged element is dropped into position. This is the event you want to use to [save the items to the server](https://svelte.dev/playground/964fdac31cb9496da9ded35002300abb?version=3) for example.
+- `consider` - dispatched whenever the dragged element needs to make room for itself in a new position in the items list and when it leaves. The host (your component) is expected to update the items list (you can keep a copy of the original list if you need to)
+- `finalize` - dispatched on the target and origin dnd-zones when the dragged element is dropped into position. This is the event you want to use to [save the items to the server](https://svelte.dev/playground/964fdac31cb9496da9ded35002300abb?version=3) for example.
 
 The expectation is the same for both event handlers - update the list of items.
 In both cases the payload (within e.detail) is the same: an object with two attributes: `items` and `info`.
 
--   `items`: contains the updated items list.
--   `info`: This one can be used to achieve very advanced custom behaviours (ex: copy on drag). In most cases, don't worry about it. It is an object with the following properties:
-    -   `trigger`: will be one of the exported list of TRIGGERS (Please import if you plan to use): [DRAG_STARTED, DRAGGED_ENTERED, DRAGGED_ENTERED_ANOTHER, DRAGGED_OVER_INDEX, DRAGGED_LEFT, DRAGGED_LEFT_ALL, DROPPED_INTO_ZONE, DROPPED_INTO_ANOTHER, DROPPED_OUTSIDE_OF_ANY, DRAG_STOPPED]. Most triggers apply to both pointer and keyboard, but some are only relevant for pointer (dragged_entered, dragged_over_index and dragged_left), and some only for keyboard (drag_stopped).
-    -   `id`: the item id of the dragged element
-    -   `source`: will be one of the exported list of SOURCES (Please import if you plan to use): [POINTER, KEYBOARD]
+- `items`: contains the updated items list.
+- `info`: This one can be used to achieve very advanced custom behaviours (ex: copy on drag). In most cases, don't worry about it. It is an object with the following properties:
+    - `trigger`: will be one of the exported list of TRIGGERS (Please import if you plan to use): [DRAG_STARTED, DRAGGED_ENTERED, DRAGGED_ENTERED_ANOTHER, DRAGGED_OVER_INDEX, DRAGGED_LEFT, DRAGGED_LEFT_ALL, DROPPED_INTO_ZONE, DROPPED_INTO_ANOTHER, DROPPED_OUTSIDE_OF_ANY, DRAG_STOPPED]. Most triggers apply to both pointer and keyboard, but some are only relevant for pointer (dragged_entered, dragged_over_index and dragged_left), and some only for keyboard (drag_stopped).
+    - `id`: the item id of the dragged element
+    - `source`: will be one of the exported list of SOURCES (Please import if you plan to use): [POINTER, KEYBOARD]
 
 You have to listen for both events and update the list of items in order for this library to work correctly.
 
@@ -154,7 +155,12 @@ For example:
 
 ```html
 <h2>{listName}</h2>
-<section aria-label="{listName}" use:dndzone="{{items, flipDurationMs}}" on:consider="{handleDndConsider}" on:finalize="{handleDndFinalize}">
+<section
+    aria-label="{listName}"
+    use:dndzone="{{items, flipDurationMs}}"
+    on:consider="{handleDndConsider}"
+    on:finalize="{handleDndFinalize}"
+>
     {#each items as item(item.id)}
     <div aria-label="{item.name}" animate:flip="{{duration: flipDurationMs}}">{item.name}</div>
     {/each}
@@ -171,7 +177,7 @@ By default both _Space_ and _Enter_ start and stop a keyboard drag. If your app 
 those keys for something else - ex: _Enter_ to open or edit the focused item - narrow the trigger:
 
 ```javascript
-import {setKeyboardDragTrigger} from "svelte-dnd-action";
+import { setKeyboardDragTrigger } from "svelte-dnd-action";
 
 setKeyboardDragTrigger("space");
 ```
@@ -190,25 +196,27 @@ rendered. The built-in screen-reader instruction follows it automatically.
 `autoAriaDisabled` disables all automatically added ARIA attributes, roles, instructions and alerts. If you only want to translate the screen-reader wording, import `setAriaStrings` and leave `autoAriaDisabled` off:
 
 ```javascript
-import {setAriaStrings} from "svelte-dnd-action";
+import { setAriaStrings } from "svelte-dnd-action";
 
 const instructionsParTouche = {
     space: `Tabulez jusqu'à un élément et appuyez sur espace pour le déplacer`,
     enter: `Tabulez jusqu'à un élément et appuyez sur entrée pour le déplacer`,
-    space_or_enter: `Tabulez jusqu'à un élément et appuyez sur espace ou entrée pour le déplacer`
+    space_or_enter: `Tabulez jusqu'à un élément et appuyez sur espace ou entrée pour le déplacer`,
 };
 
 setAriaStrings({
-    dragStarted: ({itemLabel, zoneLabel, canMoveBetweenZones}) =>
+    dragStarted: ({ itemLabel, zoneLabel, canMoveBetweenZones }) =>
         `Déplacement de ${itemLabel} commencé. Utilisez les flèches pour le déplacer dans la liste ${zoneLabel}` +
         (canMoveBetweenZones ? `, ou tabulez vers une autre liste` : ``),
-    movedToPosition: ({itemLabel, zoneLabel, position}) => `${itemLabel} déplacé en position ${position} dans la liste ${zoneLabel}`,
-    movedToZoneEnd: ({itemLabel, zoneLabel}) => `${itemLabel} déplacé à la fin de la liste ${zoneLabel}`,
-    movedToZoneStart: ({itemLabel, zoneLabel}) => `${itemLabel} déplacé au début de la liste ${zoneLabel}`,
+    movedToPosition: ({ itemLabel, zoneLabel, position }) =>
+        `${itemLabel} déplacé en position ${position} dans la liste ${zoneLabel}`,
+    movedToZoneEnd: ({ itemLabel, zoneLabel }) => `${itemLabel} déplacé à la fin de la liste ${zoneLabel}`,
+    movedToZoneStart: ({ itemLabel, zoneLabel }) => `${itemLabel} déplacé au début de la liste ${zoneLabel}`,
     // The default message omits the destination, but custom messages can include it
-    dropped: ({itemLabel, zoneLabel, position, count}) => `${itemLabel} déposé dans ${zoneLabel}, ${position} sur ${count}`,
-    zoneActiveInstruction: ({keyboardDragTrigger}) => instructionsParTouche[keyboardDragTrigger],
-    zoneDragDisabledInstruction: `Cette liste de glisser-déposer est désactivée`
+    dropped: ({ itemLabel, zoneLabel, position, count }) =>
+        `${itemLabel} déposé dans ${zoneLabel}, ${position} sur ${count}`,
+    zoneActiveInstruction: ({ keyboardDragTrigger }) => instructionsParTouche[keyboardDragTrigger],
+    zoneDragDisabledInstruction: `Cette liste de glisser-déposer est désactivée`,
 });
 ```
 
@@ -228,42 +236,42 @@ The setting is global to the document and applies to every dndzone. Different zo
 
 ##### Keyboard support
 
--   Tab into a dnd container to get a description and instructions
--   Tab into an item and press the _Space_/_Enter_ key to enter dragging-mode (see `setKeyboardDragTrigger` to narrow this to one key). The reader will tell the user a drag has started.
--   Use the _arrow keys_ while in dragging-mode to change the item's position in the list (down and right are the same, up and left are the same). The reader will tell the user about position changes.
--   Tab to another dnd container while in dragging-mode in order to move the item to it (the item will be moved to it when it gets focus). The reader will tell the user that item was added to the new list.
--   Press the drag-trigger key while focused on an item, or the _Escape_ key anywhere to exit dragging mode. The reader will tell the user that they are no longer dragging.
--   Clicking on another item while in drag mode will make it the new drag target. Clicking outside of any draggable will exit dragging-mode (and tell the user)
--   Mouse drag and drop can be preformed independently of keyboard dragging (as in an item can be dragged with the mouse while in or out of keyboard initiated dragging-mode)
--   Keyboard drag uses the same `consider` (only on drag start) and `finalize` (every time the item is moved) events but share only some of the `TRIGGERS`. The same handlers should work fine for both.
+- Tab into a dnd container to get a description and instructions
+- Tab into an item and press the _Space_/_Enter_ key to enter dragging-mode (see `setKeyboardDragTrigger` to narrow this to one key). The reader will tell the user a drag has started.
+- Use the _arrow keys_ while in dragging-mode to change the item's position in the list (down and right are the same, up and left are the same). The reader will tell the user about position changes.
+- Tab to another dnd container while in dragging-mode in order to move the item to it (the item will be moved to it when it gets focus). The reader will tell the user that item was added to the new list.
+- Press the drag-trigger key while focused on an item, or the _Escape_ key anywhere to exit dragging mode. The reader will tell the user that they are no longer dragging.
+- Clicking on another item while in drag mode will make it the new drag target. Clicking outside of any draggable will exit dragging-mode (and tell the user)
+- Mouse drag and drop can be preformed independently of keyboard dragging (as in an item can be dragged with the mouse while in or out of keyboard initiated dragging-mode)
+- Keyboard drag uses the same `consider` (only on drag start) and `finalize` (every time the item is moved) events but share only some of the `TRIGGERS`. The same handlers should work fine for both.
 
 ### Drag Handles Support
 
 Due to popular demand, starting in version 0.9.46 the library exports a wrapper action that greatly improves the ergonomics around using drag handles.
 Notes:
 
--   A draggable item within a `dragHandleZone` would not be draggable unless it has an element that uses the `dragHandle` action inside (doesn't have to be a direct child but has to be inside the bounding rect of the item).
--   Don't forget an aria-label on the handle
-    Usage:
+- A draggable item within a `dragHandleZone` would not be draggable unless it has an element that uses the `dragHandle` action inside (doesn't have to be a direct child but has to be inside the bounding rect of the item).
+- Don't forget an aria-label on the handle
+  Usage:
 
 ```html
 <script>
-    import {dragHandleZone, dragHandle} from "svelte-dnd-action";
-    import {flip} from "svelte/animate";
+    import { dragHandleZone, dragHandle } from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
 
     let items = [
         {
             id: 1,
-            text: "Item 1"
+            text: "Item 1",
         },
         {
             id: 2,
-            text: "Item 2"
+            text: "Item 2",
         },
         {
             id: 3,
-            text: "Item 3"
-        }
+            text: "Item 3",
+        },
     ];
     const flipDurationMs = 100;
 
@@ -292,7 +300,10 @@ Notes:
 </style>
 
 <h3>Drag Handles</h3>
-<p>Items can be dragged using the grey handles via mouse, touch or keyboard. The text on the items can be selected without starting a drag</p>
+<p>
+    Items can be dragged using the grey handles via mouse, touch or keyboard. The text on the items can be selected
+    without starting a drag
+</p>
 <hr />
 <section use:dragHandleZone="{{ items, flipDurationMs }}" on:consider="{handleSort}" on:finalize="{handleSort}">
     {#each items as item (item.id)}
@@ -306,32 +317,32 @@ Notes:
 
 ### Examples and Recipes
 
--   [Super basic, single list, no animation](https://svelte.dev/playground/bbd709b1a00b453e94658392c97a018a?version=3)
--   [Super basic, single list, with animation](https://svelte.dev/playground/3d544791e5c24fd4aa1eb983d749f776?version=3)
--   [Multiple dndzones, multiple types](https://svelte.dev/playground/4d23eb3b9e184b90b58f0867010ad258?version=3)
--   [Zones in same-origin iframes and popup windows](https://svelte.dev/playground/be37a2f642a14a21ae8c5c11bf0a8055?version=4.2.20) — for the full demo, log in, fork/save and reload, or download/run locally; Playground isolates other documents for visitors.
--   [Board (nested zones and multiple types), scrolling containers, scrolling page](https://svelte.dev/playground/e2ef044af75c4b16b424b8219fb31fd9?version=3)
--   [Experimental: make an entire board skippable in the Tab order while preserving keyboard drag and drop](https://svelte.dev/playground/14286b9c0f924d8e94d5267d219f8424?version=5.56.8) — a prototype wrapper built using the existing tabindex options; see the example for current limitations.
--   [Selectively enable/disable drag/drop](https://svelte.dev/playground/44c9229556f3456e9883c10fc0aa0ee9?version=3)
--   [Custom active dropzone styling](https://svelte.dev/playground/4ceecc5bae54490b811bd62d4d613e59?version=3)
--   [Customizing the dragged element](https://svelte.dev/playground/438fca28bb1f4eb1b34eff9dc6a728dc?version=3)
--   [Styling the dragged element](https://svelte.dev/playground/3d8be94b2bbd407c8a706d5054c8df6a?version=3)
--   [Customizing the placeholder(shadow) element](https://svelte.dev/playground/9c8db8b91b2142d19dcf9bc963a27838?version=3)
+- [Super basic, single list, no animation](https://svelte.dev/playground/bbd709b1a00b453e94658392c97a018a?version=3)
+- [Super basic, single list, with animation](https://svelte.dev/playground/3d544791e5c24fd4aa1eb983d749f776?version=3)
+- [Multiple dndzones, multiple types](https://svelte.dev/playground/4d23eb3b9e184b90b58f0867010ad258?version=3)
+- [Zones in same-origin iframes and popup windows](https://svelte.dev/playground/be37a2f642a14a21ae8c5c11bf0a8055?version=4.2.20) — for the full demo, log in, fork/save and reload, or download/run locally; Playground isolates other documents for visitors.
+- [Board (nested zones and multiple types), scrolling containers, scrolling page](https://svelte.dev/playground/e2ef044af75c4b16b424b8219fb31fd9?version=3)
+- [Experimental: make an entire board skippable in the Tab order while preserving keyboard drag and drop](https://svelte.dev/playground/14286b9c0f924d8e94d5267d219f8424?version=5.56.8) — a prototype wrapper built using the existing tabindex options; see the example for current limitations.
+- [Selectively enable/disable drag/drop](https://svelte.dev/playground/44c9229556f3456e9883c10fc0aa0ee9?version=3)
+- [Custom active dropzone styling](https://svelte.dev/playground/4ceecc5bae54490b811bd62d4d613e59?version=3)
+- [Customizing the dragged element](https://svelte.dev/playground/438fca28bb1f4eb1b34eff9dc6a728dc?version=3)
+- [Styling the dragged element](https://svelte.dev/playground/3d8be94b2bbd407c8a706d5054c8df6a?version=3)
+- [Customizing the placeholder(shadow) element](https://svelte.dev/playground/9c8db8b91b2142d19dcf9bc963a27838?version=3)
 
--   [Copy on drag, simple and Dragula like](https://svelte.dev/playground/924b4cc920524065a637fa910fe10193?version=3)
--   [Copy on drop and a drop area with a single slot](https://svelte.dev/playground/b4e120c45c3e48e49a0d637f0cf097d9?version=3)
--   [Drag handles using wrapper actions](https://svelte.dev/playground/cc1bc63be7a74830b4c97d428f62054d?version=4.2.17), for nested scenarios (same usage, it "just works"), see [here](https://svelte.dev/playground/4f7cbeb7b11b470b948e9af03b82a073?version=4.2.17) and [here](https://svelte.dev/playground/47c5f52f4c774cad8c367516395c7f99?version=4.2.17)
--   [Drag handles - legacy](https://svelte.dev/playground/4949485c5a8f46e7bdbeb73ed565a9c7?version=3), use before version 0.9.46, courtesy of @gleuch
--   [Interaction (save/get items) with an asynchronous server](https://svelte.dev/playground/964fdac31cb9496da9ded35002300abb?version=3)
--   [Unsortable lists with custom aria instructions](https://svelte.dev/playground/e020ea1051dc4ae3ac2b697064f234bc?version=3)
--   [Crazy nesting](https://svelte.dev/playground/fe8c9eca04f9417a94a8b6041df77139?version=3), courtesy of @zahachtah
--   [Generic List Component (Alternative to Slots)](https://svelte.dev/playground/028674733f67409c94bd52995d5906f1?version=3)
--   [Maintaining internal scroll poisition on scrollable dragabble](https://svelte.dev/playground/eb2f5988bd2f46488810606c1fb13392?version=3)
--   [Scrabble like board using over a 100 single slot dnd-zones](https://svelte.dev/playground/ed2e138417094281be6db1aef23d7859?version=3)
--   [Select multiple elements to drag (multi-drag) with mouse or keyboard](https://svelte.dev/playground/c4eb917bb8df42c4b17402a7dda54856?version=3)
+- [Copy on drag, simple and Dragula like](https://svelte.dev/playground/924b4cc920524065a637fa910fe10193?version=3)
+- [Copy on drop and a drop area with a single slot](https://svelte.dev/playground/b4e120c45c3e48e49a0d637f0cf097d9?version=3)
+- [Drag handles using wrapper actions](https://svelte.dev/playground/cc1bc63be7a74830b4c97d428f62054d?version=4.2.17), for nested scenarios (same usage, it "just works"), see [here](https://svelte.dev/playground/4f7cbeb7b11b470b948e9af03b82a073?version=4.2.17) and [here](https://svelte.dev/playground/47c5f52f4c774cad8c367516395c7f99?version=4.2.17)
+- [Drag handles - legacy](https://svelte.dev/playground/4949485c5a8f46e7bdbeb73ed565a9c7?version=3), use before version 0.9.46, courtesy of @gleuch
+- [Interaction (save/get items) with an asynchronous server](https://svelte.dev/playground/964fdac31cb9496da9ded35002300abb?version=3)
+- [Unsortable lists with custom aria instructions](https://svelte.dev/playground/e020ea1051dc4ae3ac2b697064f234bc?version=3)
+- [Crazy nesting](https://svelte.dev/playground/fe8c9eca04f9417a94a8b6041df77139?version=3), courtesy of @zahachtah
+- [Generic List Component (Alternative to Slots)](https://svelte.dev/playground/028674733f67409c94bd52995d5906f1?version=3)
+- [Maintaining internal scroll poisition on scrollable dragabble](https://svelte.dev/playground/eb2f5988bd2f46488810606c1fb13392?version=3)
+- [Scrabble like board using over a 100 single slot dnd-zones](https://svelte.dev/playground/ed2e138417094281be6db1aef23d7859?version=3)
+- [Select multiple elements to drag (multi-drag) with mouse or keyboard](https://svelte.dev/playground/c4eb917bb8df42c4b17402a7dda54856?version=3)
 
--   [Fade in/out but without using Svelte transitions](https://svelte.dev/playground/3f1e68203ef140969a8240eba3475a8d?version=3)
--   [Nested fade in/out without using Svelte transitions](https://svelte.dev/playground/49b09aedfe0543b4bc8f575c8dbf9a53?version=3)
+- [Fade in/out but without using Svelte transitions](https://svelte.dev/playground/3f1e68203ef140969a8240eba3475a8d?version=3)
+- [Nested fade in/out without using Svelte transitions](https://svelte.dev/playground/49b09aedfe0543b4bc8f575c8dbf9a53?version=3)
 
 ### Zones in iframes and other windows
 
@@ -341,22 +352,22 @@ This is useful when one app mounts components into several documents (for exampl
 
 See the [official example REPL](https://svelte.dev/playground/be37a2f642a14a21ae8c5c11bf0a8055?version=4.2.20) and its [source and setup instructions](examples/other-windows/README.md). For iframe/popup interaction inside Playground, fork/save and reload under your account, or download and run locally.
 
--   Both pointer and keyboard drags stay in the document they started in. They can move items between eligible same-type zones inside that document, but not between the page and an iframe, between sibling iframes, or between popup windows.
--   Each document with zones gets its own screen-reader instructions and announcements. For a custom announcement about a zone in another document, pass that document: `alertToScreenReader(text, zone.ownerDocument)`.
--   If a window closes, or an iframe is removed, during a drag, the drag ends and the zones get their usual `finalize` event (pointer) or `consider` event with the `dragStopped` trigger (keyboard).
+- Both pointer and keyboard drags stay in the document they started in. They can move items between eligible same-type zones inside that document, but not between the page and an iframe, between sibling iframes, or between popup windows.
+- Each document with zones gets its own screen-reader instructions and announcements. For a custom announcement about a zone in another document, pass that document: `alertToScreenReader(text, zone.ownerDocument)`.
+- If a window closes, or an iframe is removed, during a drag, the drag ends and the zones get their usual `finalize` event (pointer) or `consider` event with the `dragStopped` trigger (keyboard).
 
 ### Rules/ assumptions to keep in mind
 
--   Only one element can be dragged in any given time
--   The data that represents items within dnd-zones **of the same type** is expected to have the same shape (as in a data object that represents an item in one container can be added to another without conversion).
--   Item ids (#each keys) are unique in all dnd containers of the same type. EVERY DRAGGABLE ITEM (passed in through `items`) MUST HAVE AN ID PROPERTY CALLED `id`. You can override it globally if you'd like to use a different key (see below)
--   Item ids are provided as the key for the #each block (no keyless each blocks please)
--   If you need to make a copy an item, you allocate a new id for the copy upon creation.
--   The items in the list that is passed-in are in the same order as the children of the container (i.e the items are rendered in an #each block), and the container has no extra (and no fewer) children.
--   Any data that should "survive" when the items are dragged around and dropped should be included in the `items` array that is passed in.
--   The host component must refresh the items that are passed in to the custom-action when receiving consider and finalize events (do not omit any handler).
--   FYI, the library assumes it is okay to add a temporary item to the items list in any of the dnd-zones while an element is dragged around.
--   Svelte's built-in transitions might not play nice with this library. Luckily, it is an easy issue to work around. There are examples above.
+- Only one element can be dragged in any given time
+- The data that represents items within dnd-zones **of the same type** is expected to have the same shape (as in a data object that represents an item in one container can be added to another without conversion).
+- Item ids (#each keys) are unique in all dnd containers of the same type. EVERY DRAGGABLE ITEM (passed in through `items`) MUST HAVE AN ID PROPERTY CALLED `id`. You can override it globally if you'd like to use a different key (see below)
+- Item ids are provided as the key for the #each block (no keyless each blocks please)
+- If you need to make a copy an item, you allocate a new id for the copy upon creation.
+- The items in the list that is passed-in are in the same order as the children of the container (i.e the items are rendered in an #each block), and the container has no extra (and no fewer) children.
+- Any data that should "survive" when the items are dragged around and dropped should be included in the `items` array that is passed in.
+- The host component must refresh the items that are passed in to the custom-action when receiving consider and finalize events (do not omit any handler).
+- FYI, the library assumes it is okay to add a temporary item to the items list in any of the dnd-zones while an element is dragged around.
+- Svelte's built-in transitions might not play nice with this library. Luckily, it is an easy issue to work around. There are examples above.
 
 ### Overriding the item id key name
 
@@ -365,7 +376,7 @@ In such cases you can import and call `overrideItemIdKeyNameBeforeInitialisingDn
 For example:
 
 ```javascript
-import {overrideItemIdKeyNameBeforeInitialisingDndZones} from "svelte-dnd-action";
+import { overrideItemIdKeyNameBeforeInitialisingDndZones } from "svelte-dnd-action";
 overrideItemIdKeyNameBeforeInitialisingDndZones("_id");
 ```
 
@@ -376,7 +387,7 @@ It applies globally (as in, all of your items everywhere are expected to have a 
 By default, no debug output will be logged to the console. If you want to see internal debug messages, you can enable the debug output like this:
 
 ```javascript
-import {setDebugMode} from "svelte-dnd-action";
+import { setDebugMode } from "svelte-dnd-action";
 setDebugMode(true);
 ```
 
@@ -386,7 +397,7 @@ Feature flags allow controlling global optional behaviour. They were originally 
 In order to set a feature flag use:
 
 ```javascript
-import {setFeatureFlag, FEATURE_FLAG_NAMES} from "svelte-dnd-action";
+import { setFeatureFlag, FEATURE_FLAG_NAMES } from "svelte-dnd-action";
 setFeatureFlag(FEATURE_FLAG_NAMES.MY_FLAG, true);
 ```
 
@@ -394,7 +405,7 @@ Currently, there is only one flag: USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT, 
 See issues [454](https://github.com/isaacHagoel/svelte-dnd-action/issues/454) and [470](https://github.com/isaacHagoel/svelte-dnd-action/issues/470) for details about why it is needed and when (most users don't need to care about this)
 
 ```javascript
-import {setDebugMode} from "svelte-dnd-action";
+import { setDebugMode } from "svelte-dnd-action";
 setDebugMode(true);
 ```
 
@@ -411,8 +422,8 @@ declare type Item = import("svelte-dnd-action").Item;
 declare type DndEvent<ItemType = Item> = import("svelte-dnd-action").DndEvent<ItemType>;
 declare namespace svelte.JSX {
     interface HTMLAttributes<T> {
-        onconsider?: (event: CustomEvent<DndEvent<ItemType>> & {target: EventTarget & T}) => void;
-        onfinalize?: (event: CustomEvent<DndEvent<ItemType>> & {target: EventTarget & T}) => void;
+        onconsider?: (event: CustomEvent<DndEvent<ItemType>> & { target: EventTarget & T }) => void;
+        onfinalize?: (event: CustomEvent<DndEvent<ItemType>> & { target: EventTarget & T }) => void;
     }
 }
 ```
@@ -424,8 +435,8 @@ declare type Item = import("svelte-dnd-action").Item;
 declare type DndEvent<ItemType = Item> = import("svelte-dnd-action").DndEvent<ItemType>;
 declare namespace svelteHTML {
     interface HTMLAttributes<T> {
-        "on:consider"?: (event: CustomEvent<DndEvent<ItemType>> & {target: EventTarget & T}) => void;
-        "on:finalize"?: (event: CustomEvent<DndEvent<ItemType>> & {target: EventTarget & T}) => void;
+        "on:consider"?: (event: CustomEvent<DndEvent<ItemType>> & { target: EventTarget & T }) => void;
+        "on:finalize"?: (event: CustomEvent<DndEvent<ItemType>> & { target: EventTarget & T }) => void;
     }
 }
 ```
@@ -441,9 +452,9 @@ You may need to edit `tsconfig.json` to include `global.d.ts` if it doesn't alre
 >             config(config) {
 >                 // This path is relative to the ".svelte-kit" folder
 >                 config.include.push("../global.d.ts");
->             }
->         }
->     }
+>             },
+>         },
+>     },
 > };
 > ```
 
@@ -466,18 +477,18 @@ Then you will be able to use the library with type safety as follows (Typescript
     }
 </style>
 <script lang="ts">
-    import {dndzone} from "svelte-dnd-action";
-    import {flip} from "svelte/animate";
+    import { dndzone } from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
 
     const flipDurationMs = 200;
     function handleSort(e: CustomEvent<DndEvent>) {
-        items = e.detail.items as {id: number; title: string}[];
+        items = e.detail.items as { id: number; title: string }[];
     }
 
     let items = [
-        {id: 1, title: "I"},
-        {id: 2, title: "Am"},
-        {id: 3, title: "Yoda"}
+        { id: 1, title: "I" },
+        { id: 2, title: "Am" },
+        { id: 3, title: "Yoda" },
     ];
 </script>
 <section use:dndzone="{{items, flipDurationMs}}" on:consider="{handleSort}" on:finalize="{handleSort}">
@@ -493,8 +504,8 @@ You can use generics to set the type of `items` you are expecting in `DndEvent`.
 
 ```html
 <script lang="ts">
-    import {dndzone} from "svelte-dnd-action";
-    import {flip} from "svelte/animate";
+    import { dndzone } from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
 
     interface Dog {
         id: number;
@@ -508,9 +519,9 @@ You can use generics to set the type of `items` you are expecting in `DndEvent`.
     }
 
     let items: Dog[] = [
-        {id: 1, name: "Fido", breed: "bulldog"},
-        {id: 2, name: "Spot", breed: "labrador"},
-        {id: 3, name: "Jacky", breed: "golden retriever"}
+        { id: 1, name: "Fido", breed: "bulldog" },
+        { id: 2, name: "Spot", breed: "labrador" },
+        { id: 3, name: "Jacky", breed: "golden retriever" },
     ];
 </script>
 ```
@@ -537,16 +548,16 @@ Starting with version 0.9.42. if you use the hint make sure to include it in the
 
 ```html
 <script>
-    import {dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME} from 'svelte-dnd-action';
+    import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from "svelte-dnd-action";
     let items = [];
 </script>
 <section>
-    <div use:dndzone={{items}} on:consider={e => items = e.detail.items} on:finalize={e => items = e.detail.items}>
-        {#each items as item (item.id)}
-            <div data-is-dnd-shadow-item-hint={item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}>
-                <h1>{item.title}</h1>
-                <!--more nested zones go here, can include the attribute on their items as demonstrated above-->
-            </div>
+    <div use:dndzone="{{items}}" on:consider="{e" ="">
+        items = e.detail.items} on:finalize={e => items = e.detail.items}> {#each items as item (item.id)}
+        <div data-is-dnd-shadow-item-hint="{item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}">
+            <h1>{item.title}</h1>
+            <!--more nested zones go here, can include the attribute on their items as demonstrated above-->
+        </div>
         {/each}
     </div>
 </section>

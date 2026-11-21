@@ -18,7 +18,7 @@ export function getWindowOf(el) {
  * @return {{win: Window, id: number}} - pass it to clearTimeoutIn
  */
 export function setTimeoutIn(win, callback, ms) {
-    return {win, id: win.setTimeout(callback, ms)};
+    return { win, id: win.setTimeout(callback, ms) };
 }
 
 /**

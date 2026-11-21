@@ -1,4 +1,4 @@
-import {getWindowOf} from "./util";
+import { getWindowOf } from "./util";
 
 // This is based off https://stackoverflow.com/questions/27745438/how-to-compute-getboundingclientrect-without-considering-transforms/57876601#57876601
 // It removes the transforms that are potentially applied by the flip animations
@@ -45,7 +45,7 @@ export function getBoundingRectNoTransforms(el, onlyVisible = true) {
             top: y,
             right: x + w,
             bottom: y + h,
-            left: x
+            left: x,
         };
     } else {
         return rect;
@@ -64,7 +64,7 @@ export function getAbsoluteRectNoTransforms(el) {
         top: rect.top + win.scrollY,
         bottom: rect.bottom + win.scrollY,
         left: rect.left + win.scrollX,
-        right: rect.right + win.scrollX
+        right: rect.right + win.scrollX,
     };
 }
 
@@ -80,7 +80,7 @@ export function getAbsoluteRect(el) {
         top: rect.top + win.scrollY,
         bottom: rect.bottom + win.scrollY,
         left: rect.left + win.scrollX,
-        right: rect.right + win.scrollX
+        right: rect.right + win.scrollX,
     };
 }
 
@@ -97,7 +97,7 @@ export function getAbsoluteRect(el) {
 export function findCenter(rect) {
     return {
         x: (rect.left + rect.right) / 2,
-        y: (rect.top + rect.bottom) / 2
+        y: (rect.top + rect.bottom) / 2,
     };
 }
 
@@ -148,8 +148,13 @@ export function calcDistanceFromPointToCenter(point, el) {
  */
 export function isElementOffDocument(el) {
     const rect = getAbsoluteRect(el);
-    const {documentElement} = el.ownerDocument;
-    return rect.right < 0 || rect.left > documentElement.scrollWidth || rect.bottom < 0 || rect.top > documentElement.scrollHeight;
+    const { documentElement } = el.ownerDocument;
+    return (
+        rect.right < 0 ||
+        rect.left > documentElement.scrollWidth ||
+        rect.bottom < 0 ||
+        rect.top > documentElement.scrollHeight
+    );
 }
 
 /**
@@ -175,7 +180,7 @@ function getVisibleRectRecursive(element) {
         top: rect.top,
         bottom: rect.bottom,
         left: rect.left,
-        right: rect.right
+        right: rect.right,
     };
 
     let wasClippedByScrollY = false;
@@ -227,7 +232,7 @@ function getVisibleRectRecursive(element) {
             left: visibleRect.left,
             right: visibleRect.right,
             width: Math.max(0, visibleRect.right - visibleRect.left),
-            height: Math.max(0, visibleRect.bottom - visibleRect.top)
+            height: Math.max(0, visibleRect.bottom - visibleRect.top),
         };
     }
 
@@ -240,6 +245,6 @@ function getVisibleRectRecursive(element) {
         left: rect.left,
         right: rect.right,
         width: Math.max(0, rect.right - rect.left),
-        height: Math.max(0, rect.bottom - rect.top)
+        height: Math.max(0, rect.bottom - rect.top),
     };
 }

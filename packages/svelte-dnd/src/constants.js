@@ -1,4 +1,8 @@
-import {DRAGGED_ENTERED_EVENT_NAME, DRAGGED_LEFT_EVENT_NAME, DRAGGED_OVER_INDEX_EVENT_NAME} from "./helpers/dispatcher";
+import {
+    DRAGGED_ENTERED_EVENT_NAME,
+    DRAGGED_LEFT_EVENT_NAME,
+    DRAGGED_OVER_INDEX_EVENT_NAME,
+} from "./helpers/dispatcher";
 
 export const TRIGGERS = {
     DRAG_STARTED: "dragStarted",
@@ -10,12 +14,12 @@ export const TRIGGERS = {
     DROPPED_INTO_ZONE: "droppedIntoZone",
     DROPPED_INTO_ANOTHER: "droppedIntoAnother",
     DROPPED_OUTSIDE_OF_ANY: "droppedOutsideOfAny",
-    DRAG_STOPPED: "dragStopped"
+    DRAG_STOPPED: "dragStopped",
 };
 
 export const SOURCES = {
     POINTER: "pointer",
-    KEYBOARD: "keyboard"
+    KEYBOARD: "keyboard",
 };
 
 // Maps each valid global keyboardDragTrigger value (see setKeyboardDragTrigger) to the
@@ -24,7 +28,7 @@ export const SOURCES = {
 export const KEYBOARD_DRAG_TRIGGER_KEYS = {
     space: [" "],
     enter: ["Enter"],
-    space_or_enter: [" ", "Enter"]
+    space_or_enter: [" ", "Enter"],
 };
 export const DEFAULT_KEYBOARD_DRAG_TRIGGER = "space_or_enter";
 
@@ -33,7 +37,7 @@ export const DEFAULT_KEYBOARD_DRAG_TRIGGER = "space_or_enter";
 export const KEYBOARD_DRAG_TRIGGER_PHRASES = {
     space: "space-bar",
     enter: "enter",
-    space_or_enter: "space-bar or enter"
+    space_or_enter: "space-bar or enter",
 };
 
 export const SHADOW_ITEM_MARKER_PROPERTY_NAME = "isDndShadowItem";

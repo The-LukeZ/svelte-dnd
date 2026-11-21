@@ -1,26 +1,27 @@
-import {DEFAULT_KEYBOARD_DRAG_TRIGGER, KEYBOARD_DRAG_TRIGGER_PHRASES, isOnServer, printDebug} from "../constants";
-import {toString} from "./util";
+import { DEFAULT_KEYBOARD_DRAG_TRIGGER, KEYBOARD_DRAG_TRIGGER_PHRASES, isOnServer, printDebug } from "../constants";
+import { toString } from "./util";
 
 const INSTRUCTION_IDs = {
     DND_ZONE_ACTIVE: "dnd-zone-active",
-    DND_ZONE_DRAG_DISABLED: "dnd-zone-drag-disabled"
+    DND_ZONE_DRAG_DISABLED: "dnd-zone-drag-disabled",
 };
 const INSTRUCTION_ID_TO_STRING_KEY = {
     [INSTRUCTION_IDs.DND_ZONE_ACTIVE]: "zoneActiveInstruction",
-    [INSTRUCTION_IDs.DND_ZONE_DRAG_DISABLED]: "zoneDragDisabledInstruction"
+    [INSTRUCTION_IDs.DND_ZONE_DRAG_DISABLED]: "zoneDragDisabledInstruction",
 };
 
 const DEFAULT_ARIA_STRINGS = {
-    dragStarted: ({itemLabel, zoneLabel, canMoveBetweenZones}) =>
+    dragStarted: ({ itemLabel, zoneLabel, canMoveBetweenZones }) =>
         `Started dragging item ${itemLabel}. Use the arrow keys to move it within its list ${zoneLabel}` +
         (canMoveBetweenZones ? ", or tab to another list in order to move the item into it" : ""),
-    movedToPosition: ({itemLabel, zoneLabel, position}) => `Moved item ${itemLabel} to position ${position} in the list ${zoneLabel}`,
-    movedToZoneEnd: ({itemLabel, zoneLabel}) => `Moved item ${itemLabel} to the end of the list ${zoneLabel}`,
-    movedToZoneStart: ({itemLabel, zoneLabel}) => `Moved item ${itemLabel} to the beginning of the list ${zoneLabel}`,
-    dropped: ({itemLabel}) => `Stopped dragging item ${itemLabel}`,
-    zoneActiveInstruction: ({keyboardDragTrigger}) =>
+    movedToPosition: ({ itemLabel, zoneLabel, position }) =>
+        `Moved item ${itemLabel} to position ${position} in the list ${zoneLabel}`,
+    movedToZoneEnd: ({ itemLabel, zoneLabel }) => `Moved item ${itemLabel} to the end of the list ${zoneLabel}`,
+    movedToZoneStart: ({ itemLabel, zoneLabel }) => `Moved item ${itemLabel} to the beginning of the list ${zoneLabel}`,
+    dropped: ({ itemLabel }) => `Stopped dragging item ${itemLabel}`,
+    zoneActiveInstruction: ({ keyboardDragTrigger }) =>
         `Tab to one the items and press ${KEYBOARD_DRAG_TRIGGER_PHRASES[keyboardDragTrigger]} to start dragging it`,
-    zoneDragDisabledInstruction: "This is a disabled drag and drop list"
+    zoneDragDisabledInstruction: "This is a disabled drag and drop list",
 };
 
 const FUNCTION_ARIA_STRING_KEYS = ["dragStarted", "movedToPosition", "movedToZoneEnd", "movedToZoneStart", "dropped"];
@@ -29,8 +30,8 @@ const STRING_OR_FUNCTION_ARIA_STRING_KEYS = ["zoneActiveInstruction"];
 // zoneDragDisabledInstruction has no drag to start and thus no key to name, so it stays string-only.
 const STRING_ONLY_ARIA_STRING_KEYS = ["zoneDragDisabledInstruction"];
 
-let ariaStrings = {...DEFAULT_ARIA_STRINGS};
-let instructionCtx = {keyboardDragTrigger: DEFAULT_KEYBOARD_DRAG_TRIGGER};
+let ariaStrings = { ...DEFAULT_ARIA_STRINGS };
+let instructionCtx = { keyboardDragTrigger: DEFAULT_KEYBOARD_DRAG_TRIGGER };
 
 const ALERT_DIV_ID = "dnd-action-aria-alert";
 // A map from a document to its alerts div. A zone can live in another window than the one that loaded this module, so each
@@ -65,7 +66,7 @@ function initAriaOnBrowser(doc) {
 
     // setting the instructions
     Object.entries(INSTRUCTION_ID_TO_STRING_KEY).forEach(([id, key]) =>
-        doc.body.prepend(instructionToHiddenDiv(doc, id, formatWithFallback(key, instructionCtx)))
+        doc.body.prepend(instructionToHiddenDiv(doc, id, formatWithFallback(key, instructionCtx))),
     );
 }
 
@@ -83,7 +84,7 @@ export function initAria(doc) {
     } else {
         doc.addEventListener("DOMContentLoaded", () => initAriaOnBrowser(doc));
     }
-    return {...INSTRUCTION_IDs};
+    return { ...INSTRUCTION_IDs };
 }
 
 /**
@@ -96,7 +97,7 @@ export function destroyAria(doc) {
     doc = doc || document;
     const alertsDiv = docToAlertsDiv.get(doc);
     if (!alertsDiv) return;
-    Object.keys(INSTRUCTION_ID_TO_STRING_KEY).forEach(id => doc.getElementById(id)?.remove());
+    Object.keys(INSTRUCTION_ID_TO_STRING_KEY).forEach((id) => doc.getElementById(id)?.remove());
     alertsDiv.remove();
     docToAlertsDiv.delete(doc);
 }
@@ -156,27 +157,37 @@ export function alertToScreenReader(txt, doc) {
  */
 export function setAriaStrings(overrides) {
     if (overrides === null || overrides === undefined) {
-        ariaStrings = {...DEFAULT_ARIA_STRINGS};
+        ariaStrings = { ...DEFAULT_ARIA_STRINGS };
     } else {
         if (typeof overrides !== "object" || Array.isArray(overrides)) {
-            throw new Error(`setAriaStrings expects an object or null but instead got a ${typeof overrides}, ${toString(overrides)}`);
+            throw new Error(
+                `setAriaStrings expects an object or null but instead got a ${typeof overrides}, ${toString(overrides)}`,
+            );
         }
-        Object.keys(overrides).forEach(key => {
+        Object.keys(overrides).forEach((key) => {
             if (!Object.prototype.hasOwnProperty.call(DEFAULT_ARIA_STRINGS, key)) {
-                throw new Error(`Can't set non existing aria string ${key}! Supported strings: ${Object.keys(DEFAULT_ARIA_STRINGS)}`);
+                throw new Error(
+                    `Can't set non existing aria string ${key}! Supported strings: ${Object.keys(DEFAULT_ARIA_STRINGS)}`,
+                );
             }
             const value = overrides[key];
             if (FUNCTION_ARIA_STRING_KEYS.includes(key) && typeof value !== "function") {
                 throw new Error(`${key} should be a function but instead it is a ${typeof value}, ${toString(value)}`);
             }
-            if (STRING_OR_FUNCTION_ARIA_STRING_KEYS.includes(key) && typeof value !== "string" && typeof value !== "function") {
-                throw new Error(`${key} should be a string or a function but instead it is a ${typeof value}, ${toString(value)}`);
+            if (
+                STRING_OR_FUNCTION_ARIA_STRING_KEYS.includes(key) &&
+                typeof value !== "string" &&
+                typeof value !== "function"
+            ) {
+                throw new Error(
+                    `${key} should be a string or a function but instead it is a ${typeof value}, ${toString(value)}`,
+                );
             }
             if (STRING_ONLY_ARIA_STRING_KEYS.includes(key) && typeof value !== "string") {
                 throw new Error(`${key} should be a string but instead it is a ${typeof value}, ${toString(value)}`);
             }
         });
-        ariaStrings = {...DEFAULT_ARIA_STRINGS, ...overrides};
+        ariaStrings = { ...DEFAULT_ARIA_STRINGS, ...overrides };
     }
     refreshInstructions();
 }
@@ -206,7 +217,7 @@ function refreshInstructions() {
         Object.entries(INSTRUCTION_ID_TO_STRING_KEY).forEach(([id, key]) => {
             const div = doc.getElementById(id);
             if (div) renderInstruction(div, formatWithFallback(key, instructionCtx));
-        })
+        }),
     );
 }
 
@@ -216,7 +227,7 @@ function refreshInstructions() {
  * @param {{keyboardDragTrigger: "space"|"enter"|"space_or_enter"}} ctx
  */
 export function setInstructionContext(ctx) {
-    instructionCtx = {...ctx};
+    instructionCtx = { ...ctx };
     refreshInstructions();
 }
 

@@ -1,6 +1,6 @@
-import {dndzone} from "../../src/keyboardAction";
-import {TRIGGERS} from "../../src/constants";
-import {setAriaStrings} from "../../src/helpers/aria";
+import { dndzone } from "../../src/keyboardAction";
+import { TRIGGERS } from "../../src/constants";
+import { setAriaStrings } from "../../src/helpers/aria";
 
 describe("keyboardAction", () => {
     const actions = [];
@@ -11,35 +11,35 @@ describe("keyboardAction", () => {
         items.forEach(() => zone.appendChild(document.createElement("div")));
         document.body.appendChild(zone);
         zones.push(zone);
-        const action = dndzone(zone, {items, ...options});
+        const action = dndzone(zone, { items, ...options });
         actions.push(action);
-        return {zone, action, children: Array.from(zone.children)};
+        return { zone, action, children: Array.from(zone.children) };
     }
 
     afterEach(() => {
         actions
             .splice(0)
             .reverse()
-            .forEach(action => action.destroy());
-        zones.splice(0).forEach(zone => zone.remove());
+            .forEach((action) => action.destroy());
+        zones.splice(0).forEach((zone) => zone.remove());
     });
 
     it("can synchronously destroy the focused zone from the drag-stopped handler", () => {
         const {
             zone,
             action,
-            children: [item]
-        } = createZone([{id: 1}]);
+            children: [item],
+        } = createZone([{ id: 1 }]);
         let dragStoppedEvents = 0;
-        zone.addEventListener("consider", e => {
+        zone.addEventListener("consider", (e) => {
             if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) {
                 dragStoppedEvents++;
                 action.destroy();
             }
         });
 
-        item.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
-        item.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+        item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
+        item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
 
         expect(dragStoppedEvents).to.equal(1);
     });
@@ -48,56 +48,56 @@ describe("keyboardAction", () => {
         const {
             zone,
             action,
-            children: [item]
-        } = createZone([{id: 1}]);
-        const {zone: otherZone} = createZone([{id: 2}]);
-        zone.addEventListener("consider", e => {
+            children: [item],
+        } = createZone([{ id: 1 }]);
+        const { zone: otherZone } = createZone([{ id: 2 }]);
+        zone.addEventListener("consider", (e) => {
             if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) action.destroy();
         });
 
-        item.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+        item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         expect(otherZone.style.outline, "should style the other zone during the drag").not.to.equal("");
-        item.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+        item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
 
         expect(otherZone.style.outline).to.equal("");
         expect(otherZone.tabIndex).to.equal(0);
         expect(otherZone.children[0].tabIndex).to.equal(0);
     });
 
-    ["source first", "destination first"].forEach(updateOrder => {
+    ["source first", "destination first"].forEach((updateOrder) => {
         it(`follows the grabbed item when a consumer moves it to another zone (${updateOrder})`, () => {
             const {
                 zone: zoneA,
                 action: actionA,
-                children: [itemA]
-            } = createZone([{id: "a"}, {id: "b"}]);
-            const {zone: zoneB, action: actionB} = createZone([]);
+                children: [itemA],
+            } = createZone([{ id: "a" }, { id: "b" }]);
+            const { zone: zoneB, action: actionB } = createZone([]);
             const dragStoppedOn = [];
-            [zoneA, zoneB].forEach(zone =>
-                zone.addEventListener("consider", e => {
+            [zoneA, zoneB].forEach((zone) =>
+                zone.addEventListener("consider", (e) => {
                     if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) dragStoppedOn.push(zone);
-                })
+                }),
             );
 
             itemA.focus();
-            itemA.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+            itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
 
             zoneA.removeChild(itemA);
             const movedItem = updateOrder === "source first" ? itemA : document.createElement("div");
             zoneB.appendChild(movedItem);
             if (updateOrder === "source first") {
-                actionA.update({items: [{id: "b"}]});
-                actionB.update({items: [{id: "a"}]});
+                actionA.update({ items: [{ id: "b" }] });
+                actionB.update({ items: [{ id: "a" }] });
             } else {
-                actionB.update({items: [{id: "a"}]});
-                actionA.update({items: [{id: "b"}]});
+                actionB.update({ items: [{ id: "a" }] });
+                actionA.update({ items: [{ id: "b" }] });
             }
 
             expect(document.activeElement, "should keep the moved item focused").to.equal(movedItem);
             expect(zoneA.tabIndex, "should make the previous zone reachable again").to.equal(0);
             expect(zoneB.tabIndex, "should remove the current zone from the tab order").to.equal(-1);
 
-            movedItem.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+            movedItem.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
             expect(dragStoppedOn, "should stop the drag in the zone that now holds the item").to.deep.equal([zoneB]);
         });
     });
@@ -106,15 +106,15 @@ describe("keyboardAction", () => {
         const {
             zone: zoneA,
             action: actionA,
-            children: [itemA]
-        } = createZone([{id: "a"}, {id: "b"}]);
-        const {zone: zoneB, action: actionB} = createZone([]);
+            children: [itemA],
+        } = createZone([{ id: "a" }, { id: "b" }]);
+        const { zone: zoneB, action: actionB } = createZone([]);
 
         itemA.focus();
-        itemA.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+        itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
 
         zoneA.removeChild(itemA);
-        actionA.update({items: [{id: "b"}]});
+        actionA.update({ items: [{ id: "b" }] });
 
         const replacementItem = document.createElement("div");
         const nestedZone = document.createElement("div");
@@ -123,11 +123,11 @@ describe("keyboardAction", () => {
         zoneB.appendChild(replacementItem);
 
         // Svelte configures a nested action before the action on its parent.
-        const nestedAction = dndzone(nestedZone, {items: [{id: "nested"}]});
+        const nestedAction = dndzone(nestedZone, { items: [{ id: "nested" }] });
         actions.push(nestedAction);
         expect(nestedZone.tabIndex, "should initially reflect the old focused item").to.equal(0);
 
-        actionB.update({items: [{id: "a"}]});
+        actionB.update({ items: [{ id: "a" }] });
 
         expect(document.activeElement, "should focus the replacement item").to.equal(replacementItem);
         expect(zoneA.tabIndex, "should make the old zone reachable").to.equal(0);
@@ -138,28 +138,28 @@ describe("keyboardAction", () => {
     it("does not let another zone type with the same item id steal the grab", () => {
         const {
             zone: zoneA,
-            children: [itemA]
-        } = createZone([{id: "same"}], {type: "type-a"});
+            children: [itemA],
+        } = createZone([{ id: "same" }], { type: "type-a" });
         const {
             zone: zoneB,
             action: actionB,
-            children: [itemB]
-        } = createZone([{id: "same"}], {type: "type-b"});
+            children: [itemB],
+        } = createZone([{ id: "same" }], { type: "type-b" });
         const dragStoppedOn = [];
-        [zoneA, zoneB].forEach(zone =>
-            zone.addEventListener("consider", e => {
+        [zoneA, zoneB].forEach((zone) =>
+            zone.addEventListener("consider", (e) => {
                 if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) dragStoppedOn.push(zone);
-            })
+            }),
         );
 
         itemA.focus();
-        itemA.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
-        actionB.update({items: [{id: "same"}], type: "type-b"});
+        itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
+        actionB.update({ items: [{ id: "same" }], type: "type-b" });
 
         expect(document.activeElement, "should keep focus on the grabbed item").to.equal(itemA);
         expect(itemB.tabIndex, "should not make the unrelated item active").to.equal(-1);
 
-        itemA.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+        itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         expect(dragStoppedOn, "should stop the drag in its original zone").to.deep.equal([zoneA]);
     });
 
@@ -167,19 +167,19 @@ describe("keyboardAction", () => {
         const {
             zone: zoneA,
             action: actionA,
-            children: [itemA, itemB]
-        } = createZone([{id: "a"}, {id: "b"}], {zoneTabIndex: 3});
-        const {zone: zoneB} = createZone([]);
+            children: [itemA, itemB],
+        } = createZone([{ id: "a" }, { id: "b" }], { zoneTabIndex: 3 });
+        const { zone: zoneB } = createZone([]);
         const triggers = [];
-        zoneA.addEventListener("consider", e => triggers.push(e.detail.info.trigger));
+        zoneA.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
 
-        itemA.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+        itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         zoneA.removeChild(itemA);
-        actionA.update({items: [{id: "b"}], zoneTabIndex: 3});
+        actionA.update({ items: [{ id: "b" }], zoneTabIndex: 3 });
 
         zoneB.dispatchEvent(new FocusEvent("focus"));
 
-        expect(triggers.filter(trigger => trigger === TRIGGERS.DRAG_STOPPED)).to.have.length(1);
+        expect(triggers.filter((trigger) => trigger === TRIGGERS.DRAG_STOPPED)).to.have.length(1);
         expect(zoneA.tabIndex, "should restore the configured zone tab index").to.equal(3);
         expect(itemB.tabIndex, "should restore the item tab index").to.equal(0);
     });
@@ -188,15 +188,15 @@ describe("keyboardAction", () => {
         const {
             zone: zoneA,
             action: actionA,
-            children: [itemA]
-        } = createZone([{id: "a"}, {id: "b"}]);
-        const {zone: zoneB} = createZone([]);
+            children: [itemA],
+        } = createZone([{ id: "a" }, { id: "b" }]);
+        const { zone: zoneB } = createZone([]);
         const finalized = [];
-        [zoneA, zoneB].forEach(zone => zone.addEventListener("finalize", e => finalized.push(e.detail)));
+        [zoneA, zoneB].forEach((zone) => zone.addEventListener("finalize", (e) => finalized.push(e.detail)));
 
-        itemA.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+        itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         zoneA.removeChild(itemA);
-        actionA.update({items: [{id: "b"}]});
+        actionA.update({ items: [{ id: "b" }] });
 
         zoneB.dispatchEvent(new FocusEvent("focus"));
 
@@ -213,34 +213,36 @@ describe("keyboardAction", () => {
         }
 
         function createLabelledZone(items, zoneLabel, options = {}) {
-            const {zone, action, children} = createZone(items, options);
+            const { zone, action, children } = createZone(items, options);
             zone.setAttribute("aria-label", zoneLabel);
             children.forEach((child, i) => child.setAttribute("aria-label", `Card ${i}`));
-            return {zone, action, children};
+            return { zone, action, children };
         }
 
         function grab(item) {
             item.focus();
-            item.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+            item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         }
 
         it("names the zone when the drag starts", () => {
             const {
-                children: [item]
-            } = createLabelledZone([{id: "a"}, {id: "b"}], "To do");
+                children: [item],
+            } = createLabelledZone([{ id: "a" }, { id: "b" }], "To do");
 
             grab(item);
 
-            expect(alertText()).to.equal("Started dragging item Card 0. Use the arrow keys to move it within its list To do");
+            expect(alertText()).to.equal(
+                "Started dragging item Card 0. Use the arrow keys to move it within its list To do",
+            );
         });
 
         it("names the zone when arrowing within the list", () => {
             const {
-                children: [item]
-            } = createLabelledZone([{id: "a"}, {id: "b"}], "To do");
+                children: [item],
+            } = createLabelledZone([{ id: "a" }, { id: "b" }], "To do");
 
             grab(item);
-            item.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowDown", bubbles: true, cancelable: true}));
+            item.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
 
             expect(alertText()).to.equal("Moved item Card 0 to position 2 in the list To do");
         });
@@ -248,19 +250,19 @@ describe("keyboardAction", () => {
         it("routes every announcement through the overridable strings", () => {
             const seen = [];
             setAriaStrings({
-                dragStarted: ctx => `grab:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.canMoveBetweenZones}`,
-                movedToPosition: ctx => `move:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
-                dropped: ctx => `drop:${ctx.itemLabel}`
+                dragStarted: (ctx) => `grab:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.canMoveBetweenZones}`,
+                movedToPosition: (ctx) => `move:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                dropped: (ctx) => `drop:${ctx.itemLabel}`,
             });
             const {
-                children: [item]
-            } = createLabelledZone([{id: "a"}, {id: "b"}], "To do");
+                children: [item],
+            } = createLabelledZone([{ id: "a" }, { id: "b" }], "To do");
 
             grab(item);
             seen.push(alertText());
-            item.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowDown", bubbles: true, cancelable: true}));
+            item.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
             seen.push(alertText());
-            item.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+            item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
             seen.push(alertText());
 
             expect(seen).to.deep.equal(["grab:Card 0:To do:false", "move:Card 0:To do:2:2", "drop:Card 0"]);
@@ -269,17 +271,17 @@ describe("keyboardAction", () => {
         it("gives the grab and the drop the item's seat and the zone's size", () => {
             const seen = [];
             setAriaStrings({
-                dragStarted: ctx => `grab:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
-                dropped: ctx => `drop:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`
+                dragStarted: (ctx) => `grab:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                dropped: (ctx) => `drop:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
             });
             const {
-                children: [, second]
-            } = createLabelledZone([{id: "a"}, {id: "b"}, {id: "c"}], "To do");
+                children: [, second],
+            } = createLabelledZone([{ id: "a" }, { id: "b" }, { id: "c" }], "To do");
 
             grab(second);
             seen.push(alertText());
-            second.dispatchEvent(new KeyboardEvent("keydown", {key: "ArrowDown", bubbles: true, cancelable: true}));
-            second.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+            second.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+            second.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
             seen.push(alertText());
 
             // Multiple items ensure that hardcoded positions and stale counts fail the assertion.
@@ -287,10 +289,10 @@ describe("keyboardAction", () => {
         });
 
         it("reports canMoveBetweenZones when another zone can accept the item", () => {
-            setAriaStrings({dragStarted: ctx => `${ctx.canMoveBetweenZones}`});
+            setAriaStrings({ dragStarted: (ctx) => `${ctx.canMoveBetweenZones}` });
             const {
-                children: [item]
-            } = createLabelledZone([{id: "a"}], "To do");
+                children: [item],
+            } = createLabelledZone([{ id: "a" }], "To do");
             createLabelledZone([], "Done");
 
             grab(item);
@@ -300,11 +302,11 @@ describe("keyboardAction", () => {
 
         it("uses the cross-zone strings when focus moves to another zone", () => {
             setAriaStrings({
-                movedToZoneEnd: ctx => `end:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
-                movedToZoneStart: ctx => `start:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`
+                movedToZoneEnd: (ctx) => `end:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                movedToZoneStart: (ctx) => `start:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
             });
-            const {zone: zoneA, children: itemsA} = createLabelledZone([{id: "a"}], "To do");
-            const {zone: zoneB} = createLabelledZone([{id: "b"}], "Done");
+            const { zone: zoneA, children: itemsA } = createLabelledZone([{ id: "a" }], "To do");
+            const { zone: zoneB } = createLabelledZone([{ id: "b" }], "Done");
             // Give the zones distinct positions so both insertion branches are reachable.
             zoneA.style.height = "50px";
             zoneB.style.height = "50px";
@@ -320,10 +322,10 @@ describe("keyboardAction", () => {
         });
 
         it("stays silent when autoAriaDisabled is set, even with overrides installed", () => {
-            setAriaStrings({dragStarted: () => "SHOULD NOT BE SPOKEN"});
+            setAriaStrings({ dragStarted: () => "SHOULD NOT BE SPOKEN" });
             const {
-                children: [item]
-            } = createLabelledZone([{id: "a"}], "To do", {autoAriaDisabled: true});
+                children: [item],
+            } = createLabelledZone([{ id: "a" }], "To do", { autoAriaDisabled: true });
 
             grab(item);
 
@@ -334,22 +336,25 @@ describe("keyboardAction", () => {
             setAriaStrings({
                 dropped: () => {
                     throw new Error("boom");
-                }
+                },
             });
             const {
                 zone,
-                children: [item]
-            } = createLabelledZone([{id: "a"}, {id: "b"}], "To do");
+                children: [item],
+            } = createLabelledZone([{ id: "a" }, { id: "b" }], "To do");
             const triggers = [];
-            zone.addEventListener("consider", e => triggers.push(e.detail.info.trigger));
+            zone.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
 
             grab(item);
-            item.dispatchEvent(new KeyboardEvent("keydown", {key: " ", bubbles: true, cancelable: true}));
+            item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
 
-            expect(alertText(), "should fall back to the default text instead of staying silent or speaking undefined").to.equal(
-                "Stopped dragging item Card 0"
+            expect(
+                alertText(),
+                "should fall back to the default text instead of staying silent or speaking undefined",
+            ).to.equal("Stopped dragging item Card 0");
+            expect(triggers, "the drop should still have dispatched the drag-stopped consider event").to.include(
+                TRIGGERS.DRAG_STOPPED,
             );
-            expect(triggers, "the drop should still have dispatched the drag-stopped consider event").to.include(TRIGGERS.DRAG_STOPPED);
             expect(zone.tabIndex, "the drop should have completed and restored the zone's tab index").to.equal(0);
             expect(item.tabIndex, "the drop should have completed and restored the item's tab index").to.equal(0);
 
@@ -357,7 +362,7 @@ describe("keyboardAction", () => {
             setAriaStrings(null);
             grab(item);
             expect(alertText(), "a fresh grab afterwards should start a new drag rather than drop again").to.equal(
-                "Started dragging item Card 0. Use the arrow keys to move it within its list To do"
+                "Started dragging item Card 0. Use the arrow keys to move it within its list To do",
             );
         });
 
@@ -365,12 +370,12 @@ describe("keyboardAction", () => {
             setAriaStrings({
                 dropped: () => {
                     throw new Error("boom");
-                }
+                },
             });
             const {
                 action,
-                children: [item]
-            } = createLabelledZone([{id: "a"}], "To do");
+                children: [item],
+            } = createLabelledZone([{ id: "a" }], "To do");
 
             grab(item);
 

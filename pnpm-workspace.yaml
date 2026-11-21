@@ -1,7 +1,7 @@
 packages:
-  - packages/*
-  - apps/*
+    - packages/*
+    - apps/*
 
 allowBuilds:
-  cypress: true
-  husky: false
+    cypress: true
+    husky: false

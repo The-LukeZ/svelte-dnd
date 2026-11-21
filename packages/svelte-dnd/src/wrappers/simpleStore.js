@@ -3,16 +3,16 @@ export function createStore(initialValue) {
     const subs = new Set();
     return {
         get: () => _val,
-        set: newVal => {
+        set: (newVal) => {
             _val = newVal;
-            Array.from(subs).forEach(cb => cb(_val));
+            Array.from(subs).forEach((cb) => cb(_val));
         },
-        subscribe: cb => {
+        subscribe: (cb) => {
             subs.add(cb);
             cb(_val);
         },
-        unsubscribe: cb => {
+        unsubscribe: (cb) => {
             subs.delete(cb);
-        }
+        },
     };
 }

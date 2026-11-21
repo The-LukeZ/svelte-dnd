@@ -1,8 +1,8 @@
-import {SHADOW_ELEMENT_ATTRIBUTE_NAME, DRAGGED_ELEMENT_ID} from "../constants";
-import {findCenter} from "./intersection";
-import {svelteNodeClone} from "./svelteNodeClone";
-import {getFeatureFlag, FEATURE_FLAG_NAMES} from "../featureFlags";
-import {getWindowOf} from "./util";
+import { SHADOW_ELEMENT_ATTRIBUTE_NAME, DRAGGED_ELEMENT_ID } from "../constants";
+import { findCenter } from "./intersection";
+import { svelteNodeClone } from "./svelteNodeClone";
+import { getFeatureFlag, FEATURE_FLAG_NAMES } from "../featureFlags";
+import { getWindowOf } from "./util";
 
 const TRANSITION_DURATION_SECONDS = 0.2;
 
@@ -22,7 +22,7 @@ function trs(property) {
  * @param {HTMLElement} draggedEl
  */
 function ensureMorphSizeTransitions(draggedEl) {
-    const transitionProperties = draggedEl.style.transitionProperty.split(",").map(property => property.trim());
+    const transitionProperties = draggedEl.style.transitionProperty.split(",").map((property) => property.trim());
     if (transitionProperties.includes("all")) return;
     if (!transitionProperties.includes("width")) draggedEl.style.transition += `, ${trs("width")}`;
     if (!transitionProperties.includes("height")) draggedEl.style.transition += `, ${trs("height")}`;
@@ -95,7 +95,7 @@ export function morphDraggedElementToBeLike(draggedEl, copyFromEl, currentMouseX
     if (widthChange || heightChange) {
         const relativeDistanceOfMousePointerFromDraggedSides = {
             left: draggedElRect.width ? (currentMouseX - draggedElRect.left) / draggedElRect.width : 0,
-            top: draggedElRect.height ? (currentMouseY - draggedElRect.top) / draggedElRect.height : 0
+            top: draggedElRect.height ? (currentMouseY - draggedElRect.top) / draggedElRect.height : 0,
         };
         if (!getFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT)) {
             draggedEl.style.height = `${newRect.height}px`;
@@ -114,7 +114,7 @@ function copyStylesFromTo(copyFromEl, copyToEl) {
     const computedStyle = getWindowOf(copyFromEl).getComputedStyle(copyFromEl);
     Array.from(computedStyle)
         .filter(
-            s =>
+            (s) =>
                 s.startsWith("background") ||
                 s.startsWith("padding") ||
                 s.startsWith("font") ||
@@ -128,9 +128,12 @@ function copyStylesFromTo(copyFromEl, copyToEl) {
                 s === "color" ||
                 s === "list-style-type" ||
                 // copying with and height to make up for rect update timing issues in some browsers
-                (getFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT) && (s === "width" || s === "height"))
+                (getFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT) &&
+                    (s === "width" || s === "height")),
         )
-        .forEach(s => copyToEl.style.setProperty(s, computedStyle.getPropertyValue(s), computedStyle.getPropertyPriority(s)));
+        .forEach((s) =>
+            copyToEl.style.setProperty(s, computedStyle.getPropertyValue(s), computedStyle.getPropertyPriority(s)),
+        );
 }
 
 /**
@@ -187,12 +190,12 @@ export function unDecorateShadowElement(shadowEl) {
  * @param {Function} getClasses - maps a dropzone to a classList
  */
 export function styleActiveDropZones(dropZones, getStyles = () => {}, getClasses = () => []) {
-    dropZones.forEach(dz => {
+    dropZones.forEach((dz) => {
         const styles = getStyles(dz);
-        Object.keys(styles).forEach(style => {
+        Object.keys(styles).forEach((style) => {
             dz.style[style] = styles[style];
         });
-        getClasses(dz).forEach(c => dz.classList.add(c));
+        getClasses(dz).forEach((c) => dz.classList.add(c));
     });
 }
 
@@ -203,12 +206,12 @@ export function styleActiveDropZones(dropZones, getStyles = () => {}, getClasses
  * @param {Function} getClasses - maps a dropzone to a classList
  */
 export function styleInactiveDropZones(dropZones, getStyles = () => {}, getClasses = () => []) {
-    dropZones.forEach(dz => {
+    dropZones.forEach((dz) => {
         const styles = getStyles(dz);
-        Object.keys(styles).forEach(style => {
+        Object.keys(styles).forEach((style) => {
             dz.style[style] = "";
         });
-        getClasses(dz).forEach(c => dz.classList.contains(c) && dz.classList.remove(c));
+        getClasses(dz).forEach((c) => dz.classList.contains(c) && dz.classList.remove(c));
     });
 }
 

@@ -1,9 +1,9 @@
-import {dndzone} from "../../src/pointerAction";
-import {dndzone as pointerAndKeyboardDndzone} from "../../src/action";
-import {dragHandle, dragHandleZone} from "../../src/wrappers/withDragHandles";
-import {setAriaStrings} from "../../src/helpers/aria";
-import {DRAGGED_ELEMENT_ID, TRIGGERS} from "../../src/constants";
-import {createFrame, createList, failOnListenerErrors, openPopup} from "./helpers/otherWindow";
+import { dndzone } from "../../src/pointerAction";
+import { dndzone as pointerAndKeyboardDndzone } from "../../src/action";
+import { dragHandle, dragHandleZone } from "../../src/wrappers/withDragHandles";
+import { setAriaStrings } from "../../src/helpers/aria";
+import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../../src/constants";
+import { createFrame, createList, failOnListenerErrors, openPopup } from "./helpers/otherWindow";
 
 failOnListenerErrors();
 
@@ -29,38 +29,44 @@ function createZoneInFrame(options = {}, makeZone = dndzone) {
     zone.appendChild(item);
     doc.body.appendChild(zone);
     const triggers = [];
-    zone.addEventListener("consider", e => triggers.push(e.detail.info.trigger));
-    zone.addEventListener("finalize", e => triggers.push(e.detail.info.trigger));
-    const action = makeZone(zone, {items: [{id: 1}], ...options});
-    return {action, doc, frame, item, triggers, win, zone};
+    zone.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
+    zone.addEventListener("finalize", (e) => triggers.push(e.detail.info.trigger));
+    const action = makeZone(zone, { items: [{ id: 1 }], ...options });
+    return { action, doc, frame, item, triggers, win, zone };
 }
 
 function mouse(win, type, x, y = x) {
-    return new win.MouseEvent(type, {button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true});
+    return new win.MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
 }
 
-function startMouseDrag({item, win}) {
+function startMouseDrag({ item, win }) {
     item.dispatchEvent(mouse(win, "mousedown", 5));
     win.dispatchEvent(mouse(win, "mousemove", 10));
 }
 
-const last = list => list.triggers[list.triggers.length - 1];
+const last = (list) => list.triggers[list.triggers.length - 1];
 function listInFrame(options = {}, parent = document) {
-    const frame = createFrame({parent});
-    return {...frame, list: createList(frame.doc, {label: "Frame", names: ["f1", "f2"], dropAnimationDisabled: true, ...options})};
+    const frame = createFrame({ parent });
+    return {
+        ...frame,
+        list: createList(frame.doc, { label: "Frame", names: ["f1", "f2"], dropAnimationDisabled: true, ...options }),
+    };
 }
-function startDrag({list, win}) {
+function startDrag({ list, win }) {
     list.element("f1").dispatchEvent(mouse(win, "mousedown", 15));
     win.dispatchEvent(mouse(win, "mousemove", 20));
 }
 // The library allows one drag at a time, so a drag left behind would block this one.
 function expectALoadingWindowDragToWork() {
-    const list = createList(document, {label: "Loading", names: ["l1"], dropAnimationDisabled: true});
+    const list = createList(document, { label: "Loading", names: ["l1"], dropAnimationDisabled: true });
     try {
         list.element("l1").dispatchEvent(mouse(window, "mousedown", 5));
         window.dispatchEvent(mouse(window, "mousemove", 10));
         window.dispatchEvent(mouse(window, "mouseup", 10));
-        expect(list.triggers, "a drag in the loading window should work").to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
+        expect(list.triggers, "a drag in the loading window should work").to.deep.equal([
+            TRIGGERS.DRAG_STARTED,
+            TRIGGERS.DROPPED_INTO_ZONE,
+        ]);
     } finally {
         list.action.destroy();
         list.zone.remove();
@@ -71,7 +77,7 @@ describe("a drop zone in another window", () => {
     it("starts and finishes a pointer drag from that window's events", () => {
         let created;
         cy.then(() => {
-            created = createZoneInFrame({dropAnimationDisabled: true});
+            created = createZoneInFrame({ dropAnimationDisabled: true });
             startMouseDrag(created);
 
             expect(created.doc.getElementById(DRAGGED_ELEMENT_ID)).not.to.equal(null);
@@ -96,10 +102,10 @@ describe("a drop zone in another window", () => {
         let created;
         cy.then(() => {
             window.requestAnimationFrame = () => 0;
-            created = createZoneInFrame({dropAnimationDisabled: true});
+            created = createZoneInFrame({ dropAnimationDisabled: true });
             // What a framework does on the drag-started consider event: re-render the list,
             // which takes the original element out of the zone.
-            created.zone.addEventListener("consider", () => created.item.remove(), {once: true});
+            created.zone.addEventListener("consider", () => created.item.remove(), { once: true });
             startMouseDrag(created);
         });
         // The library keeps the original element in the document once the framework removed it;
@@ -125,18 +131,24 @@ describe("a drop zone in another window", () => {
         // nested one level deeper, so it would be checked first if it were a candidate.
         const wrapper = document.createElement("div");
         const loadingZone = document.createElement("div");
-        Object.assign(loadingZone.style, {position: "absolute", top: "0", left: "0", width: "400px", height: "400px"});
+        Object.assign(loadingZone.style, {
+            position: "absolute",
+            top: "0",
+            left: "0",
+            width: "400px",
+            height: "400px",
+        });
         loadingZone.appendChild(document.createElement("div"));
         wrapper.appendChild(loadingZone);
         document.body.appendChild(wrapper);
         const loadingTriggers = [];
-        loadingZone.addEventListener("consider", e => loadingTriggers.push(e.detail.info.trigger));
-        const loadingAction = dndzone(loadingZone, {items: [{id: 2}], dropAnimationDisabled: true});
+        loadingZone.addEventListener("consider", (e) => loadingTriggers.push(e.detail.info.trigger));
+        const loadingAction = dndzone(loadingZone, { items: [{ id: 2 }], dropAnimationDisabled: true });
         let created;
         cy.then(() => {
-            created = createZoneInFrame({dropAnimationDisabled: true});
+            created = createZoneInFrame({ dropAnimationDisabled: true });
             // Model the framework re-rendering the list on drag start, which starts the observation.
-            created.zone.addEventListener("consider", () => created.item.remove(), {once: true});
+            created.zone.addEventListener("consider", () => created.item.remove(), { once: true });
             startMouseDrag(created);
         });
         cy.window().should(() => {
@@ -159,14 +171,18 @@ describe("a drop zone in another window", () => {
     });
 
     it("does not style a zone in another window when its options change during a drag", () => {
-        const loadingList = createList(document, {label: "Loading", names: ["l1"]});
+        const loadingList = createList(document, { label: "Loading", names: ["l1"] });
         const created = listInFrame();
-        const updateLoadingList = options => loadingList.action.update({items: [{id: "l1", name: "l1"}], ...options});
+        const updateLoadingList = (options) =>
+            loadingList.action.update({ items: [{ id: "l1", name: "l1" }], ...options });
         try {
             startDrag(created);
-            updateLoadingList({dropTargetStyle: {outline: "rgb(255, 0, 0) solid 1px"}, dropTargetClasses: ["target"]});
-            updateLoadingList({dropFromOthersDisabled: true});
-            updateLoadingList({dropFromOthersDisabled: false});
+            updateLoadingList({
+                dropTargetStyle: { outline: "rgb(255, 0, 0) solid 1px" },
+                dropTargetClasses: ["target"],
+            });
+            updateLoadingList({ dropFromOthersDisabled: true });
+            updateLoadingList({ dropFromOthersDisabled: false });
             expect(loadingList.zone.style.outline).to.equal("");
             expect(loadingList.zone.classList.contains("target")).to.equal(false);
             created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
@@ -193,18 +209,20 @@ describe("keyboard and aria support for a drop zone in another window", () => {
     });
 
     function key(k) {
-        return new created.win.KeyboardEvent("keydown", {key: k, bubbles: true, cancelable: true});
+        return new created.win.KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true });
     }
     function click(el) {
-        el.dispatchEvent(new created.win.MouseEvent("click", {bubbles: true, cancelable: true}));
+        el.dispatchEvent(new created.win.MouseEvent("click", { bubbles: true, cancelable: true }));
     }
 
     it("describes the zone with instructions in the zone's document", () => {
         const instruction = created.doc.getElementById(created.zone.getAttribute("aria-describedby"));
-        expect(instruction.textContent).to.equal("Tab to one the items and press space-bar or enter to start dragging it");
+        expect(instruction.textContent).to.equal(
+            "Tab to one the items and press space-bar or enter to start dragging it",
+        );
 
         try {
-            setAriaStrings({zoneActiveInstruction: "Appuyez sur espace"});
+            setAriaStrings({ zoneActiveInstruction: "Appuyez sur espace" });
             expect(instruction.textContent).to.equal("Appuyez sur espace");
         } finally {
             setAriaStrings(null);
@@ -214,7 +232,7 @@ describe("keyboard and aria support for a drop zone in another window", () => {
     it("announces in the zone's document", () => {
         created.item.dispatchEvent(key("Enter"));
         expect(created.doc.getElementById("dnd-action-aria-alert").textContent).to.equal(
-            "Started dragging item Card A. Use the arrow keys to move it within its list To do"
+            "Started dragging item Card A. Use the arrow keys to move it within its list To do",
         );
     });
 
@@ -228,7 +246,9 @@ describe("keyboard and aria support for a drop zone in another window", () => {
         created.item.dispatchEvent(key("Enter"));
         expect(created.doc.activeElement).to.equal(created.item);
         click(created.item);
-        expect(created.triggers, "a click on the focused dragged item should keep the drag").to.deep.equal([TRIGGERS.DRAG_STARTED]);
+        expect(created.triggers, "a click on the focused dragged item should keep the drag").to.deep.equal([
+            TRIGGERS.DRAG_STARTED,
+        ]);
 
         // A real click elsewhere moves the focus before the click event fires.
         created.item.blur();
@@ -242,14 +262,14 @@ describe("keyboard and aria support for a drop zone in another window", () => {
         loadingZone.appendChild(loadingItem);
         document.body.appendChild(loadingZone);
         const triggers = [];
-        loadingZone.addEventListener("consider", e => triggers.push(e.detail.info.trigger));
-        const loadingAction = pointerAndKeyboardDndzone(loadingZone, {items: [{id: 2}]});
+        loadingZone.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
+        const loadingAction = pointerAndKeyboardDndzone(loadingZone, { items: [{ id: 2 }] });
         try {
             // A popup can close before the app destroys the zones that were in it.
             created.frame.remove();
             created.action.destroy();
-            loadingItem.dispatchEvent(new KeyboardEvent("keydown", {key: "Enter", bubbles: true, cancelable: true}));
-            loadingItem.dispatchEvent(new KeyboardEvent("keydown", {key: "Escape", bubbles: true, cancelable: true}));
+            loadingItem.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+            loadingItem.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
             expect(triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DRAG_STOPPED]);
         } finally {
             loadingAction.destroy();
@@ -287,10 +307,16 @@ describe("a keyboard drag from a drag handle in another window", () => {
         const handleAction = dragHandle(handle);
         try {
             handle.focus();
-            handle.dispatchEvent(new created.win.KeyboardEvent("keydown", {key: "Enter", bubbles: true, cancelable: true}));
+            handle.dispatchEvent(
+                new created.win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+            );
             expect(created.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
-            expect(created.doc.getElementById("dnd-action-aria-alert").textContent).to.contain("Started dragging item Card A");
-            created.win.dispatchEvent(new created.win.KeyboardEvent("keydown", {key: "Escape", bubbles: true, cancelable: true}));
+            expect(created.doc.getElementById("dnd-action-aria-alert").textContent).to.contain(
+                "Started dragging item Card A",
+            );
+            created.win.dispatchEvent(
+                new created.win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+            );
             expect(created.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DRAG_STOPPED]);
             expect(handle.style.cursor, "the handle should be released").to.equal("grab");
         } finally {
@@ -327,7 +353,7 @@ describe("a drag in another window that goes away", () => {
 
     it("finalizes a pointer drag whose iframe the app removes when the drag starts", () => {
         const created = listInFrame();
-        created.list.zone.addEventListener("consider", () => created.frame.remove(), {once: true});
+        created.list.zone.addEventListener("consider", () => created.frame.remove(), { once: true });
         startDrag(created);
         expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
         created.list.action.destroy();
@@ -337,16 +363,16 @@ describe("a drag in another window that goes away", () => {
     it("finalizes once when the app removes the iframe while the drag enters its first zone", () => {
         let finalizeCount;
         let timeoutsAfterRemoval = 0;
-        cy.then({timeout: 10000}, () => {
+        cy.then({ timeout: 10000 }, () => {
             const created = listInFrame();
             // the observation must not schedule its next tick on the removed iframe's window
             let removed = false;
-            const {setTimeout: iframeSetTimeout} = created.win;
+            const { setTimeout: iframeSetTimeout } = created.win;
             created.win.setTimeout = (...args) => {
                 if (removed) timeoutsAfterRemoval++;
                 return iframeSetTimeout.apply(created.win, args);
             };
-            created.list.zone.addEventListener("consider", e => {
+            created.list.zone.addEventListener("consider", (e) => {
                 if (e.detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
                     created.frame.remove();
                     removed = true;
@@ -354,8 +380,10 @@ describe("a drag in another window that goes away", () => {
             });
             startDrag(created);
             // The first observation runs on the iframe's next animation frame.
-            return new Promise(resolve => window.setTimeout(resolve, 200)).then(() => {
-                finalizeCount = created.list.triggers.filter(trigger => trigger === TRIGGERS.DROPPED_INTO_ZONE).length;
+            return new Promise((resolve) => window.setTimeout(resolve, 200)).then(() => {
+                finalizeCount = created.list.triggers.filter(
+                    (trigger) => trigger === TRIGGERS.DROPPED_INTO_ZONE,
+                ).length;
                 try {
                     expectALoadingWindowDragToWork();
                 } finally {
@@ -363,23 +391,31 @@ describe("a drag in another window that goes away", () => {
                 }
             });
         });
-        cy.then(() => expect({finalizeCount, timeoutsAfterRemoval}).to.deep.equal({finalizeCount: 1, timeoutsAfterRemoval: 0}));
+        cy.then(() =>
+            expect({ finalizeCount, timeoutsAfterRemoval }).to.deep.equal({
+                finalizeCount: 1,
+                timeoutsAfterRemoval: 0,
+            }),
+        );
     });
 
     [
-        {trigger: TRIGGERS.DRAGGED_LEFT_ALL, moveTo: [250, 180], zones: 1},
-        {trigger: TRIGGERS.DRAGGED_ENTERED_ANOTHER, moveTo: [50, 130], zones: 2}
-    ].forEach(({trigger, moveTo, zones}) => {
+        { trigger: TRIGGERS.DRAGGED_LEFT_ALL, moveTo: [250, 180], zones: 1 },
+        { trigger: TRIGGERS.DRAGGED_ENTERED_ANOTHER, moveTo: [50, 130], zones: 2 },
+    ].forEach(({ trigger, moveTo, zones }) => {
         it(`finalizes once when the app removes the iframe while handling ${trigger}`, () => {
             let finalizeCount;
-            cy.then({timeout: 10000}, () => {
+            cy.then({ timeout: 10000 }, () => {
                 const created = listInFrame();
-                const other = zones > 1 ? createList(created.doc, {label: "Other", names: ["o1"], style: {marginTop: "40px"}}) : undefined;
-                created.list.zone.addEventListener("consider", e => {
+                const other =
+                    zones > 1
+                        ? createList(created.doc, { label: "Other", names: ["o1"], style: { marginTop: "40px" } })
+                        : undefined;
+                created.list.zone.addEventListener("consider", (e) => {
                     if (e.detail.info.trigger === trigger) created.frame.remove();
                 });
                 startDrag(created);
-                const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+                const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
                 return sleep(100)
                     .then(() => {
                         created.win.dispatchEvent(mouse(created.win, "mousemove", ...moveTo));
@@ -387,7 +423,7 @@ describe("a drag in another window that goes away", () => {
                     })
                     .then(() => {
                         finalizeCount = created.list.triggers.filter(
-                            t => t === TRIGGERS.DROPPED_INTO_ZONE || t === TRIGGERS.DROPPED_OUTSIDE_OF_ANY
+                            (t) => t === TRIGGERS.DROPPED_INTO_ZONE || t === TRIGGERS.DROPPED_OUTSIDE_OF_ANY,
                         ).length;
                         try {
                             expectALoadingWindowDragToWork();
@@ -402,13 +438,15 @@ describe("a drag in another window that goes away", () => {
     });
 
     it("finalizes once when the app removes the iframe while handling the finalize event", () => {
-        cy.then({timeout: 10000}, () => {
-            const created = listInFrame({dropAnimationDisabled: false, flipDurationMs: 50});
+        cy.then({ timeout: 10000 }, () => {
+            const created = listInFrame({ dropAnimationDisabled: false, flipDurationMs: 50 });
             created.list.zone.addEventListener("finalize", () => created.frame.remove());
             startDrag(created);
             created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
-            return new Promise(resolve => window.setTimeout(resolve, 200)).then(() => {
-                expect(created.list.triggers.filter(trigger => trigger === TRIGGERS.DROPPED_INTO_ZONE)).to.have.length(1);
+            return new Promise((resolve) => window.setTimeout(resolve, 200)).then(() => {
+                expect(
+                    created.list.triggers.filter((trigger) => trigger === TRIGGERS.DROPPED_INTO_ZONE),
+                ).to.have.length(1);
                 created.list.action.destroy();
                 expectALoadingWindowDragToWork();
             });
@@ -416,7 +454,7 @@ describe("a drag in another window that goes away", () => {
     });
 
     it("finishes the drop animation at once when the iframe is removed during it", () => {
-        const created = listInFrame({dropAnimationDisabled: false, flipDurationMs: 300});
+        const created = listInFrame({ dropAnimationDisabled: false, flipDurationMs: 300 });
         startDrag(created);
         created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
         expect(created.list.triggers, "the drop animation should be running").to.deep.equal([TRIGGERS.DRAG_STARTED]);
@@ -438,8 +476,8 @@ describe("a drag in another window that goes away", () => {
 
     it("finalizes a pointer drag whose popup is closed", function () {
         const popup = openPopup(this);
-        const list = createList(popup.doc, {label: "Popup", names: ["f1", "f2"], dropAnimationDisabled: true});
-        startDrag({list, win: popup.win});
+        const list = createList(popup.doc, { label: "Popup", names: ["f1", "f2"], dropAnimationDisabled: true });
+        startDrag({ list, win: popup.win });
         popup.win.close();
         cy.wrap(list).should(() => expect(last(list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE));
         cy.then(() => {
@@ -451,7 +489,7 @@ describe("a drag in another window that goes away", () => {
     it("leaves a zone whose iframe is gone out of a pointer drag in the loading window", () => {
         const created = listInFrame();
         created.frame.remove();
-        const list = createList(document, {label: "Loading", names: ["l1"], dropAnimationDisabled: true});
+        const list = createList(document, { label: "Loading", names: ["l1"], dropAnimationDisabled: true });
         try {
             list.element("l1").dispatchEvent(mouse(window, "mousedown", 5));
             window.dispatchEvent(mouse(window, "mousemove", 10));
@@ -472,7 +510,7 @@ describe("a drag in another window that goes away", () => {
         loadingItem.appendChild(loadingHandle);
         loadingZone.appendChild(loadingItem);
         document.body.appendChild(loadingZone);
-        const loadingZoneAction = dragHandleZone(loadingZone, {items: [{id: "loading"}]});
+        const loadingZoneAction = dragHandleZone(loadingZone, { items: [{ id: "loading" }] });
         const loadingHandleAction = dragHandle(loadingHandle);
         const created = createZoneInFrame({}, dragHandleZone);
         const handle = created.doc.createElement("div");

@@ -1,7 +1,7 @@
-import {dndzone as pointerDndZone} from "./pointerAction";
-import {dndzone as keyboardDndZone} from "./keyboardAction";
-import {ITEM_ID_KEY, SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME} from "./constants";
-import {toString} from "./helpers/util";
+import { dndzone as pointerDndZone } from "./pointerAction";
+import { dndzone as keyboardDndZone } from "./keyboardAction";
+import { ITEM_ID_KEY, SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME } from "./constants";
+import { toString } from "./helpers/util";
 
 /**
  * A custom action to turn any container to a dnd zone and all of its direct children to draggables
@@ -32,14 +32,14 @@ export function dndzone(node, options) {
     if (shouldIgnoreZone(node)) {
         return {
             update: () => {},
-            destroy: () => {}
+            destroy: () => {},
         };
     }
     validateOptions(options);
     const pointerZone = pointerDndZone(node, options);
     const keyboardZone = keyboardDndZone(node, options);
     return {
-        update: newOptions => {
+        update: (newOptions) => {
             validateOptions(newOptions);
             pointerZone.update(newOptions);
             keyboardZone.update(newOptions);
@@ -47,7 +47,7 @@ export function dndzone(node, options) {
         destroy: () => {
             pointerZone.destroy();
             keyboardZone.destroy();
-        }
+        },
     };
 }
 
@@ -89,18 +89,24 @@ function validateOptions(options) {
     if (!items) {
         throw new Error("no 'items' key provided to dndzone");
     }
-    const itemWithMissingId = items.find(item => !{}.hasOwnProperty.call(item, ITEM_ID_KEY));
+    const itemWithMissingId = items.find((item) => !{}.hasOwnProperty.call(item, ITEM_ID_KEY));
     if (itemWithMissingId) {
         throw new Error(`missing '${ITEM_ID_KEY}' property for item ${toString(itemWithMissingId)}`);
     }
     if (dropTargetClasses && !Array.isArray(dropTargetClasses)) {
-        throw new Error(`dropTargetClasses should be an array but instead it is a ${typeof dropTargetClasses}, ${toString(dropTargetClasses)}`);
+        throw new Error(
+            `dropTargetClasses should be an array but instead it is a ${typeof dropTargetClasses}, ${toString(dropTargetClasses)}`,
+        );
     }
     if (zoneTabIndex && !isInt(zoneTabIndex)) {
-        throw new Error(`zoneTabIndex should be a number but instead it is a ${typeof zoneTabIndex}, ${toString(zoneTabIndex)}`);
+        throw new Error(
+            `zoneTabIndex should be a number but instead it is a ${typeof zoneTabIndex}, ${toString(zoneTabIndex)}`,
+        );
     }
     if (zoneItemTabIndex && !isInt(zoneItemTabIndex)) {
-        throw new Error(`zoneItemTabIndex should be a number but instead it is a ${typeof zoneItemTabIndex}, ${toString(zoneItemTabIndex)}`);
+        throw new Error(
+            `zoneItemTabIndex should be a number but instead it is a ${typeof zoneItemTabIndex}, ${toString(zoneItemTabIndex)}`,
+        );
     }
     if (delayTouchStart !== undefined && delayTouchStart !== false) {
         const validBoolean = delayTouchStart === true;
@@ -108,8 +114,8 @@ function validateOptions(options) {
         if (!validBoolean && !validNumber) {
             throw new Error(
                 `delayTouchStart should be a boolean (true/false) or a non-negative number but instead it is a ${typeof delayTouchStart}, ${toString(
-                    delayTouchStart
-                )}`
+                    delayTouchStart,
+                )}`,
             );
         }
     }

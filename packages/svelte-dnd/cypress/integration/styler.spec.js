@@ -1,5 +1,5 @@
-import {createDraggedElementFrom, morphDraggedElementToBeLike} from "../../src/helpers/styler";
-import {FEATURE_FLAG_NAMES, setFeatureFlag} from "../../src/featureFlags";
+import { createDraggedElementFrom, morphDraggedElementToBeLike } from "../../src/helpers/styler";
+import { FEATURE_FLAG_NAMES, setFeatureFlag } from "../../src/featureFlags";
 
 function createElement(width, height) {
     const element = document.createElement("div");
@@ -12,14 +12,14 @@ function createElement(width, height) {
     return element;
 }
 
-function stubRenderedRect(element, {left, top, width, height}) {
+function stubRenderedRect(element, { left, top, width, height }) {
     element.getBoundingClientRect = () => ({
         left,
         top,
         right: left + width,
         bottom: top + height,
         width,
-        height
+        height,
     });
 }
 
@@ -28,14 +28,14 @@ describe("styler", () => {
         setFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT, false);
     });
 
-    [false, true].forEach(useComputedDimensions => {
+    [false, true].forEach((useComputedDimensions) => {
         it(`preserves the cursor position when remorphing during a transition (computed dimensions: ${useComputedDimensions})`, () => {
             cy.then(() => {
                 setFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT, useComputedDimensions);
                 const draggedEl = createElement(200, 200);
                 const targetEl = createElement(100, 100);
                 const nativeGetComputedStyle = window.getComputedStyle.bind(window);
-                const getComputedStyleStub = cy.stub(window, "getComputedStyle").callsFake(element => {
+                const getComputedStyleStub = cy.stub(window, "getComputedStyle").callsFake((element) => {
                     const computedStyle = nativeGetComputedStyle(element);
                     if (element !== draggedEl) return computedStyle;
                     return new Proxy(computedStyle, {
@@ -43,15 +43,15 @@ describe("styler", () => {
                             if (property === "left" || property === "top") return "25px";
                             const value = target[property];
                             return typeof value === "function" ? value.bind(target) : value;
-                        }
+                        },
                     });
                 });
 
                 try {
                     // Model the midpoint of a previous morph. Its inline destination is
                     // 0px, while the currently rendered/animated position is 25px.
-                    stubRenderedRect(draggedEl, {left: 25, top: 25, width: 150, height: 150});
-                    stubRenderedRect(targetEl, {left: 0, top: 0, width: 100, height: 100});
+                    stubRenderedRect(draggedEl, { left: 25, top: 25, width: 150, height: 150 });
+                    stubRenderedRect(targetEl, { left: 0, top: 0, width: 100, height: 100 });
 
                     morphDraggedElementToBeLike(draggedEl, targetEl, 100, 100);
 

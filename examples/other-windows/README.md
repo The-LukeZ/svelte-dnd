@@ -28,9 +28,9 @@ Generate with `--published` and update/save the official playground. This remove
 
 ## Manual checks
 
--   Reorder cards and move between both lists in the iframe with a mouse.
--   In each document, start a keyboard drag, reorder with arrows and move between its two lists with Tab/Shift+Tab; finish with Escape. Announcements must come from that document.
--   During a page drag, neither the iframe nor popup lists should be highlighted or offered as destinations. Focusing a list in another document must not move the item. Repeat starting in the iframe and popup.
--   Open the popup, reorder and transfer between its own two lists using both mouse and keyboard. It must not be advertised as a page-drag destination. If the playground blocks popups, run the downloaded example outside its sandbox.
--   Remove/recreate the iframe and close/reopen the popup; the remaining lists must keep working.
--   With a screen reader, verify the list labels, keyboard instructions, pickup, move and drop announcements in each document.
+- Reorder cards and move between both lists in the iframe with a mouse.
+- In each document, start a keyboard drag, reorder with arrows and move between its two lists with Tab/Shift+Tab; finish with Escape. Announcements must come from that document.
+- During a page drag, neither the iframe nor popup lists should be highlighted or offered as destinations. Focusing a list in another document must not move the item. Repeat starting in the iframe and popup.
+- Open the popup, reorder and transfer between its own two lists using both mouse and keyboard. It must not be advertised as a page-drag destination. If the playground blocks popups, run the downloaded example outside its sandbox.
+- Remove/recreate the iframe and close/reopen the popup; the remaining lists must keep working.
+- With a screen reader, verify the list labels, keyboard instructions, pickup, move and drop announcements in each document.

@@ -4,13 +4,13 @@
 
 Feature: support dndzones in same-origin iframes and other windows, including pointer and keyboard interaction, document-local screen-reader instructions and announcements, scrolling, and cleanup when the window closes. Thanks to [@chhoumann](https://github.com/chhoumann) for [#708](https://github.com/isaacHagoel/svelte-dnd-action/pull/708).
 
--   Use the zone's own window for events, timers, animation frames and computed styles, so drags continue when the loading window is hidden.
--   Both pointer and keyboard transfers stay within the document they started in. Lists inside an iframe or popup work normally, but neither input transfers items between documents.
--   Custom screen-reader announcements accept an optional document: `alertToScreenReader(text, zone.ownerDocument)`.
--   Enforce keyboard drop restrictions even when a disabled or other-type destination is focused by a click or application code.
--   Restrict keyboard reordering to the grabbed item, leaving arrow keys in nested controls and unrelated items untouched.
--   Exclude lists nested inside the grabbed item from destination styling and move-between-lists announcements.
--   Keep mid-pointer-drag styles and classes limited to eligible destinations, including empty lists, removing the previously applied styling when options change.
+- Use the zone's own window for events, timers, animation frames and computed styles, so drags continue when the loading window is hidden.
+- Both pointer and keyboard transfers stay within the document they started in. Lists inside an iframe or popup work normally, but neither input transfers items between documents.
+- Custom screen-reader announcements accept an optional document: `alertToScreenReader(text, zone.ownerDocument)`.
+- Enforce keyboard drop restrictions even when a disabled or other-type destination is focused by a click or application code.
+- Restrict keyboard reordering to the grabbed item, leaving arrow keys in nested controls and unrelated items untouched.
+- Exclude lists nested inside the grabbed item from destination styling and move-between-lists announcements.
+- Keep mid-pointer-drag styles and classes limited to eligible destinations, including empty lists, removing the previously applied styling when options change.
 
 ### [0.9.79](https://github.com/isaacHagoel/svelte-dnd-action/pull/707)
 
@@ -20,17 +20,17 @@ Bugfix: keep drop-position detection accurate while list items are moving with S
 
 Feature: add global `setKeyboardDragTrigger` configuration for choosing whether _Space_, _Enter_ or either key starts and stops keyboard dragging.
 
--   Leave the unselected key completely untouched so applications can use it for actions such as opening or editing the focused item.
--   Apply the setting consistently to every dndzone and drag handle, including changes made after zones have rendered.
--   Keep the built-in screen-reader instruction synchronized and support trigger-aware translated instructions.
+- Leave the unselected key completely untouched so applications can use it for actions such as opening or editing the focused item.
+- Apply the setting consistently to every dndzone and drag handle, including changes made after zones have rendered.
+- Keep the built-in screen-reader instruction synchronized and support trigger-aware translated instructions.
 
 ### [0.9.77](https://github.com/isaacHagoel/svelte-dnd-action/pull/698)
 
 Feature: add `setAriaStrings` for localizing the built-in screen-reader instructions and keyboard-drag announcements.
 
--   Override any subset of messages with formatter functions that receive item, zone, position and count context.
--   Update the document-wide locale at runtime while keeping English defaults for omitted messages.
--   Preserve the library's existing ARIA roles and behavior without enabling `autoAriaDisabled`.
+- Override any subset of messages with formatter functions that receive item, zone, position and count context.
+- Update the document-wide locale at runtime while keeping English defaults for omitted messages.
+- Preserve the library's existing ARIA roles and behavior without enabling `autoAriaDisabled`.
 
 ### [0.9.76](https://github.com/isaacHagoel/svelte-dnd-action/pull/695)
 
@@ -40,9 +40,9 @@ Bugfix: include the originating drop-zone label in keyboard drag announcements s
 
 Bugfix: keep an active keyboard drag synchronized when a consumer re-render moves or removes the grabbed item.
 
--   Follow an item moved between same-type zones without losing focus or cross-zone keyboard navigation.
--   End the drag safely if the item disappears instead of moving an unrelated item from a stale origin.
--   Keep zones of other types isolated even when they use the same item id.
+- Follow an item moved between same-type zones without losing focus or cross-zone keyboard navigation.
+- End the drag safely if the item disappears instead of moving an unrelated item from a stale origin.
+- Keep zones of other types isolated even when they use the same item id.
 
 ### [0.9.74](https://github.com/isaacHagoel/svelte-dnd-action/pull/691)
 
@@ -56,11 +56,11 @@ Bugfix: preserve the cursor's relative grab point when a dragged element morphs 
 
 Bugfixes: harden drag lifecycle cleanup against timing-sensitive updates and teardown.
 
--   Keep pointer observation tied to the exact zones being watched, including when zone types change during an animated drop.
--   Cancel pending pointer and delayed-touch gestures when their owning zone is destroyed, and serialize simultaneous touch starts.
--   Prevent stale animation frames from reattaching zones after drop cleanup has destroyed them.
--   Make keyboard drop handling safe when event handlers synchronously destroy the focused zone.
--   Destroy the wrapped dndzone when a `dragHandleZone` action is destroyed.
+- Keep pointer observation tied to the exact zones being watched, including when zone types change during an animated drop.
+- Cancel pending pointer and delayed-touch gestures when their owning zone is destroyed, and serialize simultaneous touch starts.
+- Prevent stale animation frames from reattaching zones after drop cleanup has destroyed them.
+- Make keyboard drop handling safe when event handlers synchronously destroy the focused zone.
+- Destroy the wrapped dndzone when a `dragHandleZone` action is destroyed.
 
 ### [0.9.71](https://github.com/isaacHagoel/svelte-dnd-action/pull/688)
 
@@ -74,8 +74,8 @@ Bugfix: stop the `keepOriginalElementInDom` animation-frame loop after a drag is
 
 Feature: Added `useCursorForDetection` option.
 
--   Uses cursor position instead of dragged element's center for drop zone detection.
--   Improves accuracy when dragging large elements over small drop targets.
+- Uses cursor position instead of dragged element's center for drop zone detection.
+- Improves accuracy when dragging large elements over small drop targets.
 
 ### [0.9.68](https://github.com/isaacHagoel/svelte-dnd-action/pull/650)
 
@@ -101,8 +101,8 @@ Bugfix: change the handling of positioning the shadow element as the last child 
 
 Feature: Added `delayTouchStart` option to improve touch-device UX.
 
--   Allows distinguishing quick scroll gestures from drag starts.
--   Accepts **boolean** (`true` = 80 ms default) or **number** (custom delay in ms).
+- Allows distinguishing quick scroll gestures from drag starts.
+- Accepts **boolean** (`true` = 80 ms default) or **number** (custom delay in ms).
 
 ### [0.9.62](https://github.com/isaacHagoel/svelte-dnd-action/pull/651)
 
@@ -390,6 +390,6 @@ This change makes the initial behaviour of large items (relative to their peers)
 All the changes in this release only affect pointer (mouse/ touch) based drag and drop operations.
 It changes some default behaviours (for the better).
 
--   When an element is being dragged outside of any dnd zone, the placeholder element now appears in the original dnd zone in the original index and indicates where the element would land if dropped. This was added for better UX and to address single sortable list use cases.
--   This change includes the introduction of two new triggers, that can be intercepted by the `consider` handler: `DRAGGED_LEFT_ALL` which fires when the placeholder is added to the origin dndzone, and `DRAGGED_ENTERED_ANOTHER` which fires when the placeholder is removed from the origin dnd zone.
--   When drag starts - the library now locks the minimum width and height of the origin dropzone for the duration of the drag operation. This is done in order to prevent the container from shrinking and growing jarringly as the element is dragged around. This is especially helpful when the user drags the last element, which in previous versions could make the dndzone shrink underneath such that the dragged element wasn't over it anymore.
+- When an element is being dragged outside of any dnd zone, the placeholder element now appears in the original dnd zone in the original index and indicates where the element would land if dropped. This was added for better UX and to address single sortable list use cases.
+- This change includes the introduction of two new triggers, that can be intercepted by the `consider` handler: `DRAGGED_LEFT_ALL` which fires when the placeholder is added to the origin dndzone, and `DRAGGED_ENTERED_ANOTHER` which fires when the placeholder is removed from the origin dnd zone.
+- When drag starts - the library now locks the minimum width and height of the origin dropzone for the duration of the drag operation. This is done in order to prevent the container from shrinking and growing jarringly as the element is dragged around. This is especially helpful when the user drags the last element, which in previous versions could make the dndzone shrink underneath such that the dragged element wasn't over it anymore.

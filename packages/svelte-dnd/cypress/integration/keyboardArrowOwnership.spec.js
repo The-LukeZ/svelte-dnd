@@ -1,7 +1,7 @@
-import {SOURCES, TRIGGERS} from "../../src/constants";
-import {setAriaStrings} from "../../src/helpers/aria";
-import {dragHandle, dragHandleZone} from "../../src/wrappers/withDragHandles";
-import {alertText, createFrame, createList, failOnListenerErrors, key} from "./helpers/otherWindow";
+import { SOURCES, TRIGGERS } from "../../src/constants";
+import { setAriaStrings } from "../../src/helpers/aria";
+import { dragHandle, dragHandleZone } from "../../src/wrappers/withDragHandles";
+import { alertText, createFrame, createList, failOnListenerErrors, key } from "./helpers/otherWindow";
 
 failOnListenerErrors();
 
@@ -11,7 +11,7 @@ describe("keyboard arrow ownership", () => {
         cleanups
             .splice(0)
             .reverse()
-            .forEach(cleanup => cleanup())
+            .forEach((cleanup) => cleanup()),
     );
     afterEach(() => setAriaStrings(null));
 
@@ -28,13 +28,17 @@ describe("keyboard arrow ownership", () => {
         key(created.element(name), "Enter");
     }
     function press(target, arrow) {
-        const event = new target.ownerDocument.defaultView.KeyboardEvent("keydown", {key: arrow, bubbles: true, cancelable: true});
+        const event = new target.ownerDocument.defaultView.KeyboardEvent("keydown", {
+            key: arrow,
+            bubbles: true,
+            cancelable: true,
+        });
         target.dispatchEvent(event);
         return event;
     }
     function expectUnclaimed(target, arrow) {
         let bubbledEvent;
-        const onKeyDown = event => {
+        const onKeyDown = (event) => {
             bubbledEvent = event;
         };
         const body = target.ownerDocument.body;
@@ -49,17 +53,17 @@ describe("keyboard arrow ownership", () => {
         expect(bubbledEvent, "the key can reach consumer handlers outside the item").to.equal(event);
     }
 
-    ["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].forEach(arrow => {
+    ["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft"].forEach((arrow) => {
         [
-            {where: "same list"},
-            {where: "other type"},
-            {where: "incoming disabled"},
-            {where: "other document"},
-            {where: "same list", direct: true},
-            {where: "other document", direct: true}
-        ].forEach(({where, direct = false}) => {
+            { where: "same list" },
+            { where: "other type" },
+            { where: "incoming disabled" },
+            { where: "other document" },
+            { where: "same list", direct: true },
+            { where: "other document", direct: true },
+        ].forEach(({ where, direct = false }) => {
             it(`does not claim ${arrow} from ${direct ? "an ungrabbed item" : "a button in another item"} (${where})`, () => {
-                const source = list(document, {label: "Source", names: ["a", "b", "c"], type: "cards"});
+                const source = list(document, { label: "Source", names: ["a", "b", "c"], type: "cards" });
                 let target = source;
                 if (where !== "same list") {
                     let doc = document;
@@ -72,7 +76,7 @@ describe("keyboard arrow ownership", () => {
                         label: "Target",
                         names: ["x", "y", "z"],
                         type: where === "other type" ? "other" : "cards",
-                        dropFromOthersDisabled: where === "incoming disabled"
+                        dropFromOthersDisabled: where === "incoming disabled",
                     });
                 }
                 grab(source, "b");
@@ -86,7 +90,9 @@ describe("keyboard arrow ownership", () => {
                 const otherItem = target.element(itemName);
                 const eventTarget = direct ? otherItem : target.doc.createElement("button");
                 if (!direct) otherItem.appendChild(eventTarget);
-                expect(eventTarget.tabIndex, "only native controls remain in the tab order during a grab").to.equal(direct ? -1 : 0);
+                expect(eventTarget.tabIndex, "only native controls remain in the tab order during a grab").to.equal(
+                    direct ? -1 : 0,
+                );
                 eventTarget.focus();
                 expectUnclaimed(eventTarget, arrow);
                 expect(source.names()).to.deep.equal(sourceNames);
@@ -99,8 +105,8 @@ describe("keyboard arrow ownership", () => {
         });
 
         it(`still reorders the grabbed item with ${arrow} after transferring to another list`, () => {
-            const source = list(document, {label: "Source", names: ["a", "b", "c"]});
-            const target = list(document, {label: "Target", names: ["x", "y"]});
+            const source = list(document, { label: "Source", names: ["a", "b", "c"] });
+            const target = list(document, { label: "Target", names: ["x", "y"] });
             grab(source, "b");
             target.zone.focus();
             const item = target.element("b");
@@ -111,33 +117,39 @@ describe("keyboard arrow ownership", () => {
             const event = press(item, arrow);
             expect(event.defaultPrevented).to.equal(true);
             expect(source.names()).to.deep.equal(["a", "c"]);
-            expect(target.names()).to.deep.equal(arrow === "ArrowUp" || arrow === "ArrowLeft" ? ["b", "x", "y"] : ["x", "y", "b"]);
+            expect(target.names()).to.deep.equal(
+                arrow === "ArrowUp" || arrow === "ArrowLeft" ? ["b", "x", "y"] : ["x", "y", "b"],
+            );
             const last = target.events[target.events.length - 1];
-            expect(last.detail.info).to.deep.equal({trigger: TRIGGERS.DROPPED_INTO_ZONE, id: "b", source: SOURCES.KEYBOARD});
+            expect(last.detail.info).to.deep.equal({
+                trigger: TRIGGERS.DROPPED_INTO_ZONE,
+                id: "b",
+                source: SOURCES.KEYBOARD,
+            });
         });
 
         it(`does not continue ${arrow} in the old list when an announcement moves the grab`, () => {
-            const source = list(document, {label: "Source", names: ["a", "b", "c"]});
-            const target = list(document, {label: "Target", names: ["x", "y"]});
+            const source = list(document, { label: "Source", names: ["a", "b", "c"] });
+            const target = list(document, { label: "Target", names: ["x", "y"] });
             setAriaStrings({
                 movedToPosition: () => {
                     target.zone.focus();
                     return "Moved";
-                }
+                },
             });
             grab(source, "b");
             press(source.element("b"), arrow);
             expect(source.names()).to.deep.equal(["a", "c"]);
             expect(target.names()).to.include("b");
-            expect(source.events.filter(event => event.type === "finalize").map(event => event.detail.info.trigger)).to.deep.equal([
-                TRIGGERS.DROPPED_INTO_ANOTHER
-            ]);
+            expect(
+                source.events.filter((event) => event.type === "finalize").map((event) => event.detail.info.trigger),
+            ).to.deep.equal([TRIGGERS.DROPPED_INTO_ANOTHER]);
         });
     });
 
-    ["button", "input", "select", "a", "contenteditable"].forEach(kind => {
+    ["button", "input", "select", "a", "contenteditable"].forEach((kind) => {
         it(`leaves arrow keys to a nested ${kind} inside the grabbed item`, () => {
-            const source = list(document, {label: "Source", names: ["a", "b", "c"]});
+            const source = list(document, { label: "Source", names: ["a", "b", "c"] });
             const control = document.createElement(kind === "contenteditable" ? "span" : kind);
             if (kind === "a") control.href = "#";
             if (kind === "contenteditable") control.contentEditable = "true";
@@ -161,7 +173,7 @@ describe("keyboard arrow ownership", () => {
         first.appendChild(handle);
         zone.append(first, second);
         document.body.appendChild(zone);
-        const zoneAction = dragHandleZone(zone, {items: [{id: "a"}, {id: "b"}]});
+        const zoneAction = dragHandleZone(zone, { items: [{ id: "a" }, { id: "b" }] });
         const handleAction = dragHandle(handle);
         cleanups.push(() => {
             zoneAction.destroy();
@@ -169,13 +181,13 @@ describe("keyboard arrow ownership", () => {
             zone.remove();
         });
         const finalized = [];
-        zone.addEventListener("finalize", event => finalized.push(event.detail));
+        zone.addEventListener("finalize", (event) => finalized.push(event.detail));
         handle.focus();
         key(handle, "Enter");
         expect(document.activeElement).to.equal(first);
         expect(press(document.activeElement, "ArrowDown").defaultPrevented).to.equal(true);
         expect(finalized).to.have.length(1);
-        expect(finalized[0].items.map(item => item.id)).to.deep.equal(["b", "a"]);
+        expect(finalized[0].items.map((item) => item.id)).to.deep.equal(["b", "a"]);
         expect(finalized[0].info.id).to.equal("a");
     });
 });

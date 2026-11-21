@@ -1,5 +1,5 @@
-import {isPointInsideRect} from "./intersection";
-import {getWindowOf} from "./util";
+import { isPointInsideRect } from "./intersection";
+import { getWindowOf } from "./util";
 const SCROLL_ZONE_PX = 30;
 
 /**
@@ -9,12 +9,12 @@ const SCROLL_ZONE_PX = 30;
 export function makeScroller() {
     let scrollingInfo;
     function resetScrolling() {
-        scrollingInfo = {directionObj: undefined, stepPx: 0};
+        scrollingInfo = { directionObj: undefined, stepPx: 0 };
     }
     resetScrolling();
     // directionObj {x: 0|1|-1, y:0|1|-1} - 1 means down in y and right in x
     function scrollContainer(containerEl) {
-        const {directionObj, stepPx} = scrollingInfo;
+        const { directionObj, stepPx } = scrollingInfo;
         if (directionObj) {
             containerEl.scrollBy(directionObj.x * stepPx, directionObj.y * stepPx);
             getWindowOf(containerEl).requestAnimationFrame(() => scrollContainer(containerEl));
@@ -46,11 +46,11 @@ export function makeScroller() {
         if (elementToScroll.scrollHeight > elementToScroll.clientHeight) {
             if (distances.bottom < SCROLL_ZONE_PX) {
                 scrollingVertically = true;
-                scrollingInfo.directionObj = {x: 0, y: 1};
+                scrollingInfo.directionObj = { x: 0, y: 1 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.bottom);
             } else if (distances.top < SCROLL_ZONE_PX) {
                 scrollingVertically = true;
-                scrollingInfo.directionObj = {x: 0, y: -1};
+                scrollingInfo.directionObj = { x: 0, y: -1 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.top);
             }
             if (!isAlreadyScrolling && scrollingVertically) {
@@ -62,11 +62,11 @@ export function makeScroller() {
         if (elementToScroll.scrollWidth > elementToScroll.clientWidth) {
             if (distances.right < SCROLL_ZONE_PX) {
                 scrollingHorizontally = true;
-                scrollingInfo.directionObj = {x: 1, y: 0};
+                scrollingInfo.directionObj = { x: 1, y: 0 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.right);
             } else if (distances.left < SCROLL_ZONE_PX) {
                 scrollingHorizontally = true;
-                scrollingInfo.directionObj = {x: -1, y: 0};
+                scrollingInfo.directionObj = { x: -1, y: 0 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.left);
             }
             if (!isAlreadyScrolling && scrollingHorizontally) {
@@ -80,7 +80,7 @@ export function makeScroller() {
 
     return {
         scrollIfNeeded,
-        resetScrolling
+        resetScrolling,
     };
 }
 
@@ -98,7 +98,7 @@ function calcInnerDistancesBetweenPointAndSidesOfElement(point, el) {
                   top: 0,
                   bottom: getWindowOf(el).innerHeight,
                   left: 0,
-                  right: getWindowOf(el).innerWidth
+                  right: getWindowOf(el).innerWidth,
               }
             : el.getBoundingClientRect();
     if (!isPointInsideRect(point, rect)) {
@@ -108,6 +108,6 @@ function calcInnerDistancesBetweenPointAndSidesOfElement(point, el) {
         top: point.y - rect.top,
         bottom: rect.bottom - point.y,
         left: point.x - rect.left,
-        right: rect.right - point.x
+        right: rect.right - point.x,
     };
 }

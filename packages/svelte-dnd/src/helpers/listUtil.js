@@ -1,5 +1,5 @@
-import {getAbsoluteRectNoTransforms, isPointInsideRect, calcDistanceFromPointToCenter} from "./intersection";
-import {printDebug, SHADOW_ELEMENT_ATTRIBUTE_NAME} from "../constants";
+import { getAbsoluteRectNoTransforms, isPointInsideRect, calcDistanceFromPointToCenter } from "./intersection";
+import { printDebug, SHADOW_ELEMENT_ATTRIBUTE_NAME } from "../constants";
 
 let dzToShadowIndexToRect;
 
@@ -19,7 +19,9 @@ resetIndexesCache();
  * @return {number} - the shadow element index
  */
 function cacheShadowRect(dz) {
-    const shadowElIndex = Array.from(dz.children).findIndex(child => child.getAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME));
+    const shadowElIndex = Array.from(dz.children).findIndex((child) =>
+        child.getAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME),
+    );
     if (shadowElIndex >= 0) {
         if (!dzToShadowIndexToRect.has(dz)) {
             dzToShadowIndexToRect.set(dz, new Map());
@@ -50,7 +52,7 @@ export function findWouldBeIndex(referencePoint, collectionBelowEl) {
     const children = collectionBelowEl.children;
     // the container is empty, floating element should be the first
     if (children.length === 0) {
-        return {index: 0, isProximityBased: true};
+        return { index: 0, isProximityBased: true };
     }
     const shadowElIndex = cacheShadowRect(collectionBelowEl);
 
@@ -59,13 +61,14 @@ export function findWouldBeIndex(referencePoint, collectionBelowEl) {
     for (let i = 0; i < children.length; i++) {
         const childRect = getAbsoluteRectNoTransforms(children[i]);
         if (isPointInsideRect(referencePoint, childRect)) {
-            const cachedShadowRect = dzToShadowIndexToRect.has(collectionBelowEl) && dzToShadowIndexToRect.get(collectionBelowEl).get(i);
+            const cachedShadowRect =
+                dzToShadowIndexToRect.has(collectionBelowEl) && dzToShadowIndexToRect.get(collectionBelowEl).get(i);
             if (cachedShadowRect) {
                 if (!isPointInsideRect(referencePoint, cachedShadowRect)) {
-                    return {index: shadowElIndex, isProximityBased: false};
+                    return { index: shadowElIndex, isProximityBased: false };
                 }
             }
-            return {index: i, isProximityBased: false};
+            return { index: i, isProximityBased: false };
         }
     }
     // this can happen if there is space around the children so the floating element has
@@ -108,5 +111,5 @@ export function findWouldBeIndex(referencePoint, collectionBelowEl) {
         collectionBelowEl.removeChild(phantom);
     }
 
-    return {index: indexOfMin, isProximityBased: true};
+    return { index: indexOfMin, isProximityBased: true };
 }
