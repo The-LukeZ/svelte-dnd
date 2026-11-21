@@ -1,4 +1,4 @@
-import { getBoundingRectNoTransforms, isElementOffDocument } from "../../src/helpers/intersection";
+import { getBoundingRectNoTransforms, isElementOffDocument } from "../src/helpers/intersection";
 
 function makeDiv(widthPx = 50, heightPx = 50) {
     const el = document.createElement("div");
@@ -32,7 +32,7 @@ describe("intersection", () => {
     });
 
     describe("isElementOffDocument", () => {
-        before(() => {
+        beforeAll(() => {
             document.body.style.width = "100vw";
             document.body.style.height = "100vh";
         });
@@ -53,7 +53,8 @@ describe("intersection", () => {
             const el = makeDiv(50, 50);
             el.style.position = "fixed";
             el.style.top = "0";
-            el.style.right = "51px";
+            // -51px puts the 50px element 1px past the edge. Cypress ran specs in a zero-size frame, where "51px" did too.
+            el.style.right = "-51px";
             document.body.appendChild(el);
             expect(isElementOffDocument(el)).to.equal(true);
         });
@@ -87,7 +88,8 @@ describe("intersection", () => {
         it("returns true when fully outside to the bottom", () => {
             const el = makeDiv(50, 50);
             el.style.position = "fixed";
-            el.style.bottom = "51px";
+            // -51px puts the 50px element 1px past the edge. Cypress ran specs in a zero-size frame, where "51px" did too.
+            el.style.bottom = "-51px";
             el.style.left = "80px";
             document.body.appendChild(el);
             expect(isElementOffDocument(el)).to.equal(true);
