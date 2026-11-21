@@ -54,7 +54,7 @@ This repo is a hard fork of [`svelte-dnd-action`](https://github.com/isaacHagoel
 ## Branching
 
 - `dev` is the integration branch for the whole migration. `master` stays at v0.9.80 until the migration is done.
-- Each stage gets its own branch off `dev` (e.g. `stage/1-tooling`), merged back into `dev` when its "done when" holds.
+- Each stage gets its own branch off `dev` (e.g. `stage/1-tooling`), merged back into `dev` when its "done when" holds. Merges use a merge commit (no squash or rebase) so commit hashes survive.
 - `dev` merges into `master` after stage 6.
 
 ## Current state (v0.9.80)
