@@ -9,13 +9,28 @@
     },
     "rules": {
         // src/ uses `a && f()` as a guarded call (e.g. helpers/observer.js).
-        "no-unused-expressions": ["error", { "allowShortCircuit": true }]
+        "no-unused-expressions": ["error", { "allowShortCircuit": true }],
+        // eslint:recommended rules that oxlint keeps outside the correctness category.
+        "no-undef": "error",
+        "no-empty": "error",
+        "no-regex-spaces": "error",
+        "no-prototype-builtins": "error",
+        "no-fallthrough": "error",
+        "no-case-declarations": "error",
+        "no-inner-declarations": "error",
+        "no-redeclare": "error",
+        "no-unexpected-multiline": "error"
     },
     "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/cypress/**", "examples/**"],
     // A dndzone can live in another window than the one that loaded the library (a same-origin iframe, a popup or an
     // Electron window). Work for a zone uses the zone's own window and document, from getWindowOf in src/helpers/util.js or
     // from an element's ownerDocument, rather than the loading window's globals.
     "overrides": [
+        {
+            // Config files and scripts run in Node.
+            "files": ["**/*.config.{js,cjs,mjs,ts}", "**/scripts/**"],
+            "env": { "node": true }
+        },
         {
             "files": ["packages/svelte-dnd/src/**"],
             "rules": {
