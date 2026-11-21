@@ -4,3 +4,4 @@ pnpm-lock.yaml
 CHANGELOG.md
 **/cypress/videos
 **/cypress/screenshots
+.changeset/pre.json
