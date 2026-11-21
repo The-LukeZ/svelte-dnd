@@ -8,6 +8,7 @@
     "scripts": {
         "build": "pnpm --filter @lukez/svelte-dnd build",
         "test": "pnpm --filter @lukez/svelte-dnd test",
+        "test:all": "pnpm --filter @lukez/svelte-dnd test:all",
         "check:package": "pnpm --filter @lukez/svelte-dnd check:package",
         "lint": "oxlint",
         "format": "prettier --write .",
