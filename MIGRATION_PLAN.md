@@ -63,12 +63,12 @@ This repo is a hard fork of [`svelte-dnd-action`](https://github.com/isaacHagoel
 - Public exports (`src/index.js`): `dndzone`, `dragHandleZone`, `dragHandle`, `alertToScreenReader`, `setAriaStrings`, `setKeyboardDragTrigger`, constants (`TRIGGERS`, `SOURCES`, `SHADOW_ITEM_MARKER_PROPERTY_NAME`, `SHADOW_PLACEHOLDER_ITEM_ID`, `DRAGGED_ELEMENT_ID`, `overrideItemIdKeyNameBeforeInitialisingDndZones`, `setDebugMode`), `setFeatureFlag`, `FEATURE_FLAG_NAMES`.
 - Hand-written types in `typings/index.d.ts`.
 - 15 Cypress specs in `cypress/integration/`, mostly unit-style tests run in a real browser; `otherWindow*` specs need real iframes/popups (support in `cypress/support/other-windows`).
-- Rollup 2 + Babel, ESLint 7, Prettier 2, husky 4, Yarn 1. No CI.
+- Tooling (after stage 1): pnpm workspace, tsdown (ESM + CJS), oxlint, Prettier 3, husky 9 + lint-staged, changesets (pre mode `next`), GitHub Actions CI. Originally Rollup 2 + Babel, ESLint 7, Prettier 2, husky 4, Yarn 1, no CI.
 - `examples/` is a list of REPL links. `release-notes.md` holds the upstream history.
 
 ## Stages
 
-### Stage 1: Monorepo and tooling (JS untouched)
+### Stage 1: Monorepo and tooling (JS untouched) (done)
 
 - Convert to pnpm workspace; remove `yarn.lock`.
 - Move library to `packages/svelte-dnd` (keep JS source as-is; use `git mv` to preserve history).
