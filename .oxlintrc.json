@@ -1,0 +1,143 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "categories": {
+        "correctness": "error"
+    },
+    "env": {
+        "browser": true,
+        "es2024": true
+    },
+    "rules": {
+        // src/ uses `a && f()` as a guarded call (e.g. helpers/observer.js).
+        "no-unused-expressions": ["error", { "allowShortCircuit": true }]
+    },
+    "ignorePatterns": [
+        "**/dist/**",
+        "**/node_modules/**",
+        "**/cypress/**",
+        "examples/**"
+    ],
+    // A dndzone can live in another window than the one that loaded the library (a same-origin iframe, a popup or an
+    // Electron window). Work for a zone uses the zone's own window and document, from getWindowOf in src/helpers/util.js or
+    // from an element's ownerDocument, rather than the loading window's globals.
+    "overrides": [
+        {
+            "files": [
+                "packages/svelte-dnd/src/**"
+            ],
+            "rules": {
+                "no-restricted-globals": [
+                    "error",
+                    {
+                        "name": "window",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "document",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "self",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "globalThis",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "top",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "parent",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "frames",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "setTimeout",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "clearTimeout",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "setInterval",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "clearInterval",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "requestAnimationFrame",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "cancelAnimationFrame",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "getComputedStyle",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "matchMedia",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "innerWidth",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "innerHeight",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "scrollX",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "scrollY",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "pageXOffset",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "pageYOffset",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "Event",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "CustomEvent",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "MouseEvent",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "KeyboardEvent",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "FocusEvent",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    },
+                    {
+                        "name": "TouchEvent",
+                        "message": "This is the loading window's. Use the window or document of the element the work is for."
+                    }
+                ]
+            }
+        }
+    ]
+}

@@ -1,8 +1,6 @@
-.DS_Store
-.idea
-.vscode
-*.iml
 node_modules
-/dist/
-cypress/videos
-cypress/screenshots
+dist
+pnpm-lock.yaml
+CHANGELOG.md
+**/cypress/videos
+**/cypress/screenshots

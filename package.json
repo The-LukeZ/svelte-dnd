@@ -8,6 +8,14 @@
     "scripts": {
         "build": "pnpm --filter ./packages/svelte-dnd build",
         "test": "pnpm --filter ./packages/svelte-dnd test",
-        "check:package": "pnpm --filter ./packages/svelte-dnd check:package"
+        "check:package": "pnpm --filter ./packages/svelte-dnd check:package",
+        "lint": "oxlint",
+        "format": "prettier --write .",
+        "format:check": "prettier --check ."
+    },
+    "devDependencies": {
+        "oxlint": "1.94.0",
+        "prettier": "3.10.1",
+        "prettier-plugin-svelte": "4.2.0"
     }
 }
