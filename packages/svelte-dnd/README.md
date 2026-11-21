@@ -14,9 +14,7 @@ See full features list below. <br />
 
 ### Current Status
 
-The library is **production ready**, and I am in the process of integrating it into several production systems that will be used at scale.
-It is being actively maintained.
-**This fork drops API stability on purpose:** it is a breaking rewrite. See the [migration plan](../../MIGRATION_PLAN.md).
+The original `svelte-dnd-action` is production ready. This fork is not yet: it is a breaking rewrite for Svelte 5 and **drops API stability on purpose** until `1.0.0`. See the [migration plan](https://github.com/The-LukeZ/svelte-dnd/blob/dev/MIGRATION_PLAN.md).
 
 ### Features
 
