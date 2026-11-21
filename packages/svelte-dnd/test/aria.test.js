@@ -1,5 +1,5 @@
-import { initAria, destroyAria, setAriaStrings, announceToScreenReader } from "../../src/helpers/aria";
-import { setKeyboardDragTrigger } from "../../src/keyboardDragTrigger";
+import { initAria, destroyAria, setAriaStrings, announceToScreenReader } from "../src/helpers/aria";
+import { setKeyboardDragTrigger } from "../src/keyboardDragTrigger";
 
 describe("aria strings", () => {
     const ALERT_DIV_ID = "dnd-action-aria-alert";
@@ -64,7 +64,7 @@ describe("aria strings", () => {
     });
 
     it("throws on an unknown key and names the supported ones", () => {
-        // Cypress 15.18.1 does not match RegExp error assertions reliably, so compare substrings.
+        // Substring checks kept from the Cypress suite (Cypress 15.18.1 did not match RegExp error assertions reliably).
         expect(() => setAriaStrings({ onDrop: () => "nope" })).to.throw("onDrop");
         expect(() => setAriaStrings({ onDrop: () => "nope" })).to.throw("movedToPosition");
     });
