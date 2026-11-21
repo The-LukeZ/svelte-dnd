@@ -1,4 +1,8 @@
-# SVELTE DND ACTION [![Known Vulnerabilities](https://snyk.io/test/github/isaacHagoel/svelte-dnd-action/badge.svg?targetFile=package.json)](https://snyk.io/test/github/isaacHagoel/svelte-dnd-action?targetFile=package.json)
+# @lukez/svelte-dnd
+
+A fork of [`svelte-dnd-action`](https://github.com/isaacHagoel/svelte-dnd-action) by Isaac Hagoel, being rebuilt for Svelte 5.
+
+> **Work in progress.** The API will change. The docs below still describe the original `svelte-dnd-action` API.
 
 This is a feature-complete implementation of drag and drop for Svelte using a custom action. It supports almost every imaginable drag and drop use-case, any input device and is fully accessible. <br />
 It requires very minimal configuration, while offering a rich set of primitives that allow overriding basically any of its default behaviours (using the handler functions). <br /><br />
@@ -12,7 +16,7 @@ See full features list below. <br />
 
 The library is **production ready**, and I am in the process of integrating it into several production systems that will be used at scale.
 It is being actively maintained.
-**I am doing my best to avoid breaking-changes and keep the API stable**.
+**This fork drops API stability on purpose:** it is a breaking rewrite. See the [migration plan](../../MIGRATION_PLAN.md).
 
 ### Features
 
@@ -37,13 +41,13 @@ If you prefer a generic dnd list component that accepts different child componen
 **Pre-requisites**: svelte-3 (>=3.23.0)
 
 ```bash
-yarn add -D svelte-dnd-action
+pnpm add -D @lukez/svelte-dnd
 ```
 
 or
 
 ```bash
-npm install --save-dev svelte-dnd-action
+npm install --save-dev @lukez/svelte-dnd
 ```
 
 ### Usage

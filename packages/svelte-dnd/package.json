@@ -1,17 +1,18 @@
 {
-    "name": "svelte-dnd-action",
-    "description": "*An awesome drag and drop library for Svelte 3 and 4 (not using the browser's built-in dnd, thanks god): Rich animations, nested containers, touch support and more *",
+    "name": "@lukez/svelte-dnd",
+    "description": "Drag and drop for Svelte: rich animations, nested containers, touch, keyboard and screen reader support. Fork of svelte-dnd-action.",
     "version": "0.9.80",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/isaacHagoel/svelte-dnd-action.git"
+        "url": "git+https://github.com/The-LukeZ/svelte-dnd.git",
+        "directory": "packages/svelte-dnd"
     },
-    "author": "Isaac Hagoel",
+    "author": "LukeZ",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/isaacHagoel/svelte-dnd-action/issues"
+        "url": "https://github.com/The-LukeZ/svelte-dnd/issues"
     },
-    "homepage": "https://github.com/isaacHagoel/svelte-dnd-action#readme",
+    "homepage": "https://github.com/The-LukeZ/svelte-dnd#readme",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.cts",
@@ -55,5 +56,8 @@
     ],
     "files": [
         "dist"
-    ]
+    ],
+    "publishConfig": {
+        "access": "public"
+    }
 }

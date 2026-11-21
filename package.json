@@ -6,9 +6,9 @@
         "node": ">=24"
     },
     "scripts": {
-        "build": "pnpm --filter ./packages/svelte-dnd build",
-        "test": "pnpm --filter ./packages/svelte-dnd test",
-        "check:package": "pnpm --filter ./packages/svelte-dnd check:package",
+        "build": "pnpm --filter @lukez/svelte-dnd build",
+        "test": "pnpm --filter @lukez/svelte-dnd test",
+        "check:package": "pnpm --filter @lukez/svelte-dnd check:package",
         "lint": "oxlint",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
