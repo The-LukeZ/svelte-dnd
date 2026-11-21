@@ -1,0 +1,63 @@
+{
+    "name": "@lukez/svelte-dnd",
+    "description": "Drag and drop for Svelte: rich animations, nested containers, touch, keyboard and screen reader support. Fork of svelte-dnd-action.",
+    "version": "0.9.80",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/The-LukeZ/svelte-dnd.git",
+        "directory": "packages/svelte-dnd"
+    },
+    "author": "LukeZ",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/The-LukeZ/svelte-dnd/issues"
+    },
+    "homepage": "https://github.com/The-LukeZ/svelte-dnd#readme",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.cts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./dist/index.d.mts",
+                "default": "./dist/index.mjs"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        },
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "build": "tsdown",
+        "test": "cypress run",
+        "check:exports": "node scripts/check-exports.mjs",
+        "check:package": "node scripts/check-exports.mjs && publint && attw --pack"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@arethetypeswrong/cli": "0.18.5",
+        "cypress": "15.18.1",
+        "publint": "0.3.25",
+        "tsdown": "0.23.7"
+    },
+    "peerDependencies": {
+        "svelte": ">=3.23.0 || ^5.0.0-next.0"
+    },
+    "keywords": [
+        "svelte",
+        "drag and drop",
+        "sortable",
+        "dnd",
+        "draggable",
+        "accessible",
+        "touch"
+    ],
+    "files": [
+        "dist"
+    ],
+    "publishConfig": {
+        "access": "public"
+    }
+}

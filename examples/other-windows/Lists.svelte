@@ -1,16 +1,16 @@
 <script>
-    import {dndzone} from "svelte-dnd-action";
-    import {flip} from "svelte/animate";
+    import { dndzone } from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
 
     export let prefix;
     export let title;
     const flipDurationMs = 150;
     let todo = [
-        {id: `${prefix}-plan`, text: "Plan the example"},
-        {id: `${prefix}-build`, text: "Build something"},
-        {id: `${prefix}-test`, text: "Test with a keyboard"}
+        { id: `${prefix}-plan`, text: "Plan the example" },
+        { id: `${prefix}-build`, text: "Build something" },
+        { id: `${prefix}-test`, text: "Test with a keyboard" },
     ];
-    let done = [{id: `${prefix}-read`, text: "Read the instructions"}];
+    let done = [{ id: `${prefix}-read`, text: "Read the instructions" }];
 </script>
 
 <section class="board" aria-label={title}>
@@ -21,12 +21,14 @@
             <div
                 class="list"
                 aria-label={`${title}: To do`}
-                use:dndzone={{items: todo, type: "tasks", flipDurationMs}}
-                on:consider={e => (todo = e.detail.items)}
-                on:finalize={e => (todo = e.detail.items)}
+                use:dndzone={{ items: todo, type: "tasks", flipDurationMs }}
+                on:consider={(e) => (todo = e.detail.items)}
+                on:finalize={(e) => (todo = e.detail.items)}
             >
                 {#each todo as item (item.id)}
-                    <div class="card" aria-label={item.text} animate:flip={{duration: flipDurationMs}}>{item.text}</div>
+                    <div class="card" aria-label={item.text} animate:flip={{ duration: flipDurationMs }}>
+                        {item.text}
+                    </div>
                 {/each}
             </div>
         </div>
@@ -35,12 +37,14 @@
             <div
                 class="list"
                 aria-label={`${title}: Done`}
-                use:dndzone={{items: done, type: "tasks", flipDurationMs}}
-                on:consider={e => (done = e.detail.items)}
-                on:finalize={e => (done = e.detail.items)}
+                use:dndzone={{ items: done, type: "tasks", flipDurationMs }}
+                on:consider={(e) => (done = e.detail.items)}
+                on:finalize={(e) => (done = e.detail.items)}
             >
                 {#each done as item (item.id)}
-                    <div class="card" aria-label={item.text} animate:flip={{duration: flipDurationMs}}>{item.text}</div>
+                    <div class="card" aria-label={item.text} animate:flip={{ duration: flipDurationMs }}>
+                        {item.text}
+                    </div>
                 {/each}
             </div>
         </div>
@@ -50,7 +54,9 @@
 <style>
     .board {
         color: #243042;
-        font: 14px/1.5 system-ui, sans-serif;
+        font:
+            14px/1.5 system-ui,
+            sans-serif;
         padding: 12px;
     }
     h2 {

@@ -1,7 +1,8 @@
 {
-    "printWidth": 150,
+    "printWidth": 120,
     "tabWidth": 4,
-    "trailingComma": "none",
-    "bracketSpacing": false,
-    "arrowParens": "avoid"
+    "trailingComma": "all",
+    "bracketSpacing": true,
+    "arrowParens": "always",
+    "plugins": ["prettier-plugin-svelte"]
 }
