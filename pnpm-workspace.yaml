@@ -4,4 +4,3 @@ packages:
 
 allowBuilds:
     cypress: true
-    husky: false
