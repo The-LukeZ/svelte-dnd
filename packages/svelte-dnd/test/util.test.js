@@ -1,5 +1,5 @@
-import { areArraysShallowEqualSameOrder, areObjectsShallowEqual, getDepth } from "../../src/helpers/util";
-import { printDebug, setDebugMode } from "../../src/constants";
+import { areArraysShallowEqualSameOrder, areObjectsShallowEqual, getDepth } from "../src/helpers/util";
+import { printDebug, setDebugMode } from "../src/constants";
 
 describe("util", () => {
     describe("getDepth", () => {
