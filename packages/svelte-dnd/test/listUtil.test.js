@@ -1,5 +1,5 @@
-import { findWouldBeIndex } from "../../src/helpers/listUtil";
-import { findCenterOfElement } from "../../src/helpers/intersection";
+import { findWouldBeIndex } from "../src/helpers/listUtil";
+import { findCenterOfElement } from "../src/helpers/intersection";
 
 describe("listUtil", () => {
     describe("findWouldBeIndex", () => {
