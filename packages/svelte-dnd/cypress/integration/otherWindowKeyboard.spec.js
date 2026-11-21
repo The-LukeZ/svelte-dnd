@@ -9,7 +9,7 @@ import {
     key,
     openPopup,
     trackListeners,
-} from "./helpers/otherWindow";
+} from "../../test/helpers/otherWindow";
 
 failOnListenerErrors();
 

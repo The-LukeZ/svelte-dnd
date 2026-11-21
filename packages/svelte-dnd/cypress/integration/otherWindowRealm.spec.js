@@ -1,5 +1,5 @@
 import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../../src/constants";
-import { createFrame, createList, failOnListenerErrors, mouse, sleepIn } from "./helpers/otherWindow";
+import { createFrame, createList, failOnListenerErrors, mouse, sleepIn } from "../../test/helpers/otherWindow";
 
 failOnListenerErrors();
 
