@@ -3,8 +3,7 @@
 .vscode
 *.iml
 node_modules
-/dist/
-cypress/videos
-cypress/screenshots
+dist/
+**/cypress/videos/
+**/cypress/screenshots/
 
-/.eslintcache

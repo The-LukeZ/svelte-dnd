@@ -1,0 +1,11 @@
+{
+    "name": "svelte-dnd-monorepo",
+    "private": true,
+    "packageManager": "pnpm@12.21.0",
+    "engines": {
+        "node": ">=24"
+    },
+    "scripts": {
+        "test": "pnpm --filter ./packages/svelte-dnd test"
+    }
+}
