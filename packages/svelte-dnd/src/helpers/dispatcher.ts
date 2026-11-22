@@ -44,10 +44,13 @@ function call(el: HTMLElement, callback: ((e: DndEvent) => void) | undefined, de
     }
 }
 
-export function dispatchFinalizeEvent(el: HTMLElement, items: Item[], info: DndEventInfo): void {
+/**
+ * Calls the zone's finalize callback. With userCallbacks false only the internal hooks run.
+ */
+export function dispatchFinalizeEvent(el: HTMLElement, items: Item[], info: DndEventInfo, userCallbacks = true): void {
     const detail = { items, info };
     call(el, zoneToInternalHooks.get(el)?.onfinalize, detail);
-    call(el, zoneToCallbacks.get(el)?.onfinalize, detail);
+    if (userCallbacks) call(el, zoneToCallbacks.get(el)?.onfinalize, detail);
 }
 
 /**

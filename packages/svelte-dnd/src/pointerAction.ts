@@ -97,7 +97,7 @@ let isWorkingOnPreviousDrag = false;
 let finalizingPreviousDrag = false;
 let unlockOriginDzMinDimensions: (() => void) | undefined;
 let isDraggedOutsideOfAnyDz = false;
-let scheduledForRemovalAfterDrop: { dz: HTMLElement; destroy: () => void }[] = [];
+let scheduledForRemovalAfterDrop: { dz: HTMLElement; destroy: () => void; isReplaced: () => boolean }[] = [];
 let multiScroller: MultiScroller | undefined;
 let touchDragHoldTimer: Timeout | undefined;
 let touchHoldElapsed = false;
@@ -378,24 +378,37 @@ function handleDrop(): void {
     }
 
     items = items.map((item) => (item[SHADOW_ITEM_MARKER_PROPERTY_NAME] ? draggedElData! : item));
+    // A zone created on the same element while the drop animation runs has another config, and gets no finalize of this drag
+    const dropZoneConfig = dzToConfig.get(shadowElDropZone!);
+    const originZoneConfig = dzToConfig.get(originDropZone!);
     function finalizeWithinZone(): void {
         // The original-element rAF loop may have re-armed observation during the settle animation.
         // Cancel again before dispatching events that can update or destroy drop zones.
         unWatchDraggedElement();
         // the drag globals are still set: cleanupPostDrop clears them at the end of this function
         unlockOriginDzMinDimensions!();
-        dispatchFinalizeEvent(shadowElDropZone!, items, {
-            trigger: isDraggedOutsideOfAnyDz ? TRIGGERS.DROPPED_OUTSIDE_OF_ANY : TRIGGERS.DROPPED_INTO_ZONE,
-            id: draggedElData![ITEM_ID_KEY],
-            source: SOURCES.POINTER,
-        });
-        if (shadowElDropZone !== originDropZone) {
-            // letting the origin drop zone know the element was permanently taken away
-            dispatchFinalizeEvent(originDropZone!, dzToConfig.get(originDropZone!)!.items, {
-                trigger: TRIGGERS.DROPPED_INTO_ANOTHER,
+        dispatchFinalizeEvent(
+            shadowElDropZone!,
+            items,
+            {
+                trigger: isDraggedOutsideOfAnyDz ? TRIGGERS.DROPPED_OUTSIDE_OF_ANY : TRIGGERS.DROPPED_INTO_ZONE,
                 id: draggedElData![ITEM_ID_KEY],
                 source: SOURCES.POINTER,
-            });
+            },
+            dzToConfig.get(shadowElDropZone!) === dropZoneConfig,
+        );
+        if (shadowElDropZone !== originDropZone) {
+            // letting the origin drop zone know the element was permanently taken away
+            dispatchFinalizeEvent(
+                originDropZone!,
+                dzToConfig.get(originDropZone!)!.items,
+                {
+                    trigger: TRIGGERS.DROPPED_INTO_ANOTHER,
+                    id: draggedElData![ITEM_ID_KEY],
+                    source: SOURCES.POINTER,
+                },
+                dzToConfig.get(originDropZone!) === originZoneConfig,
+            );
         }
         // In edge cases the dom might have not been updated yet so we can't rely on data list index
         const domShadowEl = Array.from(shadowElDropZone!.children).find((c) =>
@@ -457,11 +470,12 @@ function handleDragWindowHidden(): void {
     }
 }
 
-function scheduleDZForRemovalAfterDrop(dz: HTMLElement, destroy: () => void): void {
-    const scheduledRemoval = { dz, destroy };
+// isReplaced tells whether a zone created on the same element since took it over: the element stays in place for it
+function scheduleDZForRemovalAfterDrop(dz: HTMLElement, destroy: () => void, isReplaced: () => boolean): void {
+    const scheduledRemoval = { dz, destroy, isReplaced };
     scheduledForRemovalAfterDrop.push(scheduledRemoval);
     getWindowOf(dz).requestAnimationFrame(() => {
-        if (!scheduledForRemovalAfterDrop.includes(scheduledRemoval)) return;
+        if (!scheduledForRemovalAfterDrop.includes(scheduledRemoval) || isReplaced()) return;
         hideElement(dz);
         dz.ownerDocument.body.appendChild(dz);
     });
@@ -500,9 +514,9 @@ function cleanupPostDrop(): void {
     pendingDragOwner = undefined;
     if (scheduledForRemovalAfterDrop.length) {
         printDebug(() => ["will destroy zones that were removed during drag", scheduledForRemovalAfterDrop]);
-        scheduledForRemovalAfterDrop.forEach(({ dz, destroy }) => {
+        scheduledForRemovalAfterDrop.forEach(({ dz, destroy, isReplaced }) => {
             destroy();
-            dz.remove();
+            if (!isReplaced()) dz.remove();
         });
         scheduledForRemovalAfterDrop = [];
     }
@@ -888,16 +902,21 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
                 draggableEl.removeEventListener("mousedown", elToMouseDownListener.get(draggableEl) as EventListener);
                 draggableEl.removeEventListener("touchstart", elToMouseDownListener.get(draggableEl) as EventListener);
             }
+            // a zone created on the same element since is registered with its own config, which stays
+            const isReplaced = () => {
+                const registeredConfig = dzToConfig.get(node);
+                return !!registeredConfig && registeredConfig !== config;
+            };
             function destroyDz(): void {
                 printDebug(() => "pointer dndzone will destroy");
                 const registeredConfig = dzToConfig.get(node);
-                if (!registeredConfig) return;
+                if (registeredConfig !== config) return;
                 unregisterDropZone(node, registeredConfig.type);
                 dzToConfig.delete(node);
             }
             if (isWorkingOnPreviousDrag && !node.closest(`[${ORIGINAL_DRAGGED_ITEM_MARKER_ATTRIBUTE}]`)) {
                 printDebug(() => "pointer dndzone will be scheduled for destruction");
-                scheduleDZForRemovalAfterDrop(node, destroyDz);
+                scheduleDZForRemovalAfterDrop(node, destroyDz, isReplaced);
             } else {
                 destroyDz();
             }

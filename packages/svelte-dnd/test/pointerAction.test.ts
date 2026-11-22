@@ -259,4 +259,108 @@ describe("pointerAction", () => {
             created?.zone.remove();
         }
     });
+
+    describe("a zone created on the element during the drop animation", () => {
+        function createTwoItemZone() {
+            const zone = document.createElement("div");
+            zone.style.width = "100px";
+            zone.style.height = "100px";
+            for (const label of ["one", "two"]) {
+                const item = document.createElement("div");
+                item.style.width = "50px";
+                item.style.height = "50px";
+                item.textContent = label;
+                zone.appendChild(item);
+            }
+            document.body.appendChild(zone);
+            return zone;
+        }
+
+        const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        // drags the first item of the zone below the second one and drops it, with the drop animation running
+        function dropFirstItemBelowSecond(zone: HTMLElement): void {
+            (zone.children[0] as HTMLElement).dispatchEvent(
+                new MouseEvent("mousedown", { button: 0, clientX: 5, clientY: 5, bubbles: true, cancelable: true }),
+            );
+            window.dispatchEvent(
+                new MouseEvent("mousemove", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+            );
+            window.dispatchEvent(
+                new MouseEvent("mousemove", { clientX: 10, clientY: 90, bubbles: true, cancelable: true }),
+            );
+            window.dispatchEvent(
+                new MouseEvent("mouseup", { clientX: 10, clientY: 90, bubbles: true, cancelable: true }),
+            );
+        }
+
+        it("a zone created on the element during the drop animation gets no finalize of the old drag", async () => {
+            const zone = createTwoItemZone();
+            const finalizes: DndEvent[] = [];
+            const oldZone = dndzone(zone, { items: [{ id: 1 }, { id: 2 }], flipDurationMs: 200 });
+            let newZone: ReturnType<typeof dndzone> | undefined;
+            try {
+                dropFirstItemBelowSecond(zone);
+                oldZone.destroy();
+                newZone = dndzone(zone, {
+                    items: [{ id: 2 }, { id: 1 }],
+                    flipDurationMs: 200,
+                    onfinalize: (e) => finalizes.push(e),
+                });
+                await wait(300);
+
+                expect(finalizes).to.have.length(0);
+            } finally {
+                window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+                oldZone.destroy();
+                newZone?.destroy();
+                zone.remove();
+            }
+        });
+
+        it("the new zone works after the old drag's cleanup", async () => {
+            const zone = createTwoItemZone();
+            const considers: DndEvent[] = [];
+            const finalizes: DndEvent[] = [];
+            const oldZone = dndzone(zone, { items: [{ id: 1 }, { id: 2 }], flipDurationMs: 200 });
+            let newZone: ReturnType<typeof dndzone> | undefined;
+            try {
+                dropFirstItemBelowSecond(zone);
+                oldZone.destroy();
+                newZone = dndzone(zone, {
+                    items: [{ id: 2 }, { id: 1 }],
+                    dropAnimationDisabled: true,
+                    onconsider: (e) => considers.push(e),
+                    onfinalize: (e) => finalizes.push(e),
+                });
+                await wait(300);
+
+                (zone.children[0] as HTMLElement).dispatchEvent(
+                    new MouseEvent("mousedown", { button: 0, clientX: 5, clientY: 5, bubbles: true, cancelable: true }),
+                );
+                window.dispatchEvent(
+                    new MouseEvent("mousemove", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+                );
+
+                expect(considers.map((e) => e.info.trigger)).to.include(TRIGGERS.DRAG_STARTED);
+
+                // the drop needs the zone's config too: the old zone's cleanup must not have unregistered it
+                const errors: unknown[] = [];
+                const collectError = (e: ErrorEvent) => {
+                    e.preventDefault();
+                    errors.push(e.error);
+                };
+                window.addEventListener("error", collectError);
+                window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+                window.removeEventListener("error", collectError);
+                expect(errors).to.deep.equal([]);
+                expect(finalizes.map((e) => e.info.trigger)).to.deep.equal([TRIGGERS.DROPPED_INTO_ZONE]);
+            } finally {
+                window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+                oldZone.destroy();
+                newZone?.destroy();
+                zone.remove();
+            }
+        });
+    });
 });
