@@ -1,19 +1,20 @@
 import { dndzone } from "../src/keyboardAction";
 import { TRIGGERS } from "../src/constants";
 import { setAriaStrings } from "../src/helpers/aria";
+import type { DndEvent, Item, Options } from "../src/types";
 
 describe("keyboardAction", () => {
-    const actions = [];
-    const zones = [];
+    const actions: { destroy(): void }[] = [];
+    const zones: HTMLElement[] = [];
 
-    function createZone(items, options = {}) {
+    function createZone(items: Item[], options: Partial<Options> = {}) {
         const zone = document.createElement("div");
         items.forEach(() => zone.appendChild(document.createElement("div")));
         document.body.appendChild(zone);
         zones.push(zone);
         const action = dndzone(zone, { items, ...options });
         actions.push(action);
-        return { zone, action, children: Array.from(zone.children) };
+        return { zone, action, children: Array.from(zone.children) as HTMLElement[] };
     }
 
     afterEach(() => {
@@ -32,7 +33,7 @@ describe("keyboardAction", () => {
         } = createZone([{ id: 1 }]);
         let dragStoppedEvents = 0;
         zone.addEventListener("consider", (e) => {
-            if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) {
+            if ((e as CustomEvent<DndEvent>).detail.info.trigger === TRIGGERS.DRAG_STOPPED) {
                 dragStoppedEvents++;
                 action.destroy();
             }
@@ -52,7 +53,7 @@ describe("keyboardAction", () => {
         } = createZone([{ id: 1 }]);
         const { zone: otherZone } = createZone([{ id: 2 }]);
         zone.addEventListener("consider", (e) => {
-            if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) action.destroy();
+            if ((e as CustomEvent<DndEvent>).detail.info.trigger === TRIGGERS.DRAG_STOPPED) action.destroy();
         });
 
         item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
@@ -61,7 +62,7 @@ describe("keyboardAction", () => {
 
         expect(otherZone.style.outline).to.equal("");
         expect(otherZone.tabIndex).to.equal(0);
-        expect(otherZone.children[0].tabIndex).to.equal(0);
+        expect((otherZone.children[0] as HTMLElement).tabIndex).to.equal(0);
     });
 
     ["source first", "destination first"].forEach((updateOrder) => {
@@ -72,10 +73,11 @@ describe("keyboardAction", () => {
                 children: [itemA],
             } = createZone([{ id: "a" }, { id: "b" }]);
             const { zone: zoneB, action: actionB } = createZone([]);
-            const dragStoppedOn = [];
+            const dragStoppedOn: HTMLElement[] = [];
             [zoneA, zoneB].forEach((zone) =>
                 zone.addEventListener("consider", (e) => {
-                    if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) dragStoppedOn.push(zone);
+                    if ((e as CustomEvent<DndEvent>).detail.info.trigger === TRIGGERS.DRAG_STOPPED)
+                        dragStoppedOn.push(zone);
                 }),
             );
 
@@ -145,10 +147,11 @@ describe("keyboardAction", () => {
             action: actionB,
             children: [itemB],
         } = createZone([{ id: "same" }], { type: "type-b" });
-        const dragStoppedOn = [];
+        const dragStoppedOn: HTMLElement[] = [];
         [zoneA, zoneB].forEach((zone) =>
             zone.addEventListener("consider", (e) => {
-                if (e.detail.info.trigger === TRIGGERS.DRAG_STOPPED) dragStoppedOn.push(zone);
+                if ((e as CustomEvent<DndEvent>).detail.info.trigger === TRIGGERS.DRAG_STOPPED)
+                    dragStoppedOn.push(zone);
             }),
         );
 
@@ -170,8 +173,8 @@ describe("keyboardAction", () => {
             children: [itemA, itemB],
         } = createZone([{ id: "a" }, { id: "b" }], { zoneTabIndex: 3 });
         const { zone: zoneB } = createZone([]);
-        const triggers = [];
-        zoneA.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
+        const triggers: TRIGGERS[] = [];
+        zoneA.addEventListener("consider", (e) => triggers.push((e as CustomEvent<DndEvent>).detail.info.trigger));
 
         itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         zoneA.removeChild(itemA);
@@ -191,8 +194,10 @@ describe("keyboardAction", () => {
             children: [itemA],
         } = createZone([{ id: "a" }, { id: "b" }]);
         const { zone: zoneB } = createZone([]);
-        const finalized = [];
-        [zoneA, zoneB].forEach((zone) => zone.addEventListener("finalize", (e) => finalized.push(e.detail)));
+        const finalized: DndEvent[] = [];
+        [zoneA, zoneB].forEach((zone) =>
+            zone.addEventListener("finalize", (e) => finalized.push((e as CustomEvent<DndEvent>).detail)),
+        );
 
         itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         zoneA.removeChild(itemA);
@@ -210,17 +215,18 @@ describe("keyboardAction", () => {
         });
 
         function alertText() {
-            return document.getElementById("dnd-action-aria-alert").textContent;
+            // dndzone creates the aria alert div when a zone is created
+            return document.getElementById("dnd-action-aria-alert")!.textContent;
         }
 
-        function createLabelledZone(items, zoneLabel, options = {}) {
+        function createLabelledZone(items: Item[], zoneLabel: string, options: Partial<Options> = {}) {
             const { zone, action, children } = createZone(items, options);
             zone.setAttribute("aria-label", zoneLabel);
             children.forEach((child, i) => child.setAttribute("aria-label", `Card ${i}`));
             return { zone, action, children };
         }
 
-        function grab(item) {
+        function grab(item: HTMLElement) {
             item.focus();
             item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
         }
@@ -249,7 +255,7 @@ describe("keyboardAction", () => {
         });
 
         it("routes every announcement through the overridable strings", () => {
-            const seen = [];
+            const seen: (string | null)[] = [];
             setAriaStrings({
                 dragStarted: (ctx) => `grab:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.canMoveBetweenZones}`,
                 movedToPosition: (ctx) => `move:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
@@ -270,7 +276,7 @@ describe("keyboardAction", () => {
         });
 
         it("gives the grab and the drop the item's seat and the zone's size", () => {
-            const seen = [];
+            const seen: (string | null)[] = [];
             setAriaStrings({
                 dragStarted: (ctx) => `grab:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
                 dropped: (ctx) => `drop:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
@@ -330,7 +336,8 @@ describe("keyboardAction", () => {
 
             grab(item);
 
-            expect(document.getElementById("dnd-action-aria-alert").textContent).to.equal("");
+            // dndzone creates the aria alert div when a zone is created
+            expect(document.getElementById("dnd-action-aria-alert")!.textContent).to.equal("");
         });
 
         it("does not get stuck dragging when a consumer formatter throws on drop, and announces the default instead", () => {
@@ -343,8 +350,8 @@ describe("keyboardAction", () => {
                 zone,
                 children: [item],
             } = createLabelledZone([{ id: "a" }, { id: "b" }], "To do");
-            const triggers = [];
-            zone.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
+            const triggers: TRIGGERS[] = [];
+            zone.addEventListener("consider", (e) => triggers.push((e as CustomEvent<DndEvent>).detail.info.trigger));
 
             grab(item);
             item.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
