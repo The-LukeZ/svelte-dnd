@@ -6,6 +6,6 @@
     const { children }: { children: Snippet } = $props();
 </script>
 
-<DocsShell {content} search={() => import("svelte-docsmith/search").then((m) => m.docs)} copyPage>
+<DocsShell {content} readingTime={false} search={() => import("svelte-docsmith/search").then((m) => m.docs)} copyPage>
     {@render children()}
 </DocsShell>

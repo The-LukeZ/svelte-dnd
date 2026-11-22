@@ -35,6 +35,9 @@ jobs:
 
             - uses: actions/checkout@v7
               if: steps.secrets.outputs.enabled == 'true'
+              with:
+                  # Full history: docsmith dates changelog releases and pages from git.
+                  fetch-depth: 0
 
             - uses: pnpm/setup@v3
               if: steps.secrets.outputs.enabled == 'true'

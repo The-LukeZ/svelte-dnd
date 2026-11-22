@@ -23,15 +23,17 @@ export default defineConfig({
                 announcement: {
                     tag: "Prerelease",
                     text: "The API may change before 1.0. See the changelog.",
-                    href: "https://github.com/The-LukeZ/svelte-dnd/blob/dev/packages/svelte-dnd/CHANGELOG.md",
-                    external: true,
+                    href: "/changelog",
                     dismissible: false,
                 },
                 nav: [
                     { label: "Docs", href: "/docs/getting-started" },
                     { label: "Demos", href: "/docs/demos/basic" },
+                    { label: "Changelog", href: "/changelog" },
                 ],
             },
+            // The library's changesets CHANGELOG.md feeds the /changelog page and /changelog.xml feed.
+            changelog: { file: "../../packages/svelte-dnd/CHANGELOG.md" },
         }),
         tailwindcss(),
         // virtual:svelte-dnd-api, the API reference extracted from the library's types and TSDoc
