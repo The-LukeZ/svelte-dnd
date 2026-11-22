@@ -75,7 +75,7 @@ function findRelevantScrollContainers(dropZones: Iterable<HTMLElement>): Set<HTM
         const { scrollingElement } = dz.ownerDocument as Document & { scrollingElement: HTMLElement };
         if (
             scrollingElement.scrollHeight > scrollingElement.clientHeight ||
-            scrollingElement.scrollWidth > scrollingElement.clientHeight
+            scrollingElement.scrollWidth > scrollingElement.clientWidth
         ) {
             scrollingContainers.add(scrollingElement);
         }
