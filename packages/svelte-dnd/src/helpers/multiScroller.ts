@@ -13,8 +13,8 @@ export type MultiScroller = {
  * Creates a scroller than can scroll any of the provided containers or any of their scrollable parents (including the document's scrolling element)
  */
 export function createMultiScroller(
-    baseElementsForScrolling: HTMLElement[] = [],
-    getPointerPosition: () => Point,
+    baseElementsForScrolling: Iterable<HTMLElement> = [],
+    getPointerPosition: () => Point | undefined,
 ): MultiScroller {
     printDebug(() => "creating multi-scroller");
     const scrollingContainersSet = findRelevantScrollContainers(baseElementsForScrolling);
@@ -66,7 +66,7 @@ function findScrollableParents(element: HTMLElement): HTMLElement[] {
     }
     return scrollableContainers;
 }
-function findRelevantScrollContainers(dropZones: HTMLElement[]): Set<HTMLElement> {
+function findRelevantScrollContainers(dropZones: Iterable<HTMLElement>): Set<HTMLElement> {
     const scrollingContainers = new Set<HTMLElement>();
     for (let dz of dropZones) {
         findScrollableParents(dz).forEach((container) => scrollingContainers.add(container));
