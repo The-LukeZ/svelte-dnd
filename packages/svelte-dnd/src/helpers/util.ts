@@ -1,8 +1,11 @@
+// A window with its globals typed (CustomEvent, getComputedStyle and so on), the type of document.defaultView.
+export type WindowWithGlobals = NonNullable<Document["defaultView"]>;
+
 /**
  * The window an element lives in. A drop zone can live in another window than the one that
  * loaded this module, for example a same-origin iframe or a popup opened with window.open.
  */
-export function getWindowOf(el: Node): Window {
+export function getWindowOf(el: Node): WindowWithGlobals {
     // ownerDocument is only null for a Document node, and callers pass elements
     // eslint-disable-next-line no-restricted-globals -- for a document without a window, e.g. after its window closed
     return el.ownerDocument!.defaultView || window;
