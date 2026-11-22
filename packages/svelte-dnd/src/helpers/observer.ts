@@ -1,5 +1,6 @@
 import { findWouldBeIndex, resetIndexesCache } from "./listUtil";
-import { isElementOffDocument } from "./intersection";
+import { isElementOffDocument, type Point } from "./intersection";
+import type { MultiScroller } from "./multiScroller";
 import {
     dispatchDraggedElementEnteredContainer,
     dispatchDraggedElementLeftContainerForAnother,
@@ -12,25 +13,27 @@ import { printDebug } from "../constants";
 
 const INTERVAL_MS = 200;
 const TOLERANCE_PX = 10;
-let next;
+let next: ReturnType<typeof setTimeoutIn> | undefined;
 // The observation in progress. A consider handler can end the drag in the middle of an observation tick, for example by
 // removing the drag's window, and the tick must not carry on with a drag that has ended.
-let currentObservation;
+let currentObservation: object | undefined;
 
 /**
  * Tracks the dragged elements and performs the side effects when it is dragged over a drop zone (basically dispatching custom-events scrolling)
- * @param {Set<HTMLElement>} dropZones
- * @param {HTMLElement} draggedEl
- * @param {number} [intervalMs = INTERVAL_MS]
- * @param {MultiScroller} multiScroller
- * @param {function(): {x: number, y: number}} getReferencePoint - Function that returns the reference point for detection (cursor or element center)
+ * @param getReferencePoint - Function that returns the reference point for detection (cursor or element center)
  */
-export function observe(draggedEl, dropZones, intervalMs = INTERVAL_MS, multiScroller, getReferencePoint) {
+export function observe(
+    draggedEl: HTMLElement,
+    dropZones: Set<HTMLElement>,
+    intervalMs = INTERVAL_MS,
+    multiScroller: MultiScroller,
+    getReferencePoint: () => Point,
+): void {
     // initialization
-    let lastDropZoneFound;
-    let lastIndexFound;
+    let lastDropZoneFound: HTMLElement | undefined;
+    let lastIndexFound: number | undefined;
     let lastIsDraggedInADropZone = false;
-    let lastCentrePositionOfDragged;
+    let lastCentrePositionOfDragged: Point | undefined;
     const win = getWindowOf(draggedEl);
     const observation = {};
     currentObservation = observation;
@@ -40,7 +43,7 @@ export function observe(draggedEl, dropZones, intervalMs = INTERVAL_MS, multiScr
     /**
      * The main function in this module. Tracks where everything is/ should be a take the actions
      */
-    function andNow() {
+    function andNow(): void {
         const referencePoint = getReferencePoint();
         const scrolled = multiScroller.multiScrollIfNeeded();
         // we only want to make a new decision after the element was moved a bit to prevent flickering
@@ -100,7 +103,7 @@ export function observe(draggedEl, dropZones, intervalMs = INTERVAL_MS, multiScr
 }
 
 // assumption - we can only observe one dragged element at a time, this could be changed in the future
-export function unobserve() {
+export function unobserve(): void {
     printDebug(() => "unobserving");
     currentObservation = undefined;
     clearTimeoutIn(next);
