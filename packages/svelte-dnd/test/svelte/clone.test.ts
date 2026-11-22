@@ -2,10 +2,7 @@ import { render } from "vitest-browser-svelte";
 import { DRAGGED_ELEMENT_ID } from "../../src/constants";
 import type { DndEvent } from "../../src/types";
 import SelectItem from "./fixtures/SelectItem.svelte";
-
-function mouse(type: string, x: number, y: number): MouseEvent {
-    return new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
-}
+import { mouse } from "./helpers";
 
 describe("dragged clone", () => {
     let errors: string[];
@@ -27,6 +24,8 @@ describe("dragged clone", () => {
         const select = screen.getByTestId("select-1").element() as HTMLSelectElement;
         select.value = "3";
         select.dispatchEvent(new Event("change", { bubbles: true }));
+        // the clone assertion below only means something when the live select holds the changed value
+        expect(select.value).to.equal("3");
 
         const li = select.closest("li")!;
         const rect = li.getBoundingClientRect();

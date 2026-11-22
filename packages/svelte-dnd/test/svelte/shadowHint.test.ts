@@ -1,12 +1,9 @@
 import { render } from "vitest-browser-svelte";
 import type { DndEvent } from "../../src/types";
 import NestedInShadow from "./fixtures/NestedInShadow.svelte";
+import { mouse } from "./helpers";
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-function mouse(type: string, x: number, y: number): MouseEvent {
-    return new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
-}
 
 /**
  * Zones that engine setup ran for: createZone gives every zone it does not ignore an `aria-describedby` (autoAria is on
