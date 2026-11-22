@@ -11,6 +11,27 @@ import { dispatchConsiderEvent, dispatchFinalizeEvent } from "./helpers/dispatch
 import { initAria, announceToScreenReader, destroyAria } from "./helpers/aria";
 import { getWindowOf, toString } from "./helpers/util";
 import { printDebug } from "./constants";
+import type { Item, Options } from "./types";
+
+// The config of a zone
+type Config = {
+    items: Item[];
+    type: string;
+    dragDisabled: boolean;
+    zoneTabIndex: number;
+    zoneItemTabIndex: number;
+    dropFromOthersDisabled: boolean;
+    dropTargetStyle: Record<string, string>;
+    dropTargetClasses: string[];
+    autoAriaDisabled: boolean;
+};
+// The global handlers that a document registration added to its window, by event type
+type Registration = {
+    win: Window | null;
+    zoneCount: number;
+    documentCount: number;
+    handlers: Record<string, EventListener>;
+};
 
 const DEFAULT_DROP_ZONE_TYPE = "--any--";
 const DEFAULT_DROP_TARGET_STYLE = {
@@ -18,36 +39,36 @@ const DEFAULT_DROP_TARGET_STYLE = {
 };
 
 let isDragging = false;
-let draggedItemType;
-let focusedDz;
+let draggedItemType: string | null | undefined;
+let focusedDz: HTMLElement | null | undefined;
 let focusedDzLabel = "";
-let focusedItem;
-let focusedItemId;
+let focusedItem: HTMLElement | null | undefined;
+let focusedItemId: string | null | undefined;
 let focusedItemLabel = "";
 // Like pointer dragging, a keyboard drag only has destinations in the document it started in.
-let dragDocument;
-const allDragTargets = new WeakSet();
-const elToKeyDownListeners = new WeakMap();
-const elToFocusListeners = new WeakMap();
-const dzToHandles = new Map();
-const dzToConfig = new Map();
-const typeToDropZones = new Map();
+let dragDocument: Document | undefined;
+const allDragTargets = new WeakSet<Element>();
+const elToKeyDownListeners = new WeakMap<Element, (e: KeyboardEvent) => void>();
+const elToFocusListeners = new WeakMap<Element, (e: MouseEvent) => void>();
+const dzToHandles = new Map<HTMLElement, { update(newOptions: Options): void; destroy(): void }>();
+const dzToConfig = new Map<HTMLElement, Config>();
+const typeToDropZones = new Map<string, Set<HTMLElement>>();
 // Each document with zones gets its own aria elements, because a zone can live in another window than the one that loaded
 // this module. That document and the same-origin documents around it, up to the loading document, get keydown, click and
 // pagehide handlers, so that Escape and a click outside end a drag from any of them. A zone is released from the documents
 // it registered with, even if it has moved to another document since.
-const dzToDocuments = new Map();
-const documentToRegistration = new Map();
+const dzToDocuments = new Map<HTMLElement, Document[]>();
+const documentToRegistration = new Map<Document, Registration>();
 
 /* TODO (potentially)
  * what's the deal with the black border of voice-reader not following focus?
  * maybe keep focus on the last dragged item upon drop?
  */
 
-let INSTRUCTION_IDs;
+let INSTRUCTION_IDs: ReturnType<typeof initAria> | undefined;
 
 /* drop-zones registration management */
-function getDocumentsAround(doc) {
+function getDocumentsAround(doc: Document): Document[] {
     const docs = [doc];
     for (
         let frame = doc.defaultView?.frameElement;
@@ -59,7 +80,7 @@ function getDocumentsAround(doc) {
     }
     return docs;
 }
-function retainDocuments(dropZoneEl) {
+function retainDocuments(dropZoneEl: HTMLElement): void {
     const docs = getDocumentsAround(dropZoneEl.ownerDocument);
     docs.forEach((doc, idx) => {
         let registration = documentToRegistration.get(doc);
@@ -67,11 +88,17 @@ function retainDocuments(dropZoneEl) {
             printDebug(() => "adding global keydown and click handlers");
             // Handlers of its own, so that removing them through a window that has since navigated to another document
             // leaves the handlers of that document alone
-            const handlers = { keydown: globalKeyDownHandler, click: globalClickHandler, pagehide: handleWindowHidden };
+            // (each handler is added for its own event type, so it gets the event it expects)
+            const handlers = {
+                keydown: globalKeyDownHandler,
+                click: globalClickHandler,
+                pagehide: handleWindowHidden,
+            } as unknown as Record<string, EventListener>;
             registration = { win: doc.defaultView, zoneCount: 0, documentCount: 0, handlers: {} };
             Object.entries(handlers).forEach(([type, handler]) => {
-                registration.handlers[type] = (e) => handler(e);
-                registration.win?.addEventListener(type, registration.handlers[type]);
+                // registration is assigned just above, before this callback runs
+                registration!.handlers[type] = (e) => handler(e);
+                registration!.win?.addEventListener(type, registration!.handlers[type]);
             });
             documentToRegistration.set(doc, registration);
         }
@@ -82,12 +109,13 @@ function retainDocuments(dropZoneEl) {
     });
     dzToDocuments.set(dropZoneEl, docs);
 }
-function releaseDocuments(dropZoneEl) {
+function releaseDocuments(dropZoneEl: HTMLElement): void {
     const docs = dzToDocuments.get(dropZoneEl);
     if (!docs) return;
     dzToDocuments.delete(dropZoneEl);
     docs.forEach((doc, idx) => {
-        const registration = documentToRegistration.get(doc);
+        // retainDocuments registered each of the zone's documents, and a registration is only deleted once no zone retains it
+        const registration = documentToRegistration.get(doc)!;
         if (idx === 0 && --registration.zoneCount === 0) {
             destroyAria(doc);
         }
@@ -99,13 +127,14 @@ function releaseDocuments(dropZoneEl) {
         );
     });
 }
-function registerDropZone(dropZoneEl, type) {
+function registerDropZone(dropZoneEl: HTMLElement, type: string): void {
     printDebug(() => "registering drop-zone if absent");
     if (!typeToDropZones.has(type)) {
         typeToDropZones.set(type, new Set());
     }
-    if (!typeToDropZones.get(type).has(dropZoneEl)) {
-        typeToDropZones.get(type).add(dropZoneEl);
+    // the set for type was added just above if it was missing
+    if (!typeToDropZones.get(type)!.has(dropZoneEl)) {
+        typeToDropZones.get(type)!.add(dropZoneEl);
         incrementActiveDropZoneCount();
     }
     // a zone that moved to another document since it registered takes its registration along
@@ -114,7 +143,7 @@ function registerDropZone(dropZoneEl, type) {
         retainDocuments(dropZoneEl);
     }
 }
-function unregisterDropZone(dropZoneEl, type) {
+function unregisterDropZone(dropZoneEl: HTMLElement, type: string): void {
     printDebug(() => "unregistering drop-zone");
     if (isDragging && focusedDz === dropZoneEl) {
         handleDrop();
@@ -128,7 +157,7 @@ function unregisterDropZone(dropZoneEl, type) {
     releaseDocuments(dropZoneEl);
 }
 
-function globalKeyDownHandler(e) {
+function globalKeyDownHandler(e: KeyboardEvent): void {
     if (!isDragging) return;
     switch (e.key) {
         case "Escape": {
@@ -138,9 +167,10 @@ function globalKeyDownHandler(e) {
     }
 }
 
-function globalClickHandler(e) {
+function globalClickHandler(e: MouseEvent): void {
     if (!isDragging) return;
-    if (!allDragTargets.has(e.currentTarget.document.activeElement)) {
+    // the listener is on a window, and a null activeElement is not a drag target, which has() reports
+    if (!allDragTargets.has((e.currentTarget as Window).document.activeElement as Element)) {
         printDebug(() => "clicked outside of any draggable");
         handleDrop();
     }
@@ -148,7 +178,7 @@ function globalClickHandler(e) {
 
 // The focused zone's window is going away: it was closed or navigated, or its iframe was removed. End the drag so the
 // zones in the other windows become tab stops again.
-function handleWindowHidden(e) {
+function handleWindowHidden(e: PageTransitionEvent): void {
     if (isDragging && focusedDz && getWindowOf(focusedDz) === e.currentTarget) {
         printDebug(() => "the focused zone's window is going away");
         handleDrop();
@@ -156,11 +186,11 @@ function handleWindowHidden(e) {
 }
 
 // Tab can cross iframe boundaries, but a destination must still belong to the drag's own document.
-function isInDragDocument(dropZoneEl, doc = dragDocument) {
+function isInDragDocument(dropZoneEl: HTMLElement, doc: Document | undefined = dragDocument): boolean {
     return dropZoneEl.ownerDocument === doc;
 }
 
-function isAboveOrLeftOf(el, otherEl) {
+function isAboveOrLeftOf(el: Element, otherEl: Element): boolean {
     const position = el.getBoundingClientRect();
     const otherPosition = otherEl.getBoundingClientRect();
     return position.top < otherPosition.top || position.left < otherPosition.left;
@@ -168,51 +198,56 @@ function isAboveOrLeftOf(el, otherEl) {
 
 // Tab order, focus-driven transfers, styling and announcements must agree about which zones can receive the item.
 // tabindex=-1 alone is not a restriction: a click or consumer code can still focus a zone.
-function isKeyboardDropTarget(dropZoneEl) {
-    const config = dzToConfig.get(dropZoneEl);
+function isKeyboardDropTarget(dropZoneEl: HTMLElement): boolean {
+    // callers pass registered zones, which have a config, and only call it during a drag, while focusedItem is set
+    const config = dzToConfig.get(dropZoneEl)!;
     return (
         config.type === draggedItemType &&
         !config.dropFromOthersDisabled &&
-        !focusedItem.contains(dropZoneEl) &&
+        !focusedItem!.contains(dropZoneEl) &&
         isInDragDocument(dropZoneEl)
     );
 }
 
-function getActiveDragTabIndex(dropZoneEl) {
+function getActiveDragTabIndex(dropZoneEl: HTMLElement): number {
     return dropZoneEl !== focusedDz && isKeyboardDropTarget(dropZoneEl) ? 0 : -1;
 }
 
-function refreshActiveDragTabIndices() {
+function refreshActiveDragTabIndices(): void {
     dzToConfig.forEach((_, dropZoneEl) => {
         dropZoneEl.tabIndex = getActiveDragTabIndex(dropZoneEl);
     });
 }
 
-function grabIsAlive() {
-    const focusedConfig = dzToConfig.get(focusedDz);
+function grabIsAlive(): boolean {
+    // only called during a drag, and focusedDz is set in handleDragStart for the whole drag
+    const focusedConfig = dzToConfig.get(focusedDz!);
     if (focusedConfig?.items.some((item) => item[ITEM_ID_KEY] === focusedItemId)) return true;
     printDebug(() => "dragged item is gone, dropping");
     handleDrop();
     return false;
 }
 
-function handleZoneFocus(e) {
+function handleZoneFocus(e: FocusEvent): void {
     printDebug(() => "zone focus");
     if (!isDragging) return;
-    const newlyFocusedDz = e.currentTarget;
+    // the focus listener is on a zone
+    const newlyFocusedDz = e.currentTarget as HTMLElement;
     if (newlyFocusedDz === focusedDz || !isKeyboardDropTarget(newlyFocusedDz)) return;
 
     if (!grabIsAlive()) return;
 
-    const dzFrom = focusedDz;
-    const movedItemId = focusedItemId;
+    // The drag is in progress, so focusedDz and focusedItemId are set. grabIsAlive found the config of focusedDz and the
+    // item in its items, and isKeyboardDropTarget read the config of newlyFocusedDz.
+    const dzFrom = focusedDz!;
+    const movedItemId = focusedItemId!;
     focusedDzLabel = newlyFocusedDz.getAttribute("aria-label") || "";
-    const { items: originItems } = dzToConfig.get(focusedDz);
-    const originItem = originItems.find((item) => item[ITEM_ID_KEY] === focusedItemId);
+    const { items: originItems } = dzToConfig.get(focusedDz!)!;
+    const originItem = originItems.find((item) => item[ITEM_ID_KEY] === focusedItemId)!;
     const originIdx = originItems.indexOf(originItem);
     const itemToMove = originItems.splice(originIdx, 1)[0];
-    const { items: targetItems, autoAriaDisabled } = dzToConfig.get(newlyFocusedDz);
-    if (isAboveOrLeftOf(newlyFocusedDz, focusedDz)) {
+    const { items: targetItems, autoAriaDisabled } = dzToConfig.get(newlyFocusedDz)!;
+    if (isAboveOrLeftOf(newlyFocusedDz, focusedDz!)) {
         targetItems.push(itemToMove);
         if (!autoAriaDisabled) {
             announceToScreenReader(
@@ -257,17 +292,19 @@ function handleZoneFocus(e) {
     }
 }
 
-function triggerAllDzsUpdate() {
-    dzToHandles.forEach(({ update }, dz) => update(dzToConfig.get(dz)));
+function triggerAllDzsUpdate(): void {
+    // every zone with handles has a config: configure sets it before the handles are stored, and destroy deletes both
+    dzToHandles.forEach(({ update }, dz) => update(dzToConfig.get(dz)!));
 }
 
-function handleDrop(dispatchConsider = true) {
+function handleDrop(dispatchConsider = true): void {
     if (!isDragging || !focusedDz) return;
     printDebug(() => "drop");
     const droppedDz = focusedDz;
     const droppedConfig = dzToConfig.get(droppedDz);
-    const droppedItemId = focusedItemId;
-    const droppedItemType = draggedItemType;
+    // the drag is in progress, and handleDragStart set its item id and type for the whole drag
+    const droppedItemId = focusedItemId!;
+    const droppedItemType = draggedItemType!;
     if (!droppedConfig) return;
     const droppedItemLabel = focusedItemLabel;
     const droppedDzLabel = focusedDzLabel;
@@ -300,8 +337,10 @@ function handleDrop(dispatchConsider = true) {
         );
     }
     const { activeElement } = droppedDz.ownerDocument;
-    if (allDragTargets.has(activeElement)) {
-        activeElement.blur();
+    // A null activeElement is not a drag target, which has() reports.
+    // The drag targets are the zones' children, the rendered items, HTML elements.
+    if (allDragTargets.has(activeElement as Element)) {
+        (activeElement as HTMLElement).blur();
     }
     if (dispatchConsider) {
         dispatchConsiderEvent(droppedDz, droppedConfig.items, {
@@ -312,17 +351,23 @@ function handleDrop(dispatchConsider = true) {
     }
     const dropZones = typeToDropZones.get(droppedItemType);
     if (dropZones) {
+        // the registered zones have a config: destroy unregisters a zone before it deletes its config
         styleInactiveDropZones(
             Array.from(dropZones).filter((dz) => isInDragDocument(dz, droppedDocument)),
-            (dz) => dzToConfig.get(dz).dropTargetStyle,
-            (dz) => dzToConfig.get(dz).dropTargetClasses,
+            (dz) => dzToConfig.get(dz)!.dropTargetStyle,
+            (dz) => dzToConfig.get(dz)!.dropTargetClasses,
         );
     }
     triggerAllDzsUpdate();
 }
 //////
-export function dndzone(node, options) {
+export function dndzone<T extends Item>(
+    node: HTMLElement,
+    options: Options<T>,
+): { update(newOptions: Options<T>): void; destroy(): void } {
     let destroyed = false;
+    // configure(options) below sets items and type. Before that only the first configure call reads them, and it checks
+    // config.type before setting it.
     const config = {
         items: undefined,
         type: undefined,
@@ -333,14 +378,14 @@ export function dndzone(node, options) {
         dropTargetStyle: DEFAULT_DROP_TARGET_STYLE,
         dropTargetClasses: [],
         autoAriaDisabled: false,
-    };
+    } as unknown as Config;
 
-    function swap(arr, i, j) {
+    function swap(arr: Item[], i: number, j: number): void {
         if (arr.length <= 1) return;
         arr.splice(j, 1, arr.splice(i, 1, arr[j])[0]);
     }
 
-    function ownsArrowKey(e) {
+    function ownsArrowKey(e: KeyboardEvent): boolean {
         // Only the grabbed item owns reorder keys. Nested controls and other items keep their own key behaviour.
         return (
             isDragging &&
@@ -351,7 +396,7 @@ export function dndzone(node, options) {
         );
     }
 
-    function handleKeyDown(e) {
+    function handleKeyDown(e: KeyboardEvent): void {
         printDebug(() => ["handling key down", e.key]);
         switch (e.key) {
             case "Enter":
@@ -361,9 +406,12 @@ export function dndzone(node, options) {
                     return;
                 }
                 // we don't want to affect nested input elements or clickable elements
+                // the target is the draggable or an element inside it, disabled is only set on form controls and href on links
                 if (
-                    (e.target.disabled !== undefined || e.target.href || e.target.isContentEditable) &&
-                    !allDragTargets.has(e.target)
+                    ((e.target as HTMLElement & { disabled?: boolean }).disabled !== undefined ||
+                        (e.target as HTMLElement & { href?: string }).href ||
+                        (e.target as HTMLElement).isContentEditable) &&
+                    !allDragTargets.has(e.target as HTMLElement)
                 ) {
                     return;
                 }
@@ -383,9 +431,11 @@ export function dndzone(node, options) {
                 if (!ownsArrowKey(e)) return;
                 e.preventDefault(); // prevent scrolling
                 e.stopPropagation();
-                const { items } = dzToConfig.get(node);
+                // This zone is configured, because destroy removes its listeners before it deletes its config.
+                // The listener is on one of its children. ownsArrowKey says the drag is in progress, so focusedItemId is set.
+                const { items } = dzToConfig.get(node)!;
                 const children = Array.from(node.children);
-                const idx = children.indexOf(e.currentTarget);
+                const idx = children.indexOf(e.currentTarget as Element);
                 printDebug(() => ["arrow down", idx]);
                 if (idx < children.length - 1) {
                     if (!config.autoAriaDisabled) {
@@ -405,7 +455,7 @@ export function dndzone(node, options) {
                     swap(items, idx, idx + 1);
                     dispatchFinalizeEvent(node, items, {
                         trigger: TRIGGERS.DROPPED_INTO_ZONE,
-                        id: focusedItemId,
+                        id: focusedItemId!,
                         source: SOURCES.KEYBOARD,
                     });
                 }
@@ -416,9 +466,11 @@ export function dndzone(node, options) {
                 if (!ownsArrowKey(e)) return;
                 e.preventDefault(); // prevent scrolling
                 e.stopPropagation();
-                const { items } = dzToConfig.get(node);
+                // This zone is configured, because destroy removes its listeners before it deletes its config.
+                // The listener is on one of its children. ownsArrowKey says the drag is in progress, so focusedItemId is set.
+                const { items } = dzToConfig.get(node)!;
                 const children = Array.from(node.children);
-                const idx = children.indexOf(e.currentTarget);
+                const idx = children.indexOf(e.currentTarget as Element);
                 printDebug(() => ["arrow up", idx]);
                 if (idx > 0) {
                     if (!config.autoAriaDisabled) {
@@ -438,7 +490,7 @@ export function dndzone(node, options) {
                     swap(items, idx, idx - 1);
                     dispatchFinalizeEvent(node, items, {
                         trigger: TRIGGERS.DROPPED_INTO_ZONE,
-                        id: focusedItemId,
+                        id: focusedItemId!,
                         source: SOURCES.KEYBOARD,
                     });
                 }
@@ -446,25 +498,27 @@ export function dndzone(node, options) {
             }
         }
     }
-    function handleDragStart(e) {
+    function handleDragStart(e: Event): void {
         printDebug(() => "drag start");
-        setCurrentFocusedItem(e.currentTarget);
+        // the keydown and click listeners are on the zone's children, the rendered items, HTML elements
+        setCurrentFocusedItem(e.currentTarget as HTMLElement);
         focusedDz = node;
         focusedDzLabel = node.getAttribute("aria-label") || "";
         draggedItemType = config.type;
         isDragging = true;
         dragDocument = node.ownerDocument;
-        const dropTargets = Array.from(typeToDropZones.get(config.type)).filter(
+        // configure registered this zone under config.type, and the registered zones have a config
+        const dropTargets = Array.from(typeToDropZones.get(config.type)!).filter(
             (dz) => dz === focusedDz || isKeyboardDropTarget(dz),
         );
         styleActiveDropZones(
             dropTargets,
-            (dz) => dzToConfig.get(dz).dropTargetStyle,
-            (dz) => dzToConfig.get(dz).dropTargetClasses,
+            (dz) => dzToConfig.get(dz)!.dropTargetStyle,
+            (dz) => dzToConfig.get(dz)!.dropTargetClasses,
         );
         if (!config.autoAriaDisabled) {
             // Include the starting position so localized messages can describe where the item was picked up.
-            const startItems = dzToConfig.get(node).items;
+            const startItems = dzToConfig.get(node)!.items;
             const startIdx = startItems.findIndex((item) => item[ITEM_ID_KEY] === focusedItemId);
             announceToScreenReader(
                 "dragStarted",
@@ -480,23 +534,25 @@ export function dndzone(node, options) {
         }
         // an announcement formatter can end the drag, for example by removing its window
         if (!isDragging) return;
-        dispatchConsiderEvent(node, dzToConfig.get(node).items, {
+        // the drag is still in progress, so setCurrentFocusedItem's focusedItemId is still set
+        dispatchConsiderEvent(node, dzToConfig.get(node)!.items, {
             trigger: TRIGGERS.DRAG_STARTED,
-            id: focusedItemId,
+            id: focusedItemId!,
             source: SOURCES.KEYBOARD,
         });
         triggerAllDzsUpdate();
     }
 
-    function handleClick(e) {
+    function handleClick(e: MouseEvent): void {
         if (!isDragging) return;
         if (e.currentTarget === focusedItem) return;
         e.stopPropagation();
         handleDrop(false);
         handleDragStart(e);
     }
-    function setCurrentFocusedItem(draggableEl) {
-        const { items } = dzToConfig.get(node);
+    function setCurrentFocusedItem(draggableEl: HTMLElement): void {
+        // this zone is configured, because destroy removes its listeners before it deletes its config
+        const { items } = dzToConfig.get(node)!;
         const children = Array.from(node.children);
         const focusedItemIdx = children.indexOf(draggableEl);
         focusedItem = draggableEl;
@@ -515,7 +571,7 @@ export function dndzone(node, options) {
         dropTargetStyle = DEFAULT_DROP_TARGET_STYLE,
         dropTargetClasses = [],
         autoAriaDisabled = false,
-    }) {
+    }: Options<T>): void {
         config.items = [...items];
         config.dragDisabled = dragDisabled;
         config.dropFromOthersDisabled = dropFromOthersDisabled;
@@ -531,9 +587,11 @@ export function dndzone(node, options) {
         registerDropZone(node, newType);
         if (!autoAriaDisabled) {
             node.setAttribute("role", "list");
+            // registerDropZone above set it through retainDocuments. initAria returns null only on the server, where
+            // actions do not run.
             node.setAttribute(
                 "aria-describedby",
-                dragDisabled ? INSTRUCTION_IDs.DND_ZONE_DRAG_DISABLED : INSTRUCTION_IDs.DND_ZONE_ACTIVE,
+                dragDisabled ? INSTRUCTION_IDs!.DND_ZONE_DRAG_DISABLED : INSTRUCTION_IDs!.DND_ZONE_ACTIVE,
             );
         }
         dzToConfig.set(node, config);
@@ -557,14 +615,16 @@ export function dndzone(node, options) {
         node.addEventListener("focus", handleZoneFocus);
 
         for (let i = 0; i < node.children.length; i++) {
-            const draggableEl = node.children[i];
+            // the zone's children are the rendered items, HTML elements
+            const draggableEl = node.children[i] as HTMLElement;
             allDragTargets.add(draggableEl);
             draggableEl.tabIndex = isDragging ? -1 : config.zoneItemTabIndex;
             if (!autoAriaDisabled) {
                 draggableEl.setAttribute("role", "listitem");
             }
-            draggableEl.removeEventListener("keydown", elToKeyDownListeners.get(draggableEl));
-            draggableEl.removeEventListener("click", elToFocusListeners.get(draggableEl));
+            // removeEventListener ignores undefined, which it gets for a child without a listener yet
+            draggableEl.removeEventListener("keydown", elToKeyDownListeners.get(draggableEl) as EventListener);
+            draggableEl.removeEventListener("click", elToFocusListeners.get(draggableEl) as EventListener);
             if (!dragDisabled) {
                 draggableEl.addEventListener("keydown", handleKeyDown);
                 elToKeyDownListeners.set(draggableEl, handleKeyDown);
@@ -594,8 +654,8 @@ export function dndzone(node, options) {
     }
     configure(options);
 
-    const handles = {
-        update: (newOptions) => {
+    const handles: { update(newOptions: Options<T>): void; destroy(): void } = {
+        update: (newOptions: Options<T>) => {
             printDebug(() => `keyboard dndzone will update newOptions: ${toString(newOptions)}`);
             configure(newOptions);
         },
@@ -604,9 +664,10 @@ export function dndzone(node, options) {
             destroyed = true;
             printDebug(() => "keyboard dndzone will destroy");
             node.removeEventListener("focus", handleZoneFocus);
+            // removeEventListener ignores undefined, which it gets for a child without a listener
             for (const draggableEl of node.children) {
-                draggableEl.removeEventListener("keydown", elToKeyDownListeners.get(draggableEl));
-                draggableEl.removeEventListener("click", elToFocusListeners.get(draggableEl));
+                draggableEl.removeEventListener("keydown", elToKeyDownListeners.get(draggableEl) as EventListener);
+                draggableEl.removeEventListener("click", elToFocusListeners.get(draggableEl) as EventListener);
             }
             unregisterDropZone(node, config.type);
             dzToConfig.delete(node);
