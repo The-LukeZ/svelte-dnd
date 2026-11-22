@@ -100,7 +100,7 @@ export function dragHandleZone<T extends Item>(
  */
 export function dragHandle(handle: HTMLElement): { update: () => void; destroy: () => void } {
     handle.setAttribute("role", "button");
-    // set in startDrag before resetStartDrag is registered, and resetStartDrag is the only reader
+    // assigned in startDrag before resetStartDrag is registered, so every read follows an assignment
     let releaseWindow: Window;
 
     function startDrag(e: MouseEvent | TouchEvent): void {
