@@ -1,7 +1,13 @@
-import { getAbsoluteRectNoTransforms, isPointInsideRect, calcDistanceFromPointToCenter } from "./intersection";
+import {
+    getAbsoluteRectNoTransforms,
+    isPointInsideRect,
+    calcDistanceFromPointToCenter,
+    type Point,
+    type Rect,
+} from "./intersection";
 import { printDebug, SHADOW_ELEMENT_ATTRIBUTE_NAME } from "../constants";
 
-let dzToShadowIndexToRect;
+let dzToShadowIndexToRect: Map<HTMLElement, Map<number, Rect>>;
 
 /**
  * Resets the cache that allows for smarter "would be index" resolution. Should be called after every drag operation
@@ -15,10 +21,9 @@ resetIndexesCache();
 /**
  * Caches the coordinates of the shadow element when it's in a certain index in a certain dropzone.
  * Helpful in order to determine "would be index" more effectively
- * @param {HTMLElement} dz
- * @return {number} - the shadow element index
+ * @return the shadow element index
  */
-function cacheShadowRect(dz) {
+function cacheShadowRect(dz: HTMLElement): number | undefined {
     const shadowElIndex = Array.from(dz.children).findIndex((child) =>
         child.getAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME),
     );
@@ -26,24 +31,28 @@ function cacheShadowRect(dz) {
         if (!dzToShadowIndexToRect.has(dz)) {
             dzToShadowIndexToRect.set(dz, new Map());
         }
-        dzToShadowIndexToRect.get(dz).set(shadowElIndex, getAbsoluteRectNoTransforms(dz.children[shadowElIndex]));
+        // the dz children are HTMLElements
+        dzToShadowIndexToRect
+            .get(dz)!
+            .set(shadowElIndex, getAbsoluteRectNoTransforms(dz.children[shadowElIndex] as HTMLElement)); // has(dz) is ensured above
         return shadowElIndex;
     }
     return undefined;
 }
 
-/**
- * @typedef {Object} Index
- * @property {number} index - the would be index
- * @property {boolean} isProximityBased - false if the element is actually over the index, true if it is not over it but this index is the closest
- */
+export type Index = {
+    /** the would be index */
+    index: number;
+    /** false if the element is actually over the index, true if it is not over it but this index is the closest */
+    isProximityBased: boolean;
+};
+
 /**
  * Find the index for the dragged element in the list it is dragged over
- * @param {{x: number, y: number}} referencePoint - The reference point for detection (cursor position or element center)
- * @param {HTMLElement} collectionBelowEl
- * @returns {Index|null} -  if the element is over the container the Index object otherwise null
+ * @param referencePoint - The reference point for detection (cursor position or element center)
+ * @returns if the element is over the container the Index object otherwise null
  */
-export function findWouldBeIndex(referencePoint, collectionBelowEl) {
+export function findWouldBeIndex(referencePoint: Point, collectionBelowEl: HTMLElement): Index | null {
     const collectionRect = getAbsoluteRectNoTransforms(collectionBelowEl);
     if (!isPointInsideRect(referencePoint, collectionRect)) {
         return null;
@@ -59,13 +68,14 @@ export function findWouldBeIndex(referencePoint, collectionBelowEl) {
     // the search could be more efficient but keeping it simple for now
     // a possible improvement: pass in the lastIndex it was found in and check there first, then expand from there
     for (let i = 0; i < children.length; i++) {
-        const childRect = getAbsoluteRectNoTransforms(children[i]);
+        const childRect = getAbsoluteRectNoTransforms(children[i] as HTMLElement); // the dz children are HTMLElements
         if (isPointInsideRect(referencePoint, childRect)) {
             const cachedShadowRect =
-                dzToShadowIndexToRect.has(collectionBelowEl) && dzToShadowIndexToRect.get(collectionBelowEl).get(i);
+                dzToShadowIndexToRect.has(collectionBelowEl) && dzToShadowIndexToRect.get(collectionBelowEl)!.get(i); // has() is checked first
             if (cachedShadowRect) {
                 if (!isPointInsideRect(referencePoint, cachedShadowRect)) {
-                    return { index: shadowElIndex, isProximityBased: false };
+                    // TODO(#4): shadowElIndex is undefined when the cache is stale, the shadow element is not in this zone anymore
+                    return { index: shadowElIndex!, isProximityBased: false };
                 }
             }
             return { index: i, isProximityBased: false };
@@ -74,7 +84,7 @@ export function findWouldBeIndex(referencePoint, collectionBelowEl) {
     // this can happen if there is space around the children so the floating element has
     //entered the container but not any of the children, in this case we will find the nearest child
     let minDistanceSoFar = Number.MAX_VALUE;
-    let indexOfMin = undefined;
+    let indexOfMin: number | undefined = undefined;
     // we are checking all of them because we don't know whether we are dealing with a horizontal or vertical container and where the floating element entered from
     for (let i = 0; i < children.length; i++) {
         const distance = calcDistanceFromPointToCenter(referencePoint, children[i]);
@@ -98,7 +108,7 @@ export function findWouldBeIndex(referencePoint, collectionBelowEl) {
     if (children.length > 0) {
         const originalLen = children.length; // before we append the phantom
         const template = children[originalLen - 1];
-        const phantom = template.cloneNode(false); // shallow clone is enough for size
+        const phantom = template.cloneNode(false) as HTMLElement; // shallow clone is enough for size, the template is an HTMLElement
         phantom.style.visibility = "hidden";
         phantom.style.pointerEvents = "none";
         collectionBelowEl.appendChild(phantom);
@@ -111,5 +121,6 @@ export function findWouldBeIndex(referencePoint, collectionBelowEl) {
         collectionBelowEl.removeChild(phantom);
     }
 
-    return { index: indexOfMin, isProximityBased: true };
+    // children is not empty here and the distances are numbers, so the loop above sets indexOfMin
+    return { index: indexOfMin!, isProximityBased: true };
 }

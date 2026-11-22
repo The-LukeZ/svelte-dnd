@@ -1,8 +1,6 @@
 import { getWindowOf } from "./util";
 import type { DndEventInfo, Item } from "../types";
-
-// the index the dragged element would get in the zone it is over, as findWouldBeIndex finds it
-type Index = { index: number; isProximityBased: boolean };
+import type { Index } from "./listUtil";
 
 // Events are created in the window of the element they are dispatched on, so a listener in that window sees an
 // instance of its own CustomEvent.
