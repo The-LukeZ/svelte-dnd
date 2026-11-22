@@ -72,10 +72,10 @@ export function findWouldBeIndex(referencePoint: Point, collectionBelowEl: HTMLE
         if (isPointInsideRect(referencePoint, childRect)) {
             const cachedShadowRect =
                 dzToShadowIndexToRect.has(collectionBelowEl) && dzToShadowIndexToRect.get(collectionBelowEl)!.get(i); // has() is checked first
-            if (cachedShadowRect) {
+            // the cached rect only matters while the shadow element is in this zone, otherwise the cache is stale (#4)
+            if (cachedShadowRect && shadowElIndex !== undefined) {
                 if (!isPointInsideRect(referencePoint, cachedShadowRect)) {
-                    // TODO(#4): shadowElIndex is undefined when the cache is stale, the shadow element is not in this zone anymore
-                    return { index: shadowElIndex!, isProximityBased: false };
+                    return { index: shadowElIndex, isProximityBased: false };
                 }
             }
             return { index: i, isProximityBased: false };
