@@ -1,9 +1,9 @@
 import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
+import { defineConfig, type ViteUserConfig } from "vitest/config";
 
-export default defineConfig({
+const config: ViteUserConfig = defineConfig({
     test: {
-        include: ["test/**/*.test.js"],
+        include: ["test/**/*.test.ts"],
         globals: true,
         // Vitest's default, kept explicit: files run in parallel. Each file runs in its own iframe, so its patched globals
         // (setTimeout, requestAnimationFrame) stay in that file.
@@ -17,3 +17,5 @@ export default defineConfig({
         },
     },
 });
+
+export default config;

@@ -39,8 +39,10 @@ jobs:
             - run: pnpm --filter @lukez/svelte-dnd exec playwright install --with-deps chromium firefox webkit
 
             - run: pnpm lint
+            - run: pnpm typecheck
             - run: pnpm format:check
             - run: pnpm build
+            - run: pnpm test:types
             - run: pnpm check:package
             - run: pnpm test:all
 

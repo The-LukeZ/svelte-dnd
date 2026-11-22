@@ -1,0 +1,89 @@
+import type { TRIGGERS, SOURCES } from "./constants";
+
+// oxlint-disable-next-line typescript/no-explicit-any -- TODO: stage 4, decide whether Item becomes Record<string, unknown>
+export type Item = Record<string, any>;
+
+export interface Options<T extends Item = Item> {
+    /** the list of items that was used to generate the children of the given node (the list used in the #each block) */
+    items: T[];
+    /** the type of the dnd zone. children dragged from here can only be dropped in other zones of the same type, defaults to a base type */
+    type?: string;
+    /** if the list animated using flip (recommended), specifies the flip duration such that everything syncs with it without conflict, defaults to zero */
+    flipDurationMs?: number;
+    dragDisabled?: boolean;
+    /** whether dragged element should morph to zone dimensions */
+    morphDisabled?: boolean;
+    dropFromOthersDisabled?: boolean;
+    /** set the tabindex of the list container when not dragging */
+    zoneTabIndex?: number;
+    /** set the tabindex of the list container items when not dragging */
+    zoneItemTabIndex?: number;
+    dropTargetClasses?: string[];
+    dropTargetStyle?: Record<string, string>;
+    transformDraggedElement?: TransformDraggedElementFunction;
+    autoAriaDisabled?: boolean;
+    centreDraggedOnCursor?: boolean;
+    /** cancels the drop animation to place */
+    dropAnimationDisabled?: boolean;
+    /**
+     * Improve touch UX: true => default 80 ms delay, number => custom delay in ms.
+     * false/undefined => drag starts instantly (legacy behaviour)
+     * On touch devices, wait this long before converting the gesture to a drag.
+     */
+    delayTouchStart?: boolean | number;
+    /**
+     * Use cursor position instead of dragged element center for drop zone detection
+     */
+    useCursorForDetection?: boolean;
+}
+
+export interface DndZoneAttributes<T> {
+    "on:consider"?: (e: CustomEvent<DndEvent<T>>) => void;
+    "on:finalize"?: (e: CustomEvent<DndEvent<T>>) => void;
+    onconsider?: (e: CustomEvent<DndEvent<T>>) => void;
+    onfinalize?: (e: CustomEvent<DndEvent<T>>) => void;
+}
+
+export interface DndEventInfo {
+    /** the type of dnd event that took place */
+    trigger: TRIGGERS;
+    id: string;
+    /** the type of interaction that the user used to perform the dnd operation */
+    source: SOURCES;
+}
+
+export type DndEvent<T = Item> = {
+    items: T[];
+    info: DndEventInfo;
+};
+
+/**
+ * @param element - the dragged element.
+ * @param draggedElementData - the data of the item from the items array
+ * @param index - the index the dragged element would get if dropped into the new dnd-zone
+ */
+export type TransformDraggedElementFunction = (
+    element?: HTMLElement,
+    draggedElementData?: Item,
+    index?: number,
+) => void;
+
+/**
+ * Every message key receives the same core context - itemLabel, zoneLabel, position, count -
+ * so a consumer can word any of them positionally. Only dragStarted carries an extra.
+ */
+export interface AriaStrings {
+    dragStarted?: (ctx: {
+        itemLabel: string;
+        zoneLabel: string;
+        position: number;
+        count: number;
+        canMoveBetweenZones: boolean;
+    }) => string;
+    movedToPosition?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    movedToZoneEnd?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    movedToZoneStart?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    dropped?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    zoneActiveInstruction?: string | ((ctx: { keyboardDragTrigger: "space" | "enter" | "space_or_enter" }) => string);
+    zoneDragDisabledInstruction?: string;
+}
