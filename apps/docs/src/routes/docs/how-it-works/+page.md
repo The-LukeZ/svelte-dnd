@@ -40,8 +40,8 @@ A drag within one zone sends `onfinalize` to that zone only. A drag from one zon
 
 During a pointer drag, the zone the item hovers over receives a temporary item in its `items`: the shadow item. It is a copy of the dragged item's data with two changes:
 
-- its id is `SHADOW_PLACEHOLDER_ITEM_ID`, instead of the item's own id.
-- it has the property `isDndShadowItem` set to `true`. The name is exported as `SHADOW_ITEM_MARKER_PROPERTY_NAME`.
+- its id starts as `SHADOW_PLACEHOLDER_ITEM_ID`. Once the dragged element has left the list, the shadow item takes the dragged item's own id, so the id is not a reliable way to find it.
+- it has the property `isDndShadowItem` set to `true`. The name is exported as `SHADOW_ITEM_MARKER_PROPERTY_NAME`. Check this marker to recognise the shadow item.
 
 It is what makes the other items move aside, and it marks where the item would land. While it is in the list, the element it renders is the placeholder under the dragged element, which follows the pointer. When the drag ends, the shadow item is replaced by the dragged item with its real id.
 
@@ -69,7 +69,7 @@ Check the marker in your `#each` block to style the placeholder:
 
 Two more things to know about it:
 
-- Your rendering code sees it, so a nested zone that filters or counts items must expect it. Filter on `SHADOW_PLACEHOLDER_ITEM_ID` when you pass `items` down to a nested zone.
+- Your rendering code sees it, so a nested zone that filters or counts items must expect it. Filter on the `isDndShadowItem` marker when you pass `items` down to a nested zone.
 - With nested zones, mark the item with `data-is-dnd-shadow-item-hint={item.isDndShadowItem}` so the library does not set up zones inside the placeholder. See [nested zones](/docs/guides/nested-zones#the-shadow-hint).
 
 Keyboard drags do not add a shadow item. The item moves in the list directly.

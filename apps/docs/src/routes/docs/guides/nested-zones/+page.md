@@ -89,4 +89,4 @@ import { SHADOW_ITEM_MARKER_PROPERTY_NAME } from "@lukez/svelte-dnd";
 const realCards = column.cards.filter((card) => !(SHADOW_ITEM_MARKER_PROPERTY_NAME in card));
 ```
 
-Its id is `SHADOW_PLACEHOLDER_ITEM_ID`, a string, so with string ids a comparison of ids works too.
+Check the marker, not the id: the shadow item starts with the id `SHADOW_PLACEHOLDER_ITEM_ID`, but takes the dragged item's own id during the drag.

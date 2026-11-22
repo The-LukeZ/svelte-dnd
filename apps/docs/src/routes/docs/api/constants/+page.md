@@ -19,6 +19,8 @@ order: 205
 
 <ApiTable name="SHADOW_PLACEHOLDER_ITEM_ID" />
 
+The shadow item starts with this id, and takes the dragged item's own id once the dragged element has left the list. To recognise the shadow item, check `SHADOW_ITEM_MARKER_PROPERTY_NAME` instead.
+
 ## DRAGGED_ELEMENT_ID
 
 <ApiTable name="DRAGGED_ELEMENT_ID" />

@@ -39,7 +39,7 @@ A zone can accept the item when it has the same `type` and does not set `dropFro
 
 ## The dragged element
 
-At the start of a pointer drag, the library clones the item's element and appends the clone to the document body, or to the enclosing `<dialog>` or popover. The clone has `position: fixed`, a `z-index` of 9999, a `grabbing` cursor and the id `DRAGGED_ELEMENT_ID` (`"dnd-action-dragged-el"`). The original element stays in the list as the placeholder.
+At the start of a pointer drag, the library clones the item's element and appends the clone to the document body, or to the enclosing `<dialog>` or popover. The clone has `position: fixed`, a `z-index` of 9999, a `grabbing` cursor and the id `DRAGGED_ELEMENT_ID` (`"dnd-action-dragged-el"`). The original element is moved out of the list and hidden, and the placeholder in the list is the element your `#each` block renders for the shadow item.
 
 When the clone hovers a zone, it morphs to look like the placeholder there: it takes the placeholder's size, background, padding, font and colors, with a short transition. `morphDisabled: true` keeps the clone's own shape.
 

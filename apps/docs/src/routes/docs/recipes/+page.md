@@ -9,11 +9,11 @@ Short patterns that have no demo of their own. Each is a complete component you 
 
 ## Copy on drop into a single slot
 
-A palette of colors and a slot that holds one of them. Dropping a color into the slot puts a copy there, with a new id, and the palette keeps all of its colors. A new drop replaces what the slot holds, and dragging the slot's color back to the palette clears the slot.
+A palette of colors and a slot that holds one of them. Dropping a color into the slot puts a copy there, with a new id, and the palette keeps all of its colors. A new drop replaces what the slot holds, a drag that only passes over the slot leaves it as it was, and dragging the slot's color back to the palette clears the slot.
 
 ```svelte
 <script lang="ts">
-    import { dndzone, type DndEvent } from "@lukez/svelte-dnd";
+    import { dndzone, SOURCES, TRIGGERS, type DndEvent } from "@lukez/svelte-dnd";
 
     type Color = { id: number; name: string; isDndShadowItem?: boolean };
 
@@ -25,26 +25,58 @@ A palette of colors and a slot that holds one of them. Dropping a color into the
     let nextId = 100;
 
     let palette = $state<Color[]>([...colors]);
+    // what the slot renders, which changes while a color hovers it
     let slot = $state<Color[]>([]);
+    // what the slot holds between drags
+    let held: Color[] = [];
+
+    // the slot keeps the dropped color only, as a copy with its own id
+    function keep(items: Color[], id: number) {
+        held = items.filter((color) => color.id === id).map((color) => ({ ...color, id: nextId++ }));
+        slot = held;
+    }
 
     function considerPalette(e: DndEvent<Color>) {
         palette = e.items;
+        // a keyboard drag that ends in the palette: the palette keeps its colors and the slot what it held
+        if (e.info.trigger === TRIGGERS.DRAG_STOPPED) {
+            palette = [...colors];
+            slot = held;
+        }
     }
 
-    function finalizePalette() {
-        // whatever happened, the palette keeps every color in its order
-        palette = [...colors];
+    function finalizePalette(e: DndEvent<Color>) {
+        // A keyboard drag sends this on every move and goes on, so it resets when it stops. After a pointer drag the
+        // palette keeps every color in its order.
+        palette = e.info.source === SOURCES.KEYBOARD ? e.items : [...colors];
     }
 
     function considerSlot(e: DndEvent<Color>) {
-        // while a color hovers the slot, show only the shadow item, so the slot never holds two
+        const { trigger, id } = e.info;
+        // a keyboard drag that ends in the slot
+        if (trigger === TRIGGERS.DRAG_STOPPED) {
+            keep(e.items, id);
+            palette = [...colors];
+            return;
+        }
+        // the slot's own color is on its way out
+        if (trigger === TRIGGERS.DRAG_STARTED) held = [];
+        // While a color hovers the slot, show only the shadow item, so the slot never shows two. When it leaves, show
+        // what the slot held: the slot gets no finalize event when the color is dropped somewhere else.
         const incoming = e.items.filter((color) => color.isDndShadowItem);
-        slot = incoming.length > 0 ? incoming : e.items;
+        if (incoming.length > 0) slot = incoming;
+        else if (trigger === TRIGGERS.DRAGGED_LEFT) slot = held;
+        else slot = e.items;
     }
 
     function finalizeSlot(e: DndEvent<Color>) {
-        // keep the dropped color only, as a copy with its own id
-        slot = e.items.filter((color) => color.id === e.info.id).map((color) => ({ ...color, id: nextId++ }));
+        const { source, trigger, id } = e.info;
+        if (source === SOURCES.KEYBOARD) {
+            // the drag goes on: show the color that came in, or what the slot held when the color left again
+            slot = trigger === TRIGGERS.DROPPED_INTO_ANOTHER ? held : e.items.filter((color) => color.id === id);
+            return;
+        }
+        keep(e.items, id);
     }
 </script>
 

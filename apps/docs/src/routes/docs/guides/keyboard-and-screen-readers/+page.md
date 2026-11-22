@@ -136,3 +136,5 @@ function finalize(e: DndEvent<Task>) {
 ```
 
 With several zones, a keyboard drag that moves an item from one zone to another ends with `DRAG_STOPPED` in the new zone only. Save both lists then, or save each zone's list when its `onfinalize` runs and accept a request per move. The [async save demo](/docs/demos/async-save) uses the pattern above, with a rollback when the save fails.
+
+The pattern has one gap: a click on another item during a keyboard drag ends that drag without `DRAG_STOPPED` (see above), so the moves of that drag are not saved by it. They are saved with the next drag that ends normally in the same zone, or not at all if none does.
