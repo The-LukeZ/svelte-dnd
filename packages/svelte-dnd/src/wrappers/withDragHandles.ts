@@ -288,6 +288,8 @@ export function dragHandleZone<T extends object>(getOptions: () => Options<T>): 
 }
 
 /**
- * Marks a drag handle inside an item of a `dragHandleZone`. Use it as `{@attach dragHandle}`.
+ * Marks a drag handle inside an item of a `dragHandleZone`. Use it as `{@attach dragHandle}`. The handle belongs to the
+ * nearest handle zone around it, gets `role="button"`, and starts a drag with the pointer or the keyboard drag
+ * trigger. A handle outside of any handle zone does nothing.
  */
 export const dragHandle: Attachment<HTMLElement> = attachHandle;
