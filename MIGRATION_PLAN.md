@@ -117,6 +117,11 @@ This repo is a hard fork of [`svelte-dnd-action`](https://github.com/isaacHagoel
 ### Between stages 4 and 5: bug fixes
 
 - [x] [#7](https://github.com/The-LukeZ/svelte-dnd/issues/7): a zone nested in a dragged item is dead after the drop when the shadow hint is set. Fixed: the skipped zone is set up once the hint is removed.
+- [x] A handle zone created again on the same element takes over the handles of the zone it replaces.
+- [x] A drop's deferred finalize and teardown no longer reach a zone created on the same element during the drop animation, whatever its `type`.
+- [x] `configure` validates every key before applying any.
+- [x] `info.id` is inferred from an optional `id` field too.
+- [x] Stage 4 review test gaps covered; `MIGRATING.md` links are absolute.
 
 ### Stage 5: Docs site
 
