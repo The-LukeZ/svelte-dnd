@@ -1,6 +1,6 @@
-import { dndzone } from "../../src/keyboardAction";
-import { TRIGGERS } from "../../src/constants";
-import { setAriaStrings } from "../../src/helpers/aria";
+import { dndzone } from "../src/keyboardAction";
+import { TRIGGERS } from "../src/constants";
+import { setAriaStrings } from "../src/helpers/aria";
 
 describe("keyboardAction", () => {
     const actions = [];
@@ -200,6 +200,7 @@ describe("keyboardAction", () => {
 
         zoneB.dispatchEvent(new FocusEvent("focus"));
 
+        // oxlint-disable-next-line no-unused-expressions -- a Chai property assertion
         expect(finalized, "should not finalize a move for an unrelated item").to.be.empty;
     });
 
