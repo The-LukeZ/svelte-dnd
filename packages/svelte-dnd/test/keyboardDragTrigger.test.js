@@ -1,14 +1,10 @@
-import { dndzone } from "../../src/keyboardAction";
-import { dndzone as fullDndzone } from "../../src/action";
-import { TRIGGERS } from "../../src/constants";
-import { dragHandle, dragHandleZone } from "../../src/wrappers/withDragHandles";
-import {
-    getKeyboardDragTrigger,
-    isKeyboardDragTriggerKey,
-    setKeyboardDragTrigger,
-} from "../../src/keyboardDragTrigger";
-import * as publicApi from "../../src/index";
-import { destroyAria, initAria } from "../../src/helpers/aria";
+import { dndzone } from "../src/keyboardAction";
+import { dndzone as fullDndzone } from "../src/action";
+import { TRIGGERS } from "../src/constants";
+import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
+import { getKeyboardDragTrigger, isKeyboardDragTriggerKey, setKeyboardDragTrigger } from "../src/keyboardDragTrigger";
+import * as publicApi from "../src/index";
+import { destroyAria, initAria } from "../src/helpers/aria";
 
 describe("keyboardDragTrigger", () => {
     const actions = [];
@@ -255,7 +251,7 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("rejects values that are not one of the documented strings", () => {
-            // Cypress 15.18.1 does not match RegExp error assertions reliably, so compare substrings.
+            // Substring checks kept from the Cypress suite (Cypress 15.18.1 did not match RegExp error assertions reliably).
             expect(() => setKeyboardDragTrigger("shift")).to.throw("setKeyboardDragTrigger");
             expect(() => setKeyboardDragTrigger("shift")).to.throw("space_or_enter");
             expect(() => setKeyboardDragTrigger("SPACE")).to.throw("setKeyboardDragTrigger");
