@@ -7,15 +7,21 @@ import {
 // oxlint-disable-next-line no-redeclare -- the value and its union type share a name, as the old enum did
 export const TRIGGERS: {
     readonly DRAG_STARTED: "dragStarted";
-    readonly DRAGGED_ENTERED: "draggedEntered"; //only relevant for pointer interactions
-    readonly DRAGGED_ENTERED_ANOTHER: "dragEnteredAnother"; //only relevant for pointer interactions
-    readonly DRAGGED_OVER_INDEX: "draggedOverIndex"; //only relevant for pointer interactions
-    readonly DRAGGED_LEFT: "draggedLeft"; //only relevant for pointer interactions
-    readonly DRAGGED_LEFT_ALL: "draggedLeftAll"; //only relevant for pointer interactions
+    /** only relevant for pointer interactions */
+    readonly DRAGGED_ENTERED: "draggedEntered";
+    /** only relevant for pointer interactions */
+    readonly DRAGGED_ENTERED_ANOTHER: "dragEnteredAnother";
+    /** only relevant for pointer interactions */
+    readonly DRAGGED_OVER_INDEX: "draggedOverIndex";
+    /** only relevant for pointer interactions */
+    readonly DRAGGED_LEFT: "draggedLeft";
+    /** only relevant for pointer interactions */
+    readonly DRAGGED_LEFT_ALL: "draggedLeftAll";
     readonly DROPPED_INTO_ZONE: "droppedIntoZone";
     readonly DROPPED_INTO_ANOTHER: "droppedIntoAnother";
     readonly DROPPED_OUTSIDE_OF_ANY: "droppedOutsideOfAny";
-    readonly DRAG_STOPPED: "dragStopped"; //only relevant for keyboard interactions - when the use exists dragging mode
+    /** only relevant for keyboard interactions - when the use exists dragging mode */
+    readonly DRAG_STOPPED: "dragStopped";
 } = {
     DRAG_STARTED: "dragStarted",
     DRAGGED_ENTERED: DRAGGED_ENTERED_EVENT_NAME,
@@ -32,7 +38,8 @@ export type TRIGGERS = (typeof TRIGGERS)[keyof typeof TRIGGERS];
 
 // oxlint-disable-next-line no-redeclare -- the value and its union type share a name, as the old enum did
 export const SOURCES = {
-    POINTER: "pointer", // mouse or touch
+    /** mouse or touch */
+    POINTER: "pointer",
     KEYBOARD: "keyboard",
 } as const;
 export type SOURCES = (typeof SOURCES)[keyof typeof SOURCES];
@@ -48,7 +55,7 @@ export const KEYBOARD_DRAG_TRIGGER_KEYS: { space: string[]; enter: string[]; spa
 export const DEFAULT_KEYBOARD_DRAG_TRIGGER = "space_or_enter";
 
 // Human-readable phrase for each trigger, used by the default screen-reader instruction (see
-// src/helpers/aria.js). Must have exactly the same keys as KEYBOARD_DRAG_TRIGGER_KEYS above.
+// src/helpers/aria.ts). Must have exactly the same keys as KEYBOARD_DRAG_TRIGGER_KEYS above.
 export const KEYBOARD_DRAG_TRIGGER_PHRASES = {
     space: "space-bar",
     enter: "enter",
