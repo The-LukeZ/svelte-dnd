@@ -106,16 +106,16 @@ For a zone in an iframe or a popup, pass its document as the second argument: `a
 
 A keyboard drag calls the same `onconsider` and `onfinalize` as a pointer drag, so the usual handlers, `items = e.items` in both, work for both. The order of the events is different, though:
 
-| When                                             | Event        | Trigger                                                                        |
-| ------------------------------------------------ | ------------ | ------------------------------------------------------------------------------ |
-| The item is picked up                            | `onconsider` | `DRAG_STARTED`, to its zone                                                    |
-| An arrow key moves the item                      | `onfinalize` | `DROPPED_INTO_ZONE`, to its zone, with the new order                           |
-| Tab moves the item into another zone             | `onfinalize` | `DROPPED_INTO_ANOTHER` to the zone it left, `DROPPED_INTO_ZONE` to the new one |
-| The item is dropped (key, Escape, click outside) | `onconsider` | `DRAG_STOPPED`, to the zone the item is in                                     |
+| When                                       | Event        | Trigger                                                                        |
+| ------------------------------------------ | ------------ | ------------------------------------------------------------------------------ |
+| The item is picked up                      | `onconsider` | `DRAG_STARTED`, to its zone                                                    |
+| An arrow key moves the item                | `onfinalize` | `DROPPED_INTO_ZONE`, to its zone, with the new order                           |
+| Tab moves the item into another zone       | `onfinalize` | `DROPPED_INTO_ANOTHER` to the zone it left, `DROPPED_INTO_ZONE` to the new one |
+| The item is dropped (key, Escape, a click) | `onconsider` | `DRAG_STOPPED`, to the zone the item is in                                     |
 
 `e.info.source` is `"keyboard"` (`SOURCES.KEYBOARD`) in all of them. So during a keyboard drag `onfinalize` runs on every move, and the drag ends with an `onconsider`. There is no shadow item: the item itself moves in the list.
 
-A click on another item during a keyboard drag ends the drag without a `DRAG_STOPPED` event, and starts a drag of the clicked item with `DRAG_STARTED`.
+A click on another item during a keyboard drag ends the drag with `DRAG_STOPPED`, then starts a drag of the clicked item with `DRAG_STARTED`. If the `DRAG_STOPPED` handler disables dragging in the clicked item's zone, or removes the clicked item, no new drag starts.
 
 ## Saving after a drag
 
@@ -136,5 +136,3 @@ function finalize(e: DndEvent<Task>) {
 ```
 
 With several zones, a keyboard drag that moves an item from one zone to another ends with `DRAG_STOPPED` in the new zone only. Save both lists then, or save each zone's list when its `onfinalize` runs and accept a request per move. The [async save demo](/docs/demos/async-save) uses the pattern above, with a rollback when the save fails.
-
-The pattern has one gap: a click on another item during a keyboard drag ends that drag without `DRAG_STOPPED` (see above), so the moves of that drag are not saved by it. They are saved with the next drag that ends normally in the same zone, or not at all if none does.

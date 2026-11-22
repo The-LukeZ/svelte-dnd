@@ -553,7 +553,10 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         if (!isDragging) return;
         if (e.currentTarget === focusedItem) return;
         e.stopPropagation();
-        handleDrop(false);
+        handleDrop();
+        // The drag-stopped handler can tear this zone down, disable dragging in it or remove the clicked item
+        const clickedEl = e.currentTarget as HTMLElement;
+        if (destroyed || config.dragDisabled || clickedEl.parentElement !== node) return;
         handleDragStart(e);
     }
     function setCurrentFocusedItem(draggableEl: HTMLElement): void {
