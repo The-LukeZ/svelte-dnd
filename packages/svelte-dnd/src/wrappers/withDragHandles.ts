@@ -24,6 +24,8 @@ interface HandleBinding {
     handle: HTMLElement;
     /** binds the handle to a zone, replacing the zone it was bound to */
     bind(state: HandleZoneState): void;
+    /** unbinds the handle from its zone, so it does nothing until a zone adopts it again */
+    unbind(): void;
 }
 
 const zoneToState = new WeakMap<HTMLElement, HandleZoneState>();
@@ -144,6 +146,12 @@ export function createHandleZone<T extends object>(
             zone.destroy();
             isItemsDragDisabled.unsubscribe(updateZone);
             if (zoneToState.get(node) === state) {
+                // a zone created later on this element adopts the handles, as one created before its handles does
+                for (const binding of Array.from(state.handles)) {
+                    binding.unbind();
+                    pendingHandles.add(binding.handle);
+                    pendingHandleToBinding.set(binding.handle, binding);
+                }
                 zoneToState.delete(node);
                 node.removeAttribute(HANDLE_ZONE_ATTRIBUTE);
             }
@@ -203,6 +211,17 @@ export function attachHandle(handle: HTMLElement): () => void {
         }
     };
 
+    function unbind(): void {
+        if (!boundState) return;
+        handle.removeEventListener("mousedown", startDrag);
+        handle.removeEventListener("touchstart", startDrag);
+        handle.removeEventListener("keydown", handleKeyDown);
+        isItemsDragDisabled.unsubscribe(recomputeHandleState);
+        boundState.userDragDisabled.unsubscribe(recomputeHandleState);
+        boundState.handles.delete(binding);
+        boundState = undefined;
+    }
+
     const binding: HandleBinding = {
         handle,
         bind: (state) => {
@@ -223,6 +242,7 @@ export function attachHandle(handle: HTMLElement): () => void {
             // subscribe runs recomputeHandleState, so the handle shows its new zone's state at once
             state.userDragDisabled.subscribe(recomputeHandleState);
         },
+        unbind,
     };
 
     const zone = findZoneOf(handle);
@@ -239,15 +259,7 @@ export function attachHandle(handle: HTMLElement): () => void {
             pendingHandleToBinding.delete(handle);
             printDebug(() => ["dragHandle found no dragHandleZone, so it did nothing", handle]);
         }
-        if (boundState) {
-            handle.removeEventListener("mousedown", startDrag);
-            handle.removeEventListener("touchstart", startDrag);
-            handle.removeEventListener("keydown", handleKeyDown);
-            isItemsDragDisabled.unsubscribe(recomputeHandleState);
-            boundState.userDragDisabled.unsubscribe(recomputeHandleState);
-            boundState.handles.delete(binding);
-            boundState = undefined;
-        }
+        unbind();
     };
 }
 

@@ -382,6 +382,48 @@ describe("attachHandle and createHandleZone", () => {
         expect(mine.handle.style.cursor).to.equal("grab");
     });
 
+    it("moves its handles back to pending when destroyed", () => {
+        const before = _pendingHandleCount();
+        const { zone, handle } = zoneWithItem();
+        const action = createHandleZone(zone, { items: [{ id: 1 }] });
+        const cleanup = attachHandle(handle);
+        cleanups.push(cleanup);
+        expect(_pendingHandleCount(), "a handle of a live zone is bound").to.equal(before);
+
+        action.destroy();
+        expect(_pendingHandleCount(), "the destroyed zone hands the handle back").to.equal(before + 1);
+    });
+
+    it("a new handle zone on the same element adopts the handles", () => {
+        const before = _pendingHandleCount();
+        const { zone, handle } = zoneWithItem();
+        const first = createHandleZone(zone, { items: [{ id: 1 }] });
+        cleanups.push(attachHandle(handle));
+        first.destroy();
+
+        const considers: DndEvent[] = [];
+        const second = createHandleZone(zone, {
+            items: [{ id: 1 }],
+            dropAnimationDisabled: true,
+            onconsider: (e) => considers.push(e),
+        });
+        cleanups.push(() => second.destroy());
+        expect(_pendingHandleCount(), "the new zone adopts the handle").to.equal(before);
+        expect(handle.tabIndex).to.equal(0);
+
+        try {
+            handle.dispatchEvent(mouse("mousedown", 5, 5));
+            window.dispatchEvent(mouse("mousemove", 5, 10));
+            window.dispatchEvent(mouse("mousemove", 5, 30));
+            expect(considers.map((e) => e.info.trigger)).to.deep.equal([TRIGGERS.DRAG_STARTED]);
+        } finally {
+            window.dispatchEvent(mouse("mouseup", 5, 30));
+        }
+
+        second.update({ items: [{ id: 1 }], dragDisabled: true });
+        expect(handle.tabIndex, "the handle follows the new zone's dragDisabled").to.equal(-1);
+    });
+
     it("a handle with no handle zone does nothing", () => {
         const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
         setDebugMode(true);
