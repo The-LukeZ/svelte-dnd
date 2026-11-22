@@ -2,7 +2,7 @@ import { dndzone } from "../src/keyboardAction";
 import { createZone as fullDndzone } from "../src/action";
 import { TRIGGERS } from "../src/constants";
 import type { DndEvent, Item, Options } from "../src/types";
-import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
+import { attachHandle, createHandleZone } from "../src/wrappers/withDragHandles";
 import { configure } from "../src/configure";
 import { getKeyboardDragTrigger, isKeyboardDragTriggerKey } from "../src/keyboardDragTrigger";
 import * as publicApi from "../src/index";
@@ -46,7 +46,7 @@ describe("keyboardDragTrigger", () => {
         actions
             .splice(0)
             .reverse()
-            // every action pushed here (dndzone, dragHandleZone, dragHandle) returns a destroy
+            // every action pushed here (dndzone, createHandleZone, attachHandle) returns a destroy
             .forEach((action) => action.destroy!());
         zones.splice(0).forEach((zone) => zone.remove());
     });
@@ -330,7 +330,7 @@ describe("keyboardDragTrigger", () => {
     });
 
     describe("dragHandle unlock", () => {
-        function createHandleZone(options: Partial<Options> = {}) {
+        function makeHandleZone(options: Partial<Options> = {}) {
             const zone = document.createElement("div");
             const item = document.createElement("div");
             const handle = document.createElement("div");
@@ -338,14 +338,14 @@ describe("keyboardDragTrigger", () => {
             zone.appendChild(item);
             document.body.appendChild(zone);
             zones.push(zone);
-            const zoneAction = dragHandleZone(zone, { items: [{ id: "a" }], ...options });
-            const handleAction = dragHandle(handle);
-            actions.push(handleAction, zoneAction);
+            const zoneAction = createHandleZone(zone, { items: [{ id: "a" }], ...options });
+            const handleCleanup = attachHandle(handle);
+            actions.push({ destroy: handleCleanup }, zoneAction);
             return { zone, item, handle, zoneAction };
         }
 
         it("unlocks dragging from Enter on the handle by default", () => {
-            const { handle } = createHandleZone();
+            const { handle } = makeHandleZone();
             press(handle, "Enter");
             expect(handle.style.cursor).to.equal("grabbing");
             press(handle, "Enter");
@@ -354,7 +354,7 @@ describe("keyboardDragTrigger", () => {
 
         it("ignores Enter on the handle when the trigger is 'space'", () => {
             configure({ keyboardDragTrigger: "space" });
-            const { handle } = createHandleZone();
+            const { handle } = makeHandleZone();
             expect(handle.style.cursor).to.equal("grab");
             press(handle, "Enter");
             expect(handle.style.cursor, "Enter should not unlock dragging").to.equal("grab");
@@ -367,8 +367,8 @@ describe("keyboardDragTrigger", () => {
         it("applies the same trigger to every handle zone on the page", () => {
             // the per-zone version got this wrong: the last configured zone won for all handles
             configure({ keyboardDragTrigger: "space" });
-            const first = createHandleZone();
-            const second = createHandleZone();
+            const first = makeHandleZone();
+            const second = makeHandleZone();
             [first, second].forEach(({ handle }, i) => {
                 press(handle, "Enter");
                 expect(handle.style.cursor, `handle ${i} should ignore Enter`).to.equal("grab");
@@ -380,7 +380,7 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("follows a trigger change made after the handles have mounted", () => {
-            const { handle } = createHandleZone();
+            const { handle } = makeHandleZone();
             configure({ keyboardDragTrigger: "space" });
             press(handle, "Enter");
             expect(handle.style.cursor, "Enter should no longer unlock dragging").to.equal("grab");

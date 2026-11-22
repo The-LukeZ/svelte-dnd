@@ -1,5 +1,4 @@
 import { expectTypeOf } from "vitest";
-import type { ActionReturn } from "svelte/action";
 import type { Attachment } from "svelte/attachments";
 import {
     DRAGGED_ELEMENT_ID,
@@ -27,12 +26,14 @@ import type {
 type Row = { id: number; name: string };
 
 expectTypeOf(dndzone<Row>).returns.toEqualTypeOf<Attachment<HTMLElement>>();
-expectTypeOf(dragHandleZone<Row>).returns.toEqualTypeOf<ActionReturn<Options<Row>, DndZoneAttributes<Row>>>();
+expectTypeOf(dragHandleZone<Row>).returns.toEqualTypeOf<Attachment<HTMLElement>>();
+// @ts-expect-error the options are passed as a getter
+dragHandleZone({ items: [] });
 // @ts-expect-error items is required
 dndzone(() => ({}));
 // Review Focus 2: a custom id key, no `id`
 dndzone(() => ({ items: [{ key: 1 }] }));
-expectTypeOf(dragHandle).returns.toEqualTypeOf<{ update: () => void; destroy: () => void }>();
+expectTypeOf(dragHandle).toEqualTypeOf<Attachment<HTMLElement>>();
 
 expectTypeOf<Item>().toEqualTypeOf<Record<string, any>>();
 expectTypeOf<Options["transformDraggedElement"]>().toEqualTypeOf<TransformDraggedElementFunction | undefined>();

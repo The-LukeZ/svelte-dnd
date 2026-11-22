@@ -1,7 +1,7 @@
 import { SOURCES, TRIGGERS } from "../src/constants";
 import type { DndEvent } from "../src/types";
 import { setAriaStrings } from "../src/helpers/aria";
-import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
+import { attachHandle, createHandleZone } from "../src/wrappers/withDragHandles";
 import type { WindowWithGlobals } from "../src/helpers/util";
 import { alertText, createFrame, createList, failOnListenerErrors, key } from "./helpers/otherWindow";
 
@@ -176,14 +176,14 @@ describe("keyboard arrow ownership", () => {
         zone.append(first, second);
         document.body.appendChild(zone);
         const finalized: DndEvent[] = [];
-        const zoneAction = dragHandleZone(zone, {
+        const zoneAction = createHandleZone(zone, {
             items: [{ id: "a" }, { id: "b" }],
             onfinalize: (e) => finalized.push(e),
         });
-        const handleAction = dragHandle(handle);
+        const handleCleanup = attachHandle(handle);
         cleanups.push(() => {
-            zoneAction.destroy!();
-            handleAction.destroy();
+            zoneAction.destroy();
+            handleCleanup();
             zone.remove();
         });
         handle.focus();

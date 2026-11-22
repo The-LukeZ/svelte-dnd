@@ -1,6 +1,6 @@
 import { dndzone } from "../src/pointerAction";
 import { createZone as pointerAndKeyboardDndzone } from "../src/action";
-import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
+import { attachHandle, createHandleZone } from "../src/wrappers/withDragHandles";
 import { setAriaStrings } from "../src/helpers/aria";
 import type { WindowWithGlobals } from "../src/helpers/util";
 import type { DndZoneAttributes, Item, Options } from "../src/types";
@@ -324,17 +324,17 @@ describe("keyboard and aria support for a drop zone in another window", () => {
 
 describe("a drag handle in another window", () => {
     it("is released when the mouse is released without dragging", () => {
-        const created = createZoneInFrame({}, dragHandleZone);
+        const created = createZoneInFrame({}, createHandleZone);
         const handle = created.doc.createElement("div");
         created.item.appendChild(handle);
-        const handleAction = dragHandle(handle);
+        const handleCleanup = attachHandle(handle);
         try {
             handle.dispatchEvent(mouse(created.win, "mousedown", 5));
             expect(handle.style.cursor).to.equal("grabbing");
             created.win.dispatchEvent(mouse(created.win, "mouseup", 5));
             expect(handle.style.cursor).to.equal("grab");
         } finally {
-            handleAction.destroy();
+            handleCleanup();
             created.action.destroy();
             created.frame.remove();
         }
@@ -343,12 +343,12 @@ describe("a drag handle in another window", () => {
 
 describe("a keyboard drag from a drag handle in another window", () => {
     it("starts from the handle, announces in that window and ends on Escape", () => {
-        const created = createZoneInFrame({}, dragHandleZone);
+        const created = createZoneInFrame({}, createHandleZone);
         created.zone.setAttribute("aria-label", "To do");
         created.item.setAttribute("aria-label", "Card A");
         const handle = created.doc.createElement("div");
         created.item.appendChild(handle);
-        const handleAction = dragHandle(handle);
+        const handleCleanup = attachHandle(handle);
         try {
             handle.focus();
             handle.dispatchEvent(
@@ -365,7 +365,7 @@ describe("a keyboard drag from a drag handle in another window", () => {
             expect(created.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DRAG_STOPPED]);
             expect(handle.style.cursor, "the handle should be released").to.equal("grab");
         } finally {
-            handleAction.destroy();
+            handleCleanup();
             created.action.destroy();
             created.frame.remove();
         }
@@ -586,23 +586,22 @@ describe("a drag in another window that goes away", () => {
         loadingItem.appendChild(loadingHandle);
         loadingZone.appendChild(loadingItem);
         document.body.appendChild(loadingZone);
-        const loadingZoneAction = dragHandleZone(loadingZone, { items: [{ id: "loading" }] });
-        const loadingHandleAction = dragHandle(loadingHandle);
-        const created = createZoneInFrame({}, dragHandleZone);
+        const loadingZoneAction = createHandleZone(loadingZone, { items: [{ id: "loading" }] });
+        const loadingHandleCleanup = attachHandle(loadingHandle);
+        const created = createZoneInFrame({}, createHandleZone);
         const handle = created.doc.createElement("div");
         created.item.appendChild(handle);
-        const handleAction = dragHandle(handle);
+        const handleCleanup = attachHandle(handle);
         try {
             handle.dispatchEvent(mouse(created.win, "mousedown", 5));
             expect(loadingHandle.style.cursor, "the handles share their grabbed state").to.equal("grabbing");
             created.frame.remove();
             expect(loadingHandle.style.cursor).to.equal("grab");
         } finally {
-            handleAction.destroy();
+            handleCleanup();
             created.action.destroy();
-            loadingHandleAction.destroy();
-            // dragHandleZone always returns destroy; the ActionReturn type marks it optional
-            loadingZoneAction.destroy!();
+            loadingHandleCleanup();
+            loadingZoneAction.destroy();
             loadingZone.remove();
         }
     });
