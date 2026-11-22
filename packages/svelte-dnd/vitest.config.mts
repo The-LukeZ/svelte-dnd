@@ -5,7 +5,8 @@ export default defineConfig({
     test: {
         include: ["test/**/*.test.js"],
         globals: true,
-        // Each file runs in its own iframe, so its patched globals (setTimeout, requestAnimationFrame) stay in that file.
+        // Vitest's default, kept explicit: files run in parallel. Each file runs in its own iframe, so its patched globals
+        // (setTimeout, requestAnimationFrame) stay in that file.
         fileParallelism: true,
         browser: {
             enabled: true,
