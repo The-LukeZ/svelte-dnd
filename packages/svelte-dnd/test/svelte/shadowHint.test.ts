@@ -63,7 +63,7 @@ describe("shadow hint", () => {
             window.dispatchEvent(mouse("mouseup", x, endY));
         }
         await vi.waitFor(() => expect(calls[calls.length - 1].kind).to.equal("finalize"), { timeout: 3000 });
-        return { during, outer };
+        return { during, outer, calls };
     }
 
     /**
@@ -82,22 +82,32 @@ describe("shadow hint", () => {
     });
 
     /**
-     * Known limitation, inherited from svelte-dnd-action and to be fixed before 1.0. With the hint, the zone nested in
-     * the shadow item is skipped when it is created, and createZone keeps no way to set it up later. After the drop the
-     * shadow item's element stays as the dropped item's element, so the dropped item's nested zone is never set up and
-     * stays inert. `it.fails` passes while the limitation is there: when this test starts to fail, the nested zone is
-     * set up after the drop, and this should become a plain `it`.
+     * Known limitation, inherited from svelte-dnd-action and to be fixed before 1.0, tracked in
+     * https://github.com/The-LukeZ/svelte-dnd/issues/7. With the hint, the zone nested in the shadow item is skipped
+     * when it is created, and createZone keeps no way to set it up later. After the drop the shadow item's element stays
+     * as the dropped item's element, so the dropped item's nested zone is never set up and stays inert.
+     * This test pins the current behavior rather than using `it.fails`, so that a drag that went wrong fails it instead
+     * of reading as "limitation still present". When #7 is fixed, flip the last two assertions to 3 set-up zones.
      */
-    it.fails("with the hint, the dropped item's nested zone is set up after the drop", { timeout: 10000 }, async () => {
-        const { outer } = await dragFirstToEnd(true);
-        await vi.waitFor(() =>
-            expect(outer.querySelectorAll('[data-is-dnd-shadow-item-hint="true"]').length).to.equal(0),
-        );
-        const dropped = Array.from(outer.children).find((li) => li.textContent!.includes("o1"))!;
-        expect(
-            dropped.querySelector("ul")!.hasAttribute("aria-describedby"),
-            "the dropped item's zone is set up",
-        ).to.equal(true);
-        expect(createdZonesIn(outer), "inner zones after the drop").to.equal(3);
-    });
+    it(
+        "known limitation #7: with the hint, the dropped item's nested zone stays inert",
+        { timeout: 10000 },
+        async () => {
+            const { outer, calls } = await dragFirstToEnd(true);
+            // the drop happened
+            const finalize = calls[calls.length - 1];
+            expect(finalize.kind).to.equal("finalize");
+            expect(finalize.detail.info.id, "the dropped item").to.equal("o1");
+            await vi.waitFor(() =>
+                expect(outer.querySelectorAll('[data-is-dnd-shadow-item-hint="true"]').length).to.equal(0),
+            );
+            const dropped = Array.from(outer.children).find((li) => li.firstChild!.textContent!.trim() === "o1")!;
+            expect(dropped, "the dropped item is rendered").not.to.equal(undefined);
+            expect(
+                dropped.querySelector("ul")!.hasAttribute("aria-describedby"),
+                "the dropped item's zone is not set up (#7)",
+            ).to.equal(false);
+            expect(createdZonesIn(outer), "inner zones set up after the drop (#7)").to.equal(2);
+        },
+    );
 });

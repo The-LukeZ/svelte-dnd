@@ -339,10 +339,24 @@ Here the handles of the left list are locked, and the handles of the right list 
 A zone nested inside an item of another zone works as before. While an item is dragged, its zone shows a shadow item in its place, and Svelte renders the nested zone inside the shadow item too. To keep that copy from registering as a second zone for the length of the drag, mark the shadow item's element with `data-is-dnd-shadow-item-hint`, as in `svelte-dnd-action`:
 
 ```svelte
-<li data-is-dnd-shadow-item-hint={item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}>
+<script lang="ts">
+    import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from "@lukez/svelte-dnd";
+
+    type Row = { id: number; name: string; [SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean };
+
+    let items = $state<Row[]>([{ id: 1, name: "a" }]);
+</script>
+
+<ul {@attach dndzone(() => ({ items, onconsider: (e) => (items = e.items), onfinalize: (e) => (items = e.items) }))}>
+    {#each items as item (item.id)}
+        <li data-is-dnd-shadow-item-hint={item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}>{item.name}</li>
+    {/each}
+</ul>
 ```
 
-Known limitation: with the hint, the nested zone of the dragged item does not work after the drop. The library skips a zone that is created inside a marked element and never sets it up later, and after the drop the shadow item's element stays on as the dropped item's element. The dropped item's nested zone takes no drags, in or out, until that item is rendered again. This behavior comes from `svelte-dnd-action` and is unchanged in this release. It will be fixed before 1.0.
+Under strict TypeScript, the item type needs the optional field `[SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean` (that is, `isDndShadowItem?: boolean`), because the engine sets it on the shadow item.
+
+Known limitation: with the hint, the nested zone of the dragged item does not work after the drop. The library skips a zone that is created inside a marked element and never sets it up later, and after the drop the shadow item's element stays on as the dropped item's element. The dropped item's nested zone takes no drags, in or out, until that item is rendered again. This behavior comes from `svelte-dnd-action` and is unchanged in this release. It is tracked in [#7](https://github.com/The-LukeZ/svelte-dnd/issues/7) and will be fixed before 1.0.
 
 ## Type changes
 

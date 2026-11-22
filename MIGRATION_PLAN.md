@@ -114,6 +114,10 @@ This repo is a hard fork of [`svelte-dnd-action`](https://github.com/isaacHagoel
 - Tests rewritten against the new API where needed, keeping coverage of all behavior listed in Goals.
 - Done when: new API covers every former capability, tests green, migration guide from `svelte-dnd-action` drafted.
 
+### Between stages 4 and 5: bug fixes
+
+- [#7](https://github.com/The-LukeZ/svelte-dnd/issues/7): a zone nested in a dragged item is dead after the drop when the shadow hint is set.
+
 ### Stage 5: Docs site
 
 - `apps/docs`: SvelteKit + svelte-docsmith, Tailwind v4, consuming the library via `workspace:*`.
