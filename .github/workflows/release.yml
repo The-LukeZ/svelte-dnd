@@ -1,0 +1,53 @@
+# The filename "release.yml" is registered as the trusted publisher of @lukez/svelte-dnd on npm.
+# Renaming this file breaks publishing until the npm setting is updated to match.
+name: Release
+
+on:
+    push:
+        branches: [master]
+    # Retry a failed publish without an empty commit.
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+# A publish must never be cancelled halfway.
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+jobs:
+    # The Version Packages PR is opened with GITHUB_TOKEN, so it gets no CI run of its own.
+    # Running the full CI here gates every version PR and every publish on the exact commit.
+    checks:
+        uses: ./.github/workflows/ci.yml
+
+    release:
+        needs: checks
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write # version commit, tags, GitHub releases
+            pull-requests: write # the Version Packages PR
+            id-token: write # npm trusted publishing (OIDC) and provenance
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - uses: pnpm/setup@v3
+              with:
+                  runtime: node@24
+                  cache: true
+                  require-lockfile: true
+
+            - run: pnpm build
+
+            # Pending changesets: open or update the Version Packages PR.
+            # None pending: `changeset publish` (pnpm publish, OIDC, no token) publishes versions not yet on npm,
+            # then tags them and creates the GitHub releases. Already published versions are skipped.
+            - uses: changesets/action@v2
+              with:
+                  version-script: pnpm changeset version
+                  pr-title: "chore: version packages"
+                  commit-message: "chore: version packages"
+                  create-github-releases: true
