@@ -34,7 +34,8 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - uses: pnpm/setup@v3
+            # Third-party actions in this job are pinned to a commit: the job can publish to npm and push to master.
+            - uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
               with:
                   runtime: node@24
                   cache: true
@@ -45,7 +46,7 @@ jobs:
             # Pending changesets: open or update the Version Packages PR.
             # None pending: `changeset publish` (pnpm publish, OIDC, no token) publishes versions not yet on npm,
             # then tags them and creates the GitHub releases. Already published versions are skipped.
-            - uses: changesets/action@v2
+            - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
               with:
                   version-script: pnpm changeset version
                   pr-title: "chore: version packages"
