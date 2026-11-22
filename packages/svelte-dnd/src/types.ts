@@ -109,7 +109,10 @@ export interface Options<T extends object = Item> {
     useComputedStyleForRects?: boolean;
     /** Called while the user drags, with the items the zone should render now. */
     onconsider?: (event: DndEvent<T>) => void;
-    /** Called when the drag ends, with the items the zone should keep. */
+    /**
+     * Called with the items the zone should keep: at the end of a pointer drag, and each time a keyboard drag moves
+     * the item. A keyboard drag ends with an `onconsider` call whose trigger is `TRIGGERS.DRAG_STOPPED`.
+     */
     onfinalize?: (event: DndEvent<T>) => void;
 }
 
