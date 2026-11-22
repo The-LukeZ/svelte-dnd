@@ -1,5 +1,19 @@
 # @lukez/svelte-dnd
 
+## 1.0.0
+
+### Major Changes
+
+- 69ff5d0: First stable release of the Svelte 5 rewrite of `svelte-dnd-action`. Zones and drag handles are attachments (`dndzone`, `dragHandleZone`, `dragHandle`), updates arrive through the `onconsider` and `onfinalize` options, and global settings go through `configure`.
+  
+  Read the [documentation](https://svelte-dnd.thelukez.com) to get started, or the [migration guide](https://svelte-dnd.thelukez.com/docs/migrating) to move from `svelte-dnd-action`. See `1.0.0-next.0` below for the full list of changes since the fork.
+
+### Patch Changes
+
+- 2b991eb: `useComputedStyleForRects` now also applies when a pointer drag starts: the dragged clone takes the item's computed width, height and box-sizing instead of its bounding rect. Before, the clone was sized from the rect at drag start, and the option only took effect on the first morph.
+- 7f1c01b: A click on another item during a keyboard drag now ends the drag with an `onconsider` whose trigger is `DRAG_STOPPED` before it starts a drag of the clicked item. Before, the first drag ended without one, so code that saves on `DRAG_STOPPED` missed its moves. No new drag starts if that handler disables dragging in the clicked item's zone or removes the item.
+- 18d177a: A pointer drag now scrolls a page that only overflows horizontally when the page's scroll width is not more than the window's height, as in a portrait window. Before, the check compared the scroll width with the client height.
+
 ## 1.0.0-next.0
 
 ### Major Changes
