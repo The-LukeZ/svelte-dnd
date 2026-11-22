@@ -4,7 +4,19 @@ import {
     DRAGGED_OVER_INDEX_EVENT_NAME,
 } from "./helpers/dispatcher";
 
-export const TRIGGERS = {
+// oxlint-disable-next-line no-redeclare -- the value and its union type share a name, as the old enum did
+export const TRIGGERS: {
+    readonly DRAG_STARTED: "dragStarted";
+    readonly DRAGGED_ENTERED: "draggedEntered"; //only relevant for pointer interactions
+    readonly DRAGGED_ENTERED_ANOTHER: "dragEnteredAnother"; //only relevant for pointer interactions
+    readonly DRAGGED_OVER_INDEX: "draggedOverIndex"; //only relevant for pointer interactions
+    readonly DRAGGED_LEFT: "draggedLeft"; //only relevant for pointer interactions
+    readonly DRAGGED_LEFT_ALL: "draggedLeftAll"; //only relevant for pointer interactions
+    readonly DROPPED_INTO_ZONE: "droppedIntoZone";
+    readonly DROPPED_INTO_ANOTHER: "droppedIntoAnother";
+    readonly DROPPED_OUTSIDE_OF_ANY: "droppedOutsideOfAny";
+    readonly DRAG_STOPPED: "dragStopped"; //only relevant for keyboard interactions - when the use exists dragging mode
+} = {
     DRAG_STARTED: "dragStarted",
     DRAGGED_ENTERED: DRAGGED_ENTERED_EVENT_NAME,
     DRAGGED_ENTERED_ANOTHER: "dragEnteredAnother",
@@ -16,11 +28,14 @@ export const TRIGGERS = {
     DROPPED_OUTSIDE_OF_ANY: "droppedOutsideOfAny",
     DRAG_STOPPED: "dragStopped",
 };
+export type TRIGGERS = (typeof TRIGGERS)[keyof typeof TRIGGERS];
 
+// oxlint-disable-next-line no-redeclare -- the value and its union type share a name, as the old enum did
 export const SOURCES = {
-    POINTER: "pointer",
+    POINTER: "pointer", // mouse or touch
     KEYBOARD: "keyboard",
-};
+} as const;
+export type SOURCES = (typeof SOURCES)[keyof typeof SOURCES];
 
 // Maps each valid global keyboardDragTrigger value (see setKeyboardDragTrigger) to the
 // KeyboardEvent.key values it covers. Keys that are not part of the active trigger are left
@@ -46,12 +61,12 @@ export const SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME = "data-is-dnd-shadow-item-hint"
 export const SHADOW_PLACEHOLDER_ITEM_ID = "id:dnd-shadow-placeholder-0000";
 export const DRAGGED_ELEMENT_ID = "dnd-action-dragged-el";
 
-export let ITEM_ID_KEY = "id";
+export let ITEM_ID_KEY: string = "id";
 let activeDndZoneCount = 0;
-export function incrementActiveDropZoneCount() {
+export function incrementActiveDropZoneCount(): void {
     activeDndZoneCount++;
 }
-export function decrementActiveDropZoneCount() {
+export function decrementActiveDropZoneCount(): void {
     if (activeDndZoneCount === 0) {
         throw new Error("Bug! trying to decrement when there are no dropzones");
     }
@@ -61,10 +76,9 @@ export function decrementActiveDropZoneCount() {
 /**
  * Allows using another key instead of "id" in the items data. This is global and applies to all dndzones.
  * Has to be called when there are no rendered dndzones whatsoever.
- * @param {String} newKeyName
  * @throws {Error} if it was called when there are rendered dndzones or if it is given the wrong type (not a string)
  */
-export function overrideItemIdKeyNameBeforeInitialisingDndZones(newKeyName) {
+export function overrideItemIdKeyNameBeforeInitialisingDndZones(newKeyName: string): void {
     if (activeDndZoneCount > 0) {
         throw new Error("can only override the id key before initialising any dndzone");
     }
@@ -78,13 +92,12 @@ export function overrideItemIdKeyNameBeforeInitialisingDndZones(newKeyName) {
 // eslint-disable-next-line no-restricted-globals -- detects server-side rendering
 export const isOnServer = typeof window === "undefined";
 
-export let printDebug = () => {};
+export let printDebug: (generateMessage: () => unknown, logFunction?: (...args: unknown[]) => void) => void = () => {};
 
 /**
  * Allows the user to show/hide console debug output
- * * @param {boolean} isDebug
  */
-export function setDebugMode(isDebug) {
+export function setDebugMode(isDebug: boolean): void {
     if (isDebug) {
         printDebug = (generateMessage, logFunction = console.debug) => {
             const message = generateMessage();
