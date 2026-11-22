@@ -83,6 +83,10 @@ expectTypeOf<DndEventInfo<Row>>().toEqualTypeOf<{ trigger: TRIGGERS; id: number;
 expectTypeOf<DndEvent<Row>["info"]>().toEqualTypeOf<DndEventInfo<Row>>();
 expectTypeOf<DndEvent<Row>["info"]["id"]>().toEqualTypeOf<number>();
 expectTypeOf<DndEvent<{ key: number }>["info"]["id"]>().toEqualTypeOf<unknown>();
+// an optional id drops undefined, since the id is required at runtime
+expectTypeOf<DndEventInfo<{ id?: number }>["id"]>().toEqualTypeOf<number>();
+expectTypeOf<DndEventInfo<{ id: string | number }>["id"]>().toEqualTypeOf<string | number>();
+expectTypeOf<DndEventInfo<{ id: "a" } | { id: "b" }>["id"]>().toEqualTypeOf<"a" | "b">();
 dndzone(() => ({
     items: rows,
     onfinalize: (e) => expectTypeOf(e.info.id).toEqualTypeOf<number>(),

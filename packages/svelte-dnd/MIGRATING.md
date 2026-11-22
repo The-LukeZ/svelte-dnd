@@ -148,7 +148,7 @@ When you let TypeScript infer the types, the item type flows from `items` into t
 
 ### `info.id` is not typed as a string
 
-`info.id` is the raw value of the item's id key, not a string. Its type is inferred from the item's `id` field, so `{ id: number }` items give a `number`. With a custom `idKey` the item has no `id` field and `info.id` is `unknown`, so narrow it before string-only use.
+`info.id` is the raw value of the item's id key, not a string. Its type is inferred from the item's `id` field, so `{ id: number }` items give a `number`. An optional `id` field (`{ id?: number }`) also gives `number`, without `undefined`, because the id is required at runtime. An item type with no `id` field gives `unknown`: that is the case with a custom `idKey`, and for the default `Item` type. Narrow an `unknown` id before string-only use.
 
 ## Global setters became `configure`
 
