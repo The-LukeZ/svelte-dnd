@@ -6,6 +6,6 @@
 <ErrorPage
     {content}
     search={() => import("svelte-docsmith/search").then((m) => m.docs)}
-    home="/docs/introduction"
+    home="/docs/getting-started"
     homeLabel="Back to the docs"
 />
