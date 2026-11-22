@@ -1,10 +1,8 @@
 /**
- * Fixes svelte issue when cloning node containing (or being) <select> which will loose it's value.
- * Since svelte manages select value internally.
- * @see https://github.com/sveltejs/svelte/issues/6717
- * @see https://github.com/isaacHagoel/svelte-dnd-action/issues/306
+ * Clones the dragged element for the drag image. `cloneNode` does not copy live form and canvas state: a clone shows
+ * its `<select>` at the first option and its `<canvas>` blank, whatever the framework. This copies both over.
  */
-export function svelteNodeClone(el: HTMLElement): HTMLElement {
+export function cloneDraggedNode(el: HTMLElement): HTMLElement {
     const cloned = el.cloneNode(true) as HTMLElement; // a clone of an HTMLElement
 
     const values: string[] = [];

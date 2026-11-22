@@ -60,8 +60,11 @@ export function createZone<T extends object>(
 }
 
 /**
- * If the user marked something in the ancestry of our node as shadow element, we can ignore it
- * We need the user to mark it for us because svelte updates the action from deep to shallow (but renders top down)
+ * If the user marked something in the ancestry of our node as shadow element, we can ignore it.
+ * The check is still needed under Svelte 5: a zone nested in the shadow item is created like any other, and would
+ * register a duplicate zone for the length of the drag. The engine cannot tell from the DOM which element is the shadow
+ * one at that point, so the user marks it. test/svelte/shadowHint.test.ts shows the nested zone is set up without the
+ * mark and skipped with it.
  */
 function shouldIgnoreZone(node: HTMLElement): boolean {
     return !!node.closest(`[${SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME}="true"]`);

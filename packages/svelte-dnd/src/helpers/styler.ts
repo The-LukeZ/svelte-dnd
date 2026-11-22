@@ -1,6 +1,6 @@
 import { SHADOW_ELEMENT_ATTRIBUTE_NAME, DRAGGED_ELEMENT_ID } from "../constants";
 import { findCenter, type Point } from "./intersection";
-import { svelteNodeClone } from "./svelteNodeClone";
+import { cloneDraggedNode } from "./cloneDraggedNode";
 import { getWindowOf } from "./util";
 
 const TRANSITION_DURATION_SECONDS = 0.2;
@@ -42,7 +42,7 @@ export function createDraggedElementFrom(
 ): HTMLElement {
     const rect = originalElement.getBoundingClientRect();
     const win = getWindowOf(originalElement);
-    const draggedEl = svelteNodeClone(originalElement);
+    const draggedEl = cloneDraggedNode(originalElement);
     copyStylesFromTo(originalElement, draggedEl, useComputedStyleForRects);
     draggedEl.id = DRAGGED_ELEMENT_ID;
     draggedEl.style.position = "fixed";
