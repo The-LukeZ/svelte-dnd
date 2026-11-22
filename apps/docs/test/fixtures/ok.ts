@@ -27,3 +27,22 @@ export const COLOURS = {
     /** the colour of grass */
     GREEN: "green",
 } as const;
+
+/** The label on every box. */
+export const LABEL = "box";
+
+/** Two numbers. */
+export type Pair = {
+    /** the first number */
+    first: number;
+    /** the second number */
+    second: number;
+};
+
+/** The sizes a box comes in, with a written type. */
+export const SIZES: {
+    /** the small size */
+    readonly SMALL: 1;
+    /** the large size */
+    readonly LARGE: 2;
+} = { SMALL: 1, LARGE: 2 };

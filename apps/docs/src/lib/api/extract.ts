@@ -23,7 +23,10 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
     skipLibCheck: true,
 };
 
-const TYPE_FORMAT = ts.TypeFormatFlags.NoTruncation | ts.TypeFormatFlags.MultilineObjectLiterals;
+const TYPE_FORMAT = ts.TypeFormatFlags.NoTruncation;
+
+// Prints type nodes without the TSDoc of their members, which the properties table shows, one member per line.
+const printer = ts.createPrinter({ removeComments: true });
 
 /**
  * Reads the public API of a module from its types and TSDoc: every export, followed through re-exports to its
@@ -60,14 +63,23 @@ function readEntry(name: string, symbol: ts.Symbol, checker: ts.TypeChecker): Ap
     const variable = declarations.find(ts.isVariableDeclaration);
     if (variable) {
         const type = checker.getTypeOfSymbol(symbol);
-        const typeText = variable.type ? variable.type.getText() : checker.typeToString(type, variable, TYPE_FORMAT);
+        const typeNode =
+            variable.type ??
+            checker.typeToTypeNode(
+                type,
+                variable,
+                ts.NodeBuilderFlags.NoTruncation | ts.NodeBuilderFlags.MultilineObjectLiterals,
+            );
+        const typeText = typeNode ? printType(typeNode, variable) : checker.typeToString(type, variable, TYPE_FORMAT);
         const callable = type.getCallSignatures().length > 0;
+        // Only an object constant has members to list: a string constant would list the String methods.
+        const isObject = !callable && (type.flags & ts.TypeFlags.Object) !== 0;
         return {
             name,
             kind: callable ? "function" : "constant",
             signature: `const ${name}: ${typeText}`,
             description,
-            properties: callable ? [] : readProperties(checker.getPropertiesOfType(type), checker, variable),
+            properties: isObject ? readProperties(checker.getPropertiesOfType(type), checker, variable) : [],
         };
     }
 
@@ -108,7 +120,7 @@ function readEntry(name: string, symbol: ts.Symbol, checker: ts.TypeChecker): Ap
         return {
             name,
             kind: "type",
-            signature: `type ${name}${typeParameterText(alias)} = ${alias.type.getText()}`,
+            signature: `type ${name}${typeParameterText(alias)} = ${printType(alias.type, alias)}`,
             description,
             properties,
         };
@@ -125,7 +137,7 @@ function readProperties(symbols: ts.Symbol[], checker: ts.TypeChecker, at: ts.No
         const property: ApiProperty = {
             name: symbol.name,
             type: typeNode
-                ? typeNode.getText()
+                ? printType(typeNode, at)
                 : checker.typeToString(checker.getTypeOfSymbol(symbol), at, TYPE_FORMAT),
             optional: (symbol.flags & ts.SymbolFlags.Optional) !== 0,
             description: describe(symbol, checker),
@@ -134,6 +146,11 @@ function readProperties(symbols: ts.Symbol[], checker: ts.TypeChecker, at: ts.No
         if (fallback?.text) property.default = ts.displayPartsToString(fallback.text).trim();
         return property;
     });
+}
+
+/** A type node's text with the comments inside it removed. */
+function printType(node: ts.TypeNode, at: ts.Node): string {
+    return printer.printNode(ts.EmitHint.Unspecified, node, at.getSourceFile());
 }
 
 /** The type parameters as written, such as `<T extends object = Item>`, or nothing. */

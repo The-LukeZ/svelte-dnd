@@ -18,7 +18,7 @@ function expectedRuntimeExports(): string[] {
 describe("extractApi", () => {
     it("reads each kind of export from a documented module", () => {
         const api = extractApi(fixture("ok.ts"));
-        expect(Object.keys(api).sort()).toEqual(["Box", "COLOURS", "Count", "Item", "wrap"]);
+        expect(Object.keys(api).sort()).toEqual(["Box", "COLOURS", "Count", "Item", "LABEL", "Pair", "SIZES", "wrap"]);
 
         expect(api.wrap.kind).toBe("function");
         expect(api.wrap.description).toBe("Wraps a value in a box.");
@@ -49,6 +49,26 @@ describe("extractApi", () => {
         ]);
     });
 
+    it("lists no properties for a primitive constant", () => {
+        const api = extractApi(fixture("ok.ts"));
+        expect(api.LABEL.kind).toBe("constant");
+        expect(api.LABEL.properties).toEqual([]);
+        expect(api.LABEL.signature).toBe('const LABEL: "box"');
+    });
+
+    it("prints signatures without member comments, one member per line", () => {
+        const api = extractApi(fixture("ok.ts"));
+        for (const name of ["COLOURS", "Pair", "SIZES"]) {
+            expect(api[name].signature).not.toContain("/*");
+        }
+        expect(api.COLOURS.signature).toBe(
+            'const COLOURS: {\n    readonly BLUE: "blue";\n    readonly GREEN: "green";\n}',
+        );
+        expect(api.SIZES.signature).toBe("const SIZES: {\n    readonly SMALL: 1;\n    readonly LARGE: 2;\n}");
+        expect(api.Pair.signature).toBe("type Pair = {\n    first: number;\n    second: number;\n}");
+        expect(api.Pair.properties.map((p) => p.name)).toEqual(["first", "second"]);
+    });
+
     it("lists every missing description in one error", () => {
         let error: unknown;
         try {
@@ -61,6 +81,7 @@ describe("extractApi", () => {
         expect(message).toContain("Half.undocumented");
         expect(message).toContain("bare");
         expect(message).not.toContain("Half.done");
+        expect((error as ApiDocError).missing).toEqual(["Half.undocumented", "bare"]);
     });
 
     it("covers every public export", () => {
