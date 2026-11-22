@@ -1,6 +1,15 @@
-export function createStore(initialValue) {
+type Subscriber<T> = (value: T) => void;
+
+type SimpleStore<T> = {
+    get: () => T;
+    set: (newVal: T) => void;
+    subscribe: (cb: Subscriber<T>) => void;
+    unsubscribe: (cb: Subscriber<T>) => void;
+};
+
+export function createStore<T>(initialValue: T): SimpleStore<T> {
     let _val = initialValue;
-    const subs = new Set();
+    const subs = new Set<Subscriber<T>>();
     return {
         get: () => _val,
         set: (newVal) => {
