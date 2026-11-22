@@ -3,8 +3,8 @@
 .vscode
 *.iml
 node_modules
-/dist/
-cypress/videos
-cypress/screenshots
+dist/
 
-/.eslintcache
+**/.vitest/
+apps/docs/.svelte-kit
+apps/docs/build

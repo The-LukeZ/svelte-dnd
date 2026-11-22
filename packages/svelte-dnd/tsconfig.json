@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "noEmit": true,
+        "target": "ES2020",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "declaration": true,
+        "isolatedDeclarations": true,
+        "isolatedModules": true,
+        "skipLibCheck": true,
+        "types": ["vitest/globals"]
+    },
+    "include": ["src", "test", "test/**/*.svelte", "vitest.config.mts", "tsdown.config.ts"],
+    "exclude": ["test/**/*.test-d.ts", "dist"]
+}

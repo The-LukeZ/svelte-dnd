@@ -1,79 +1,39 @@
 {
-    "name": "svelte-dnd-action",
-    "description": "*An awesome drag and drop library for Svelte 3 and 4 (not using the browser's built-in dnd, thanks god): Rich animations, nested containers, touch support and more *",
-    "version": "0.9.80",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/isaacHagoel/svelte-dnd-action.git"
-    },
-    "author": "Isaac Hagoel",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/isaacHagoel/svelte-dnd-action/issues"
-    },
-    "homepage": "https://github.com/isaacHagoel/svelte-dnd-action#readme",
-    "module": "dist/index.mjs",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "svelte": "src/index.js",
-    "exports": {
-        ".": {
-            "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.mjs"
-            },
-            "require": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
-            },
-            "svelte": "./src/index.js"
-        }
+    "name": "svelte-dnd-monorepo",
+    "private": true,
+    "packageManager": "pnpm@12.21.0",
+    "engines": {
+        "node": ">=24"
     },
     "scripts": {
-        "test": "cypress run",
-        "lint": "eslint .",
+        "build": "pnpm --filter @lukez/svelte-dnd build",
+        "test": "pnpm --filter @lukez/svelte-dnd test",
+        "test:all": "pnpm --filter @lukez/svelte-dnd test:all",
+        "test:types": "pnpm --filter @lukez/svelte-dnd test:types",
+        "check:package": "pnpm --filter @lukez/svelte-dnd check:package",
+        "docs:dev": "pnpm build && pnpm --filter @lukez/svelte-dnd-docs dev",
+        "docs:build": "pnpm build && pnpm --filter @lukez/svelte-dnd-docs build",
+        "docs:check": "pnpm --filter @lukez/svelte-dnd-docs check",
+        "typecheck": "pnpm --filter @lukez/svelte-dnd typecheck",
+        "lint": "oxlint",
         "format": "prettier --write .",
-        "build": "yarn lint && rollup -c",
-        "prepublishOnly": "yarn build"
+        "format:check": "prettier --check .",
+        "prepare": "husky",
+        "changeset": "changeset"
     },
-    "dependencies": {},
     "devDependencies": {
-        "@babel/core": "^7.9.6",
-        "@babel/preset-env": "^7.9.6",
-        "@rollup/plugin-node-resolve": "^6.0.0",
-        "babel-jest": "^26.0.1",
-        "cypress": "15.18.1",
-        "eslint": "^7.11.0",
-        "husky": "^4.3.0",
-        "lint-staged": "^10.5.1",
-        "prettier": "^2.1.2",
-        "rollup": "^2.79.2",
-        "rollup-plugin-babel": "^4.3.2",
-        "rollup-plugin-copy": "^3.3.0"
-    },
-    "peerDependencies": {
-        "svelte": ">=3.23.0 || ^5.0.0-next.0"
-    },
-    "keywords": [
-        "svelte",
-        "drag and drop",
-        "sortable",
-        "dnd",
-        "draggable",
-        "accessible",
-        "touch"
-    ],
-    "files": [
-        "src",
-        "dist"
-    ],
-    "husky": {
-        "hooks": {
-            "pre-commit": "lint-staged"
-        }
+        "@changesets/cli": "3.0.3",
+        "husky": "9.1.7",
+        "lint-staged": "17.6.1",
+        "oxlint": "1.94.0",
+        "prettier": "3.10.1",
+        "prettier-plugin-svelte": "4.2.0"
     },
     "lint-staged": {
-        "*.js": "eslint --cache --fix",
-        "*.{js,css,md}": "prettier --write"
+        "*.{js,mjs,cjs,ts,svelte}": [
+            "oxlint --fix --no-error-on-unmatched-pattern",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml,css}": "prettier --write"
     }
 }
