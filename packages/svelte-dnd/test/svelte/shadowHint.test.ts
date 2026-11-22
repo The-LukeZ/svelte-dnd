@@ -106,7 +106,6 @@ describe("shadow hint", () => {
         expect(createdZonesIn(outer), "inner zones set up after the drop").to.equal(3);
 
         // the dropped item's zone is live: dragging its item starts a drag in it
-        await sleep(100);
         const child = droppedZone.firstElementChild as HTMLElement;
         const r = child.getBoundingClientRect();
         const x = r.left + 5;

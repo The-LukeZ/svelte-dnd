@@ -1,7 +1,7 @@
 import { dndzone as pointerDndZone } from "./pointerAction";
 import { dndzone as keyboardDndZone } from "./keyboardAction";
 import { ITEM_ID_KEY, SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME } from "./constants";
-import { toString } from "./helpers/util";
+import { getWindowOf, toString } from "./helpers/util";
 import { untrack } from "svelte";
 import { fromAction } from "svelte/attachments";
 import type { Attachment } from "svelte/attachments";
@@ -47,37 +47,57 @@ type Zone<T extends object> = { update(o: Options<T>): void; destroy(): void };
  * @param node - the element to enhance
  */
 export function createZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
-    let latestOptions = options;
     let zone: Zone<T> | undefined;
     let observer: MutationObserver | undefined;
 
     const hinted = closestHintedAncestor(node);
-    if (hinted) {
-        let watched = hinted;
-        observer = new MutationObserver(() => {
-            const next = closestHintedAncestor(node);
-            if (next) {
-                // the hint moved to another ancestor: watch that one instead
-                if (next !== watched) {
-                    observer!.disconnect();
-                    watched = next;
-                    observer!.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
-                }
-                return;
-            }
-            observer!.disconnect();
-            observer = undefined;
-            zone = createLiveZone(node, latestOptions);
-        });
-        observer.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
-    } else {
+    if (!hinted) {
         zone = createLiveZone(node, options);
+        return zone;
     }
+
+    // A waiting zone validates its options like a live one, so errors and warnings show where the options are given,
+    // and the zone is set up later only with options that passed.
+    validateOptions(options);
+    let latestOptions = options;
+    let watched = hinted;
+    const setUp = (): void => {
+        try {
+            zone = createLiveZone(node, latestOptions);
+        } catch (err) {
+            // the observer callback has no caller to throw to; the next update tries again
+            getWindowOf(node).reportError(err);
+        }
+    };
+    observer = new MutationObserver(() => {
+        const next = closestHintedAncestor(node);
+        if (next) {
+            // the hint moved to another ancestor: watch that one instead
+            if (next !== watched) {
+                observer!.disconnect();
+                watched = next;
+                observer!.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
+            }
+            return;
+        }
+        observer!.disconnect();
+        observer = undefined;
+        setUp();
+    });
+    observer.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
 
     return {
         update: (newOptions: Options<T>) => {
+            if (zone) {
+                zone.update(newOptions);
+                return;
+            }
+            untrack(() => validateOptions(newOptions));
             latestOptions = newOptions;
-            zone?.update(newOptions);
+            // the hint is gone but setting up failed: try again with the new options
+            if (!observer) {
+                untrack(setUp);
+            }
         },
         destroy: () => {
             observer?.disconnect();
