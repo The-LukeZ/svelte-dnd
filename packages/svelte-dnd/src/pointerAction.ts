@@ -204,7 +204,8 @@ function createShadowElData(draggedElData: Item): Item {
 /* custom drag-events handlers */
 function handleDraggedEntered(e: DropZoneEvent<DraggedOverDetail>): void {
     printDebug(() => ["dragged entered", e.currentTarget, e.detail]);
-    // the event comes from a watched zone, which is registered, and the drag globals are set in handleDragStart for the whole drag
+    // the drag globals are set from handleMouseDown and handleDragStart for the whole drag
+    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
     let { items, dropFromOthersDisabled } = dzToConfig.get(e.currentTarget)!;
     if (dropFromOthersDisabled && e.currentTarget !== originDropZone) {
         printDebug(() => "ignoring dragged entered because drop is currently disabled");
@@ -242,7 +243,8 @@ function handleDraggedLeft(e: DropZoneEvent<DraggedLeftDetail>): void {
     // dealing with a rare race condition on extremely rapid clicking and dropping
     if (!isWorkingOnPreviousDrag) return;
     printDebug(() => ["dragged left", e.currentTarget, e.detail]);
-    // the event comes from a watched zone, which is registered, and the drag globals are set in handleDragStart for the whole drag
+    // the drag globals are set from handleMouseDown and handleDragStart for the whole drag
+    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
     const { items: originalItems, dropFromOthersDisabled } = dzToConfig.get(e.currentTarget)!;
     if (dropFromOthersDisabled && e.currentTarget !== originDropZone && e.currentTarget !== shadowElDropZone) {
         printDebug(() => "drop is currently disabled");
@@ -261,6 +263,7 @@ function handleDraggedLeft(e: DropZoneEvent<DraggedLeftDetail>): void {
         (type === DRAGGED_LEFT_TYPES.LEFT_FOR_ANOTHER &&
             theOtherDz !== originDropZone &&
             // a LEFT_FOR_ANOTHER event carries theOtherDz, a watched zone
+            // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
             dzToConfig.get(theOtherDz!)!.dropFromOthersDisabled)
     ) {
         printDebug(() => "dragged left all, putting shadow element back in the origin dz");
@@ -286,7 +289,8 @@ function handleDraggedLeft(e: DropZoneEvent<DraggedLeftDetail>): void {
 }
 function handleDraggedIsOverIndex(e: DropZoneEvent<DraggedOverDetail>): void {
     printDebug(() => ["dragged is over index", e.currentTarget, e.detail]);
-    // the event comes from a watched zone, which is registered, and the drag globals are set in handleDragStart for the whole drag
+    // the drag globals are set from handleMouseDown and handleDragStart for the whole drag
+    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
     const { items: originalItems, dropFromOthersDisabled } = dzToConfig.get(e.currentTarget)!;
     if (dropFromOthersDisabled && e.currentTarget !== originDropZone) {
         printDebug(() => "drop is currently disabled");
@@ -323,7 +327,7 @@ function handleDrop(): void {
     printDebug(() => "dropped");
     finalizingPreviousDrag = true;
     // cleanup
-    // the drag globals are set from handleMouseDown and handleDragStart for the whole drag, and its zones are registered
+    // the drag globals are set from handleMouseDown and handleDragStart for the whole drag
     dragWindow!.removeEventListener("mousemove", handleMouseMove);
     dragWindow!.removeEventListener("touchmove", handleMouseMove);
     dragWindow!.removeEventListener("mouseup", handleDrop);
@@ -336,6 +340,7 @@ function handleDrop(): void {
         shadowElDropZone = originDropZone;
     }
     printDebug(() => ["dropped in dz", shadowElDropZone]);
+    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
     let { items, type } = dzToConfig.get(shadowElDropZone!)!;
     styleInactiveDropZones(
         getDropZonesInDragWindow(type),
@@ -378,6 +383,7 @@ function handleDrop(): void {
         if (domShadowEl) unDecorateShadowElement(domShadowEl as HTMLElement);
         cleanupPostDrop();
     }
+    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
     if (dzToConfig.get(shadowElDropZone!)!.dropAnimationDisabled) {
         finalizeWithinZone();
     } else {
@@ -823,8 +829,8 @@ export function dndzone<T extends Item>(
                 continue;
             }
             // removeEventListener ignores undefined, which it gets for a child without a listener yet
-            draggableEl.removeEventListener("mousedown", elToMouseDownListener.get(draggableEl)!);
-            draggableEl.removeEventListener("touchstart", elToMouseDownListener.get(draggableEl)!);
+            draggableEl.removeEventListener("mousedown", elToMouseDownListener.get(draggableEl) as EventListener);
+            draggableEl.removeEventListener("touchstart", elToMouseDownListener.get(draggableEl) as EventListener);
             if (!dragDisabled) {
                 draggableEl.addEventListener("mousedown", handleMouseDown);
                 draggableEl.addEventListener("touchstart", handleMouseDown);
@@ -850,8 +856,8 @@ export function dndzone<T extends Item>(
             // the zone's children are the rendered items, HTML elements.
             // removeEventListener ignores undefined, which it gets for a child without a listener.
             for (const draggableEl of node.children as HTMLCollectionOf<HTMLElement>) {
-                draggableEl.removeEventListener("mousedown", elToMouseDownListener.get(draggableEl)!);
-                draggableEl.removeEventListener("touchstart", elToMouseDownListener.get(draggableEl)!);
+                draggableEl.removeEventListener("mousedown", elToMouseDownListener.get(draggableEl) as EventListener);
+                draggableEl.removeEventListener("touchstart", elToMouseDownListener.get(draggableEl) as EventListener);
             }
             function destroyDz(): void {
                 printDebug(() => "pointer dndzone will destroy");
