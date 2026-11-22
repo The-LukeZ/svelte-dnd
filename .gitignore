@@ -6,3 +6,5 @@ node_modules
 dist/
 
 **/.vitest/
+apps/docs/.svelte-kit
+apps/docs/build
