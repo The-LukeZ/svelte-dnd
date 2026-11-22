@@ -305,6 +305,7 @@ function handleDrop(dispatchConsider = true): void {
     // the drag is in progress, and handleDragStart set its item id and type for the whole drag
     const droppedItemId = focusedItemId!;
     const droppedItemType = draggedItemType!;
+    // Not reached during a drag: destroying the focused zone drops first (unregisterDropZone), before its config is deleted.
     if (!droppedConfig) return;
     const droppedItemLabel = focusedItemLabel;
     const droppedDzLabel = focusedDzLabel;
