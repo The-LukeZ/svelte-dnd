@@ -1,8 +1,11 @@
-import type { ActionReturn } from "svelte/action";
-import { dndzone } from "../../src/action";
+import { createZone } from "../../src/action";
 import type { TRIGGERS } from "../../src/constants";
 import type { WindowWithGlobals } from "../../src/helpers/util";
-import type { DndEvent, DndZoneAttributes, Item, Options } from "../../src/types";
+import type { DndEvent, Options } from "../../src/types";
+import { createListeners } from "./callbacks";
+
+/** The items of a list made by createList */
+export type NamedItem = { id: string; name: string };
 
 // Helpers for zones that live in another document than the one that loaded the library: a same-origin
 // iframe (its own Window and Document in the same tab) or a popup opened with window.open (its own tab).
@@ -42,6 +45,7 @@ export function openPopup(): { win: WindowWithGlobals; doc: Document } {
 /**
  * A list that renders one element per item and re-renders on every consider and finalize, as a keyed
  * framework list would: an element is reused while its item stays in the list and recreated otherwise.
+ * A test adds its own consider and finalize listeners with addListener; they run after the re-render.
  */
 export function createList(
     doc: Document,
@@ -50,14 +54,17 @@ export function createList(
         names,
         style = {},
         ...options
-    }: { label: string; names: string[]; style?: Partial<CSSStyleDeclaration> } & Partial<Omit<Options, "items">>,
+    }: { label: string; names: string[]; style?: Partial<CSSStyleDeclaration> } & Partial<
+        Omit<Options<NamedItem>, "items">
+    >,
 ): {
     zone: HTMLDivElement;
-    action: Required<ActionReturn<Options, DndZoneAttributes<Item>>>;
+    action: ReturnType<typeof createZone<NamedItem>>;
     doc: Document;
     win: WindowWithGlobals;
     triggers: TRIGGERS[];
-    events: CustomEvent<DndEvent>[];
+    events: { type: "consider" | "finalize"; detail: DndEvent<NamedItem> }[];
+    addListener: ReturnType<typeof createListeners>["add"];
     names: () => string[];
     element: (name: string) => HTMLElement;
 } {
@@ -65,7 +72,7 @@ export function createList(
     zone.setAttribute("aria-label", label);
     Object.assign(zone.style, { width: "100px", minHeight: "30px" }, style);
     doc.body.appendChild(zone);
-    let items: Item[] = names.map((name) => ({ id: name, name }));
+    let items: NamedItem[] = names.map((name) => ({ id: name, name }));
     let elements = new Map<string, HTMLElement>();
     function render() {
         const nextElements = new Map<string, HTMLElement>();
@@ -83,21 +90,27 @@ export function createList(
         zone.replaceChildren(...nextElements.values());
     }
     render();
-    const getOptions = (): Options => ({ items, flipDurationMs: 0, ...options });
-    // dndzone always returns both update and destroy; the ActionReturn type marks them optional
-    const action = dndzone(zone, getOptions()) as Required<ActionReturn<Options, DndZoneAttributes<Item>>>;
     const triggers: TRIGGERS[] = [];
-    const events: CustomEvent<DndEvent>[] = [];
-    function onChange(event: Event): void {
-        const e = event as CustomEvent<DndEvent>;
-        triggers.push(e.detail.info.trigger);
-        events.push(e);
-        items = e.detail.items;
-        render();
-        action.update(getOptions());
-    }
-    zone.addEventListener("consider", onChange);
-    zone.addEventListener("finalize", onChange);
+    const events: { type: "consider" | "finalize"; detail: DndEvent<NamedItem> }[] = [];
+    const listeners = createListeners();
+    const onChange =
+        (type: "consider" | "finalize") =>
+        (detail: DndEvent<NamedItem>): void => {
+            triggers.push(detail.info.trigger);
+            events.push({ type, detail });
+            items = detail.items;
+            render();
+            action.update(getOptions());
+            listeners.call(type, detail);
+        };
+    const getOptions = (): Options<NamedItem> => ({
+        items,
+        flipDurationMs: 0,
+        onconsider: onChange("consider"),
+        onfinalize: onChange("finalize"),
+        ...options,
+    });
+    const action = createZone(zone, getOptions());
     return {
         zone,
         action,
@@ -105,6 +118,7 @@ export function createList(
         win: doc.defaultView!,
         triggers,
         events,
+        addListener: listeners.add,
         names: () => items.map((item) => item.name),
         // the tests only ask for names that are in the list
         element: (name) => elements.get(name)!,

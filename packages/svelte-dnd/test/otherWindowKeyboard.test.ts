@@ -1,7 +1,7 @@
-import { dndzone } from "../src/action";
+import { createZone } from "../src/action";
 import { TRIGGERS } from "../src/constants";
 import type { WindowWithGlobals } from "../src/helpers/util";
-import type { DndEvent, Item } from "../src/types";
+import type { Item } from "../src/types";
 import { alertToScreenReader, destroyAria, setAriaStrings } from "../src/helpers/aria";
 import {
     alertText,
@@ -328,15 +328,10 @@ describe("keyboard drags stay within their document", () => {
     describe("when the iframe is removed in the middle of an operation", () => {
         afterEach(() => setAriaStrings(null));
 
-        // A detached document's elements lose their listeners, so watch what the library dispatches on the zone itself.
-        function recordDispatchedTriggers(zone: HTMLElement) {
-            const triggers: TRIGGERS[] = [];
-            const { dispatchEvent } = zone;
-            zone.dispatchEvent = (event) => {
-                triggers.push((event as CustomEvent<DndEvent>).detail.info.trigger);
-                return dispatchEvent.call(zone, event);
-            };
-            return triggers;
+        // The callbacks are plain functions, so they still run for a zone whose document was detached, and the list
+        // records what the library called them with from creation on.
+        function recordDispatchedTriggers(dispatchedTo: ReturnType<typeof createList>) {
+            return dispatchedTo.triggers;
         }
         function removingFrameFormatter(frameEl: HTMLIFrameElement) {
             return ({ itemLabel }: { itemLabel: string }) => {
@@ -355,7 +350,7 @@ describe("keyboard drags stay within their document", () => {
             const { frame: frameEl, doc, win } = createFrame();
             const frameList = createList(doc, { label: "Frame", names: ["f1"] });
             cleanups.push(() => frameList.action.destroy());
-            const dispatched = recordDispatchedTriggers(frameList.zone);
+            const dispatched = recordDispatchedTriggers(frameList);
             setAriaStrings({ dropped: removingFrameFormatter(frameEl) });
             grab(frameList, "f1");
             key(win, "Escape");
@@ -368,7 +363,7 @@ describe("keyboard drags stay within their document", () => {
             const { frame: frameEl, doc } = createFrame();
             const frameList = createList(doc, { label: "Frame", names: ["f1"] });
             cleanups.push(() => frameList.action.destroy());
-            const dispatched = recordDispatchedTriggers(frameList.zone);
+            const dispatched = recordDispatchedTriggers(frameList);
             setAriaStrings({ dragStarted: removingFrameFormatter(frameEl) });
             grab(frameList, "f1");
             expect(dispatched).to.deep.equal([TRIGGERS.DRAG_STOPPED]);
@@ -378,20 +373,14 @@ describe("keyboard drags stay within their document", () => {
         it("still moves the item within its iframe when the drag ends while announcing the move", () => {
             const { parentList, frameList, doc } = parentAndFrameLists();
             const target = list(doc, { label: "Target", names: ["t1"], style: at("100px") });
-            const dispatched = recordDispatchedTriggers(frameList.zone);
-            // Removing the iframe drops DOM listeners before the transfer event. Record its payload directly,
-            // rather than expecting the removed app's listener to re-render the destination.
-            const transferredItems: string[][] = [];
-            const { dispatchEvent } = target.zone;
-            target.zone.dispatchEvent = (event) => {
-                transferredItems.push((event as CustomEvent<DndEvent>).detail.items.map((item) => item.id));
-                return dispatchEvent.call(target.zone, event);
-            };
+            const dispatched = recordDispatchedTriggers(frameList);
             setAriaStrings({
                 movedToZoneStart: removingFrameFormatter(frameList.win.frameElement as HTMLIFrameElement),
             });
             grab(frameList, "f1");
             target.zone.focus();
+            // the payload of the transfer to the destination, which the list records
+            const transferredItems = target.events.map((event) => event.detail.items.map((item) => item.id));
             expect(transferredItems).to.deep.equal([["f1", "t1"]]);
             expect(parentList.names()).to.deep.equal(["p1", "p2"]);
             expect(dispatched).to.deep.equal([
@@ -409,17 +398,15 @@ describe("keyboard drags stay within their document", () => {
             const source = list(doc, { label: "Source", names: ["s1"] });
             const frameZone = doc.createElement("div");
             doc.body.appendChild(frameZone);
-            const frameAction = dndzone<Item>(frameZone, { items: [] });
-            // dndzone always returns update and destroy; the ActionReturn type marks them optional
-            cleanups.push(() => frameAction.destroy!());
+            const frameAction = createZone<Item>(frameZone, { items: [] });
+            cleanups.push(() => frameAction.destroy());
             grab(source, "s1");
 
             // The app moves the grabbed item into another zone in its own document.
             const movedItem = doc.createElement("div");
             movedItem.addEventListener("focus", () => frameEl.remove());
             frameZone.appendChild(movedItem);
-            // dndzone always returns update and destroy; the ActionReturn type marks them optional
-            frameAction.update!({ items: [{ id: "s1", name: "s1" }] });
+            frameAction.update({ items: [{ id: "s1", name: "s1" }] });
 
             expect(parentList.element("p2").tabIndex, "the drag should have ended").to.equal(0);
         });

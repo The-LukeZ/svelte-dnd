@@ -26,6 +26,8 @@ import {
 import {
     dispatchConsiderEvent,
     dispatchFinalizeEvent,
+    registerZoneCallbacks,
+    unregisterZoneCallbacks,
     DRAGGED_ENTERED_EVENT_NAME,
     DRAGGED_LEFT_DOCUMENT_EVENT_NAME,
     DRAGGED_LEFT_EVENT_NAME,
@@ -61,6 +63,7 @@ type Config = {
     dropAnimationDisabled: boolean;
     delayTouchStartMs: number;
     dropAnimationDurationMs: number;
+    useComputedStyleForRects: boolean;
 };
 // The internal drag events (see helpers/dispatcher), heard on the drop zone they were dispatched on
 type DropZoneEvent<Detail> = CustomEvent<Detail> & { currentTarget: HTMLElement };
@@ -505,10 +508,7 @@ function cleanupPostDrop(): void {
     }
 }
 
-export function dndzone<T extends Item>(
-    node: HTMLElement,
-    options: Options<T>,
-): { update(newOptions: Options<T>): void; destroy(): void } {
+export function dndzone(node: HTMLElement, options: Options): { update(newOptions: Options): void; destroy(): void } {
     let initialized = false;
     let destroyed = false;
     // configure(options) below sets items, type and dropAnimationDurationMs. Before that only the debug print reads them,
@@ -698,6 +698,7 @@ export function dndzone<T extends Item>(
         draggedEl = createDraggedElementFrom(
             originalDragTarget,
             (centreDraggedOnCursor && currentMousePosition) as Point | undefined,
+            config.useComputedStyleForRects,
         );
         originDropZoneRoot.appendChild(draggedEl);
         // We will keep the original dom node in the dom because touch events keep firing on it, we want to re-add it after the framework removes it
@@ -769,8 +770,13 @@ export function dndzone<T extends Item>(
         centreDraggedOnCursor = false,
         useCursorForDetection = false,
         dropAnimationDisabled = false,
+        useComputedStyleForRects = false,
         delayTouchStart: delayTouchStartOpt = false,
-    }: Options<T>): void {
+        onconsider,
+        onfinalize,
+    }: Options): void {
+        // A torn-down zone gets no callbacks, even if it is configured once more.
+        if (!destroyed) registerZoneCallbacks(node, { onconsider, onfinalize });
         const isInDragWindow = isWorkingOnPreviousDrag && node.ownerDocument.defaultView === dragWindow;
         const wasDropTarget =
             node === originDropZone || (config.type === draggedElType && !config.dropFromOthersDisabled);
@@ -796,6 +802,7 @@ export function dndzone<T extends Item>(
         config.centreDraggedOnCursor = centreDraggedOnCursor;
         config.useCursorForDetection = useCursorForDetection;
         config.dropAnimationDisabled = dropAnimationDisabled;
+        config.useComputedStyleForRects = useComputedStyleForRects;
 
         // Realtime styling follows the same eligibility as drag start. Remove the previously applied styles and
         // classes before storing the new options, including when disabling incoming drops and changing styles together.
@@ -841,6 +848,7 @@ export function dndzone<T extends Item>(
                         draggableEl,
                         currentMousePosition!.x,
                         currentMousePosition!.y,
+                        config.useComputedStyleForRects,
                     );
                 }
                 config.transformDraggedElement(draggedEl, draggedElData, idx);
@@ -864,13 +872,15 @@ export function dndzone<T extends Item>(
     configure(options);
 
     return {
-        update: (newOptions: Options<T>) => {
+        update: (newOptions: Options) => {
             printDebug(() => `pointer dndzone will update newOptions: ${toString(newOptions)}`);
             configure(newOptions);
         },
         destroy: () => {
             if (destroyed) return;
             destroyed = true;
+            // a zone kept until the drop ends (scheduled for removal, or the origin of a drop into another) gets no callbacks
+            unregisterZoneCallbacks(node);
             cancelPendingDrag();
             // the zone's children are the rendered items, HTML elements.
             // removeEventListener ignores undefined, which it gets for a child without a listener.

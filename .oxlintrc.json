@@ -47,6 +47,19 @@
             }
         },
         {
+            // Svelte 5 runes are compiler globals.
+            "files": ["**/*.svelte", "**/*.svelte.ts"],
+            "globals": {
+                "$props": "readonly",
+                "$state": "readonly",
+                "$derived": "readonly",
+                "$effect": "readonly",
+                "$bindable": "readonly",
+                "$inspect": "readonly",
+                "$host": "readonly"
+            }
+        },
+        {
             "files": ["packages/svelte-dnd/src/**"],
             "rules": {
                 "typescript/no-explicit-any": "error",

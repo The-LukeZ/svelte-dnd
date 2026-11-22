@@ -1,25 +1,21 @@
 export { dndzone } from "./action";
 export { dragHandleZone, dragHandle } from "./wrappers/withDragHandles";
-export { alertToScreenReader, setAriaStrings } from "./helpers/aria";
-export { setKeyboardDragTrigger } from "./keyboardDragTrigger";
+export { alertToScreenReader } from "./helpers/aria";
+export { configure } from "./configure";
 export {
     TRIGGERS,
     SOURCES,
     SHADOW_ITEM_MARKER_PROPERTY_NAME,
     SHADOW_PLACEHOLDER_ITEM_ID,
     DRAGGED_ELEMENT_ID,
-    overrideItemIdKeyNameBeforeInitialisingDndZones,
-    setDebugMode,
 } from "./constants";
-
-export { setFeatureFlag, FEATURE_FLAG_NAMES } from "./featureFlags";
 
 export type {
     Item,
     Options,
     TransformDraggedElementFunction,
-    DndZoneAttributes,
     AriaStrings,
+    DndConfig,
     DndEventInfo,
     DndEvent,
 } from "./types";

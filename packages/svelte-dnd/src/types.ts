@@ -1,9 +1,12 @@
 import type { TRIGGERS, SOURCES } from "./constants";
 
-// oxlint-disable-next-line typescript/no-explicit-any -- TODO: stage 4, decide whether Item becomes Record<string, unknown>
-export type Item = Record<string, any>;
+/**
+ * The engine's internal shape of an item. Public generics take `T extends object` instead, since an interface without an
+ * index signature does not assign to this type. The id key is checked at runtime.
+ */
+export type Item = Record<string, unknown>;
 
-export interface Options<T extends Item = Item> {
+export interface Options<T extends object = Item> {
     /** the list of items that was used to generate the children of the given node (the list used in the #each block) */
     items: T[];
     /** the type of the dnd zone. children dragged from here can only be dropped in other zones of the same type, defaults to a base type */
@@ -20,7 +23,7 @@ export interface Options<T extends Item = Item> {
     zoneItemTabIndex?: number;
     dropTargetClasses?: string[];
     dropTargetStyle?: Record<string, string>;
-    transformDraggedElement?: TransformDraggedElementFunction;
+    transformDraggedElement?: TransformDraggedElementFunction<T>;
     autoAriaDisabled?: boolean;
     centreDraggedOnCursor?: boolean;
     /** cancels the drop animation to place */
@@ -35,26 +38,51 @@ export interface Options<T extends Item = Item> {
      * Use cursor position instead of dragged element center for drop zone detection
      */
     useCursorForDetection?: boolean;
+    /**
+     * Default false. Copies the computed width and height to the dragged clone, and does not set them from the shadow
+     * element's bounding rect while morphing. A workaround for issue 454 (a browser bug): these rect values take time to
+     * update in a grid layout. Setting it can cause strange behaviour in non-grid zones, see issue 470.
+     */
+    useComputedStyleForRects?: boolean;
+    /** called while the user drags, with the items the zone should render now */
+    onconsider?: (event: DndEvent<T>) => void;
+    /** called when the drag ends, with the items the zone should keep */
+    onfinalize?: (event: DndEvent<T>) => void;
 }
 
-export interface DndZoneAttributes<T> {
-    "on:consider"?: (e: CustomEvent<DndEvent<T>>) => void;
-    "on:finalize"?: (e: CustomEvent<DndEvent<T>>) => void;
-    onconsider?: (e: CustomEvent<DndEvent<T>>) => void;
-    onfinalize?: (e: CustomEvent<DndEvent<T>>) => void;
+/** The global settings, see `configure` */
+export interface DndConfig {
+    /** item id key, default "id". Throws if any zone is mounted. */
+    idKey?: string;
+    /** default "space_or_enter". null restores the default. */
+    keyboardDragTrigger?: "space" | "enter" | "space_or_enter" | null;
+    /** full locale over the English defaults. null restores English. */
+    ariaStrings?: AriaStrings | null;
+    /** console.debug output */
+    debug?: boolean;
 }
 
-export interface DndEventInfo {
+/**
+ * The type of an item's `id` field, or unknown when the item type has none, as with a custom idKey set through
+ * `configure` or the default Item, whose index signature promises no `id` field.
+ */
+type ItemId<T> = T extends { id: infer I } ? I : unknown;
+
+export interface DndEventInfo<T = Item> {
     /** the type of dnd event that took place */
     trigger: TRIGGERS;
-    id: string;
+    /**
+     * the id of the dragged item: the value of its id key. Inferred from the item's `id` field; unknown when the item
+     * type has no `id` field, as with a custom idKey
+     */
+    id: ItemId<T>;
     /** the type of interaction that the user used to perform the dnd operation */
     source: SOURCES;
 }
 
 export type DndEvent<T = Item> = {
     items: T[];
-    info: DndEventInfo;
+    info: DndEventInfo<T>;
 };
 
 /**
@@ -62,9 +90,9 @@ export type DndEvent<T = Item> = {
  * @param draggedElementData - the data of the item from the items array
  * @param index - the index the dragged element would get if dropped into the new dnd-zone
  */
-export type TransformDraggedElementFunction = (
+export type TransformDraggedElementFunction<T = Item> = (
     element?: HTMLElement,
-    draggedElementData?: Item,
+    draggedElementData?: T,
     index?: number,
 ) => void;
 

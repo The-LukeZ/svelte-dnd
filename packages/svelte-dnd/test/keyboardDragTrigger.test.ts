@@ -1,22 +1,32 @@
 import { dndzone } from "../src/keyboardAction";
-import { dndzone as fullDndzone } from "../src/action";
+import { createZone as fullDndzone } from "../src/action";
 import { TRIGGERS } from "../src/constants";
 import type { DndEvent, Item, Options } from "../src/types";
-import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
-import { getKeyboardDragTrigger, isKeyboardDragTriggerKey, setKeyboardDragTrigger } from "../src/keyboardDragTrigger";
+import { attachHandle, createHandleZone } from "../src/wrappers/withDragHandles";
+import { configure } from "../src/configure";
+import { getKeyboardDragTrigger, isKeyboardDragTriggerKey } from "../src/keyboardDragTrigger";
 import * as publicApi from "../src/index";
 import { destroyAria, initAria } from "../src/helpers/aria";
 
 describe("keyboardDragTrigger", () => {
     const actions: { destroy?: () => void }[] = [];
     const zones: HTMLElement[] = [];
+    const zoneToTriggers = new WeakMap<HTMLElement, TRIGGERS[]>();
 
     function createZone(items: Item[], options: Partial<Options> = {}, dndzoneFn: typeof dndzone = dndzone) {
         const zone = document.createElement("div");
         items.forEach(() => zone.appendChild(document.createElement("div")));
         document.body.appendChild(zone);
         zones.push(zone);
-        const action = dndzoneFn(zone, { items, ...options });
+        const triggers: TRIGGERS[] = [];
+        zoneToTriggers.set(zone, triggers);
+        // a consumer passes its callbacks on every update, as the options getter of the attachment does
+        const onconsider = (e: DndEvent) => triggers.push(e.info.trigger);
+        const zoneAction = dndzoneFn(zone, { items, onconsider, ...options });
+        const action = {
+            update: (newOptions: Options) => zoneAction.update({ onconsider, ...newOptions }),
+            destroy: () => zoneAction.destroy(),
+        };
         actions.push(action);
         return { zone, action, children: Array.from(zone.children) as HTMLElement[] };
     }
@@ -28,22 +38,21 @@ describe("keyboardDragTrigger", () => {
     }
 
     function recordTriggers(zone: HTMLElement) {
-        const triggers: TRIGGERS[] = [];
-        zone.addEventListener("consider", (e) => triggers.push((e as CustomEvent<DndEvent>).detail.info.trigger));
-        return triggers;
+        // createZone records the triggers of every zone it creates
+        return zoneToTriggers.get(zone)!;
     }
 
     afterEach(() => {
         actions
             .splice(0)
             .reverse()
-            // every action pushed here (dndzone, dragHandleZone, dragHandle) returns a destroy
+            // every action pushed here (dndzone, createHandleZone, attachHandle) returns a destroy
             .forEach((action) => action.destroy!());
         zones.splice(0).forEach((zone) => zone.remove());
     });
 
     afterEach(() => {
-        setKeyboardDragTrigger(null);
+        configure({ keyboardDragTrigger: null });
     });
 
     describe("zone behaviour", () => {
@@ -61,7 +70,7 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("leaves Enter completely untouched at rest when the trigger is 'space'", () => {
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             const {
                 zone,
                 children: [item],
@@ -79,7 +88,7 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("still starts and stops a drag with Space when the trigger is 'space'", () => {
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             const {
                 zone,
                 children: [item],
@@ -93,7 +102,7 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("does not let Enter stop a drag when the trigger is 'space'", () => {
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             const {
                 zone,
                 children: [item],
@@ -114,7 +123,7 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("leaves Space untouched and lets Enter drive the drag when the trigger is 'enter'", () => {
-            setKeyboardDragTrigger("enter");
+            configure({ keyboardDragTrigger: "enter" });
             const {
                 zone,
                 children: [item],
@@ -132,7 +141,7 @@ describe("keyboardDragTrigger", () => {
 
         it("ends a drag on Escape under every trigger", () => {
             (["space", "enter", "space_or_enter"] as const).forEach((trigger) => {
-                setKeyboardDragTrigger(trigger);
+                configure({ keyboardDragTrigger: trigger });
                 const {
                     zone,
                     children: [item],
@@ -155,17 +164,17 @@ describe("keyboardDragTrigger", () => {
                 children: [item],
             } = createZone([{ id: "a" }, { id: "b" }]);
             const triggers = recordTriggers(zone);
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             item.focus();
             press(item, "Enter");
             expect(triggers, "a live zone should follow the new trigger without an update() call").to.deep.equal([]);
-            setKeyboardDragTrigger(null);
+            configure({ keyboardDragTrigger: null });
             press(item, "Enter");
             expect(triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
         });
 
         it("keeps the configured trigger for an item a consumer moves into another zone", () => {
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             const {
                 zone: zoneA,
                 action: actionA,
@@ -220,7 +229,7 @@ describe("keyboardDragTrigger", () => {
         });
     });
 
-    describe("setKeyboardDragTrigger", () => {
+    describe("configure({ keyboardDragTrigger })", () => {
         it("defaults to space_or_enter", () => {
             expect(getKeyboardDragTrigger()).to.equal("space_or_enter");
             expect(isKeyboardDragTriggerKey(" ")).to.equal(true);
@@ -228,69 +237,73 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("narrows the keys it claims to the configured trigger", () => {
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             expect(getKeyboardDragTrigger()).to.equal("space");
             expect(isKeyboardDragTriggerKey(" ")).to.equal(true);
             expect(isKeyboardDragTriggerKey("Enter")).to.equal(false);
 
-            setKeyboardDragTrigger("enter");
+            configure({ keyboardDragTrigger: "enter" });
             expect(isKeyboardDragTriggerKey(" ")).to.equal(false);
             expect(isKeyboardDragTriggerKey("Enter")).to.equal(true);
         });
 
         it("never claims a key outside the trigger vocabulary", () => {
-            setKeyboardDragTrigger("space_or_enter");
+            configure({ keyboardDragTrigger: "space_or_enter" });
             expect(isKeyboardDragTriggerKey("Escape")).to.equal(false);
             expect(isKeyboardDragTriggerKey("ArrowDown")).to.equal(false);
         });
 
-        it("restores the default when passed null or undefined", () => {
-            setKeyboardDragTrigger("enter");
-            setKeyboardDragTrigger(null);
+        it("restores the default when passed null, and leaves the trigger untouched when it is undefined", () => {
+            configure({ keyboardDragTrigger: "enter" });
+            configure({ keyboardDragTrigger: null });
             expect(getKeyboardDragTrigger()).to.equal("space_or_enter");
 
-            setKeyboardDragTrigger("enter");
-            setKeyboardDragTrigger(undefined);
-            expect(getKeyboardDragTrigger()).to.equal("space_or_enter");
+            // configure treats an undefined key like a missing one, unlike the old setter, which restored the default
+            configure({ keyboardDragTrigger: "enter" });
+            configure({ keyboardDragTrigger: undefined });
+            expect(getKeyboardDragTrigger()).to.equal("enter");
         });
 
         it("rejects values that are not one of the documented strings", () => {
             // Substring checks kept from the Cypress suite (Cypress 15.18.1 did not match RegExp error assertions reliably).
             // @ts-expect-error "shift" is not a trigger: the invalid string is the case under test
-            expect(() => setKeyboardDragTrigger("shift")).to.throw("setKeyboardDragTrigger");
+            expect(() => configure({ keyboardDragTrigger: "shift" })).to.throw("configure({ keyboardDragTrigger })");
             // @ts-expect-error "shift" is not a trigger: the invalid string is the case under test
-            expect(() => setKeyboardDragTrigger("shift")).to.throw("space_or_enter");
+            expect(() => configure({ keyboardDragTrigger: "shift" })).to.throw("space_or_enter");
             // @ts-expect-error "SPACE" is not a trigger: triggers are lowercase, the wrong case is the case under test
-            expect(() => setKeyboardDragTrigger("SPACE")).to.throw("setKeyboardDragTrigger");
+            expect(() => configure({ keyboardDragTrigger: "SPACE" })).to.throw("configure({ keyboardDragTrigger })");
             // @ts-expect-error 0 is not a trigger: the non-string value is the case under test
-            expect(() => setKeyboardDragTrigger(0)).to.throw("setKeyboardDragTrigger");
+            expect(() => configure({ keyboardDragTrigger: 0 })).to.throw("configure({ keyboardDragTrigger })");
             // @ts-expect-error {} is not a trigger: the non-string value is the case under test
-            expect(() => setKeyboardDragTrigger({})).to.throw("setKeyboardDragTrigger");
+            expect(() => configure({ keyboardDragTrigger: {} })).to.throw("configure({ keyboardDragTrigger })");
         });
 
         it("rejects prototype key names rather than treating them as valid triggers", () => {
             // @ts-expect-error "constructor" is not a trigger: the prototype key name is the case under test
-            expect(() => setKeyboardDragTrigger("constructor")).to.throw("setKeyboardDragTrigger");
+            expect(() => configure({ keyboardDragTrigger: "constructor" })).to.throw(
+                "configure({ keyboardDragTrigger })",
+            );
             // @ts-expect-error "toString" is not a trigger: the prototype key name is the case under test
-            expect(() => setKeyboardDragTrigger("toString")).to.throw("setKeyboardDragTrigger");
+            expect(() => configure({ keyboardDragTrigger: "toString" })).to.throw("configure({ keyboardDragTrigger })");
         });
 
         it("leaves the active trigger untouched when a call fails validation", () => {
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             // @ts-expect-error "shift" is not a trigger: the invalid string is the case under test
-            expect(() => setKeyboardDragTrigger("shift")).to.throw("setKeyboardDragTrigger");
+            expect(() => configure({ keyboardDragTrigger: "shift" })).to.throw("configure({ keyboardDragTrigger })");
             expect(getKeyboardDragTrigger()).to.equal("space");
         });
 
         it("is exported from the package entry point", () => {
             // guards against the module existing but never being re-exported
-            expect(publicApi.setKeyboardDragTrigger).to.equal(setKeyboardDragTrigger);
+            expect(publicApi.configure).to.equal(configure);
+            expect(publicApi).not.to.have.property("setKeyboardDragTrigger");
         });
 
         it("updates the rendered screen-reader instruction", () => {
             initAria();
             try {
-                setKeyboardDragTrigger("space");
+                configure({ keyboardDragTrigger: "space" });
                 // initAria above creates the instruction div
                 expect(document.getElementById("dnd-zone-active")!.textContent).to.equal(
                     "Tab to one the items and press space-bar to start dragging it",
@@ -301,9 +314,9 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("renders the instruction for a trigger set before initAria", () => {
-            // initAriaOnBrowser is a distinct formatting path from the setKeyboardDragTrigger re-render -
+            // initAriaOnBrowser is a distinct formatting path from the configure({ keyboardDragTrigger }) re-render -
             // make sure the trigger already in effect at init time is picked up too.
-            setKeyboardDragTrigger("space");
+            configure({ keyboardDragTrigger: "space" });
             initAria();
             try {
                 // initAria above creates the instruction div
@@ -317,7 +330,7 @@ describe("keyboardDragTrigger", () => {
     });
 
     describe("dragHandle unlock", () => {
-        function createHandleZone(options: Partial<Options> = {}) {
+        function makeHandleZone(options: Partial<Options> = {}) {
             const zone = document.createElement("div");
             const item = document.createElement("div");
             const handle = document.createElement("div");
@@ -325,14 +338,14 @@ describe("keyboardDragTrigger", () => {
             zone.appendChild(item);
             document.body.appendChild(zone);
             zones.push(zone);
-            const zoneAction = dragHandleZone(zone, { items: [{ id: "a" }], ...options });
-            const handleAction = dragHandle(handle);
-            actions.push(handleAction, zoneAction);
+            const zoneAction = createHandleZone(zone, { items: [{ id: "a" }], ...options });
+            const handleCleanup = attachHandle(handle);
+            actions.push({ destroy: handleCleanup }, zoneAction);
             return { zone, item, handle, zoneAction };
         }
 
         it("unlocks dragging from Enter on the handle by default", () => {
-            const { handle } = createHandleZone();
+            const { handle } = makeHandleZone();
             press(handle, "Enter");
             expect(handle.style.cursor).to.equal("grabbing");
             press(handle, "Enter");
@@ -340,8 +353,8 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("ignores Enter on the handle when the trigger is 'space'", () => {
-            setKeyboardDragTrigger("space");
-            const { handle } = createHandleZone();
+            configure({ keyboardDragTrigger: "space" });
+            const { handle } = makeHandleZone();
             expect(handle.style.cursor).to.equal("grab");
             press(handle, "Enter");
             expect(handle.style.cursor, "Enter should not unlock dragging").to.equal("grab");
@@ -353,9 +366,9 @@ describe("keyboardDragTrigger", () => {
 
         it("applies the same trigger to every handle zone on the page", () => {
             // the per-zone version got this wrong: the last configured zone won for all handles
-            setKeyboardDragTrigger("space");
-            const first = createHandleZone();
-            const second = createHandleZone();
+            configure({ keyboardDragTrigger: "space" });
+            const first = makeHandleZone();
+            const second = makeHandleZone();
             [first, second].forEach(({ handle }, i) => {
                 press(handle, "Enter");
                 expect(handle.style.cursor, `handle ${i} should ignore Enter`).to.equal("grab");
@@ -367,8 +380,8 @@ describe("keyboardDragTrigger", () => {
         });
 
         it("follows a trigger change made after the handles have mounted", () => {
-            const { handle } = createHandleZone();
-            setKeyboardDragTrigger("space");
+            const { handle } = makeHandleZone();
+            configure({ keyboardDragTrigger: "space" });
             press(handle, "Enter");
             expect(handle.style.cursor, "Enter should no longer unlock dragging").to.equal("grab");
             press(handle, " ");

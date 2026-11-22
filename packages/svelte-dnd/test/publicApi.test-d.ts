@@ -1,54 +1,106 @@
 import { expectTypeOf } from "vitest";
-import type { ActionReturn } from "svelte/action";
+import type { Attachment } from "svelte/attachments";
 import {
     DRAGGED_ELEMENT_ID,
-    FEATURE_FLAG_NAMES,
     SHADOW_ITEM_MARKER_PROPERTY_NAME,
     SHADOW_PLACEHOLDER_ITEM_ID,
     SOURCES,
     TRIGGERS,
     alertToScreenReader,
+    configure,
     dndzone,
     dragHandle,
     dragHandleZone,
-    overrideItemIdKeyNameBeforeInitialisingDndZones,
-    setAriaStrings,
-    setDebugMode,
-    setFeatureFlag,
-    setKeyboardDragTrigger,
 } from "@lukez/svelte-dnd";
 import type {
     AriaStrings,
+    DndConfig,
     DndEvent,
     DndEventInfo,
-    DndZoneAttributes,
     Item,
     Options,
     TransformDraggedElementFunction,
 } from "@lukez/svelte-dnd";
 
-declare const node: HTMLElement;
+// Review Focus 3: an interface has no index signature, so it does not assign to Record<string, unknown>
+interface Row {
+    id: number;
+    name: string;
+}
+declare const rows: Row[];
 
-type Row = { id: number; name: string };
-
-expectTypeOf(dndzone<Row>).returns.toEqualTypeOf<ActionReturn<Options<Row>, DndZoneAttributes<Row>>>();
-expectTypeOf(dragHandleZone<Row>).returns.toEqualTypeOf<ActionReturn<Options<Row>, DndZoneAttributes<Row>>>();
+// dndzone: the item type flows from `items` into the callbacks
+expectTypeOf(
+    dndzone(() => ({
+        items: rows,
+        onconsider: (e) => expectTypeOf(e.items).toEqualTypeOf<Row[]>(),
+        onfinalize: (e) => expectTypeOf(e).toEqualTypeOf<DndEvent<Row>>(),
+        transformDraggedElement: (_el, data) => expectTypeOf(data).toEqualTypeOf<Row | undefined>(),
+    })),
+).toEqualTypeOf<Attachment<HTMLElement>>();
+// @ts-expect-error the options are passed as a getter
+dndzone({ items: rows });
 // @ts-expect-error items is required
-dndzone(node, {});
-// Review Focus 2: a custom id key, no `id`
-dndzone(node, { items: [{ key: 1 }] });
-expectTypeOf(dragHandle).returns.toEqualTypeOf<{ update: () => void; destroy: () => void }>();
+dndzone(() => ({}));
+// a custom id key, no `id`
+dndzone(() => ({ items: [{ key: 1 }] }));
 
-expectTypeOf<Item>().toEqualTypeOf<Record<string, any>>();
-expectTypeOf<Options["transformDraggedElement"]>().toEqualTypeOf<TransformDraggedElementFunction | undefined>();
+// dragHandleZone: the same shape
+expectTypeOf(
+    dragHandleZone(() => ({
+        items: rows,
+        onconsider: (e) => expectTypeOf(e.items).toEqualTypeOf<Row[]>(),
+        onfinalize: (e) => expectTypeOf(e).toEqualTypeOf<DndEvent<Row>>(),
+        transformDraggedElement: (_el, data) => expectTypeOf(data).toEqualTypeOf<Row | undefined>(),
+    })),
+).toEqualTypeOf<Attachment<HTMLElement>>();
+// @ts-expect-error the options are passed as a getter
+dragHandleZone({ items: rows });
+// @ts-expect-error items is required
+dragHandleZone(() => ({}));
+dragHandleZone(() => ({ items: [{ key: 1 }] }));
+expectTypeOf(dragHandle).toEqualTypeOf<Attachment<HTMLElement>>();
+
+// types
+expectTypeOf<Item>().toEqualTypeOf<Record<string, unknown>>();
+expectTypeOf<Options<Row>["items"]>().toEqualTypeOf<Row[]>();
+expectTypeOf<Options<Row>["onconsider"]>().toEqualTypeOf<((event: DndEvent<Row>) => void) | undefined>();
+expectTypeOf<Options<Row>["onfinalize"]>().toEqualTypeOf<((event: DndEvent<Row>) => void) | undefined>();
+expectTypeOf<Options<Row>["transformDraggedElement"]>().toEqualTypeOf<
+    TransformDraggedElementFunction<Row> | undefined
+>();
+expectTypeOf<TransformDraggedElementFunction<Row>>().toEqualTypeOf<
+    (element?: HTMLElement, draggedElementData?: Row, index?: number) => void
+>();
 expectTypeOf<TransformDraggedElementFunction>().toEqualTypeOf<
     (element?: HTMLElement, draggedElementData?: Item, index?: number) => void
 >();
+expectTypeOf<DndEvent>().toEqualTypeOf<{ items: Item[]; info: DndEventInfo }>();
 expectTypeOf<DndEvent<Row>["items"]>().toEqualTypeOf<Row[]>();
-expectTypeOf<DndEventInfo>().toEqualTypeOf<{ trigger: TRIGGERS; id: string; source: SOURCES }>();
-// Review Focus 1
+// info.id is inferred from the item's id field, and unknown without one (a custom idKey) or for the default Item
+expectTypeOf<DndEventInfo>().toEqualTypeOf<{ trigger: TRIGGERS; id: unknown; source: SOURCES }>();
+expectTypeOf<DndEventInfo<Row>>().toEqualTypeOf<{ trigger: TRIGGERS; id: number; source: SOURCES }>();
+expectTypeOf<DndEvent<Row>["info"]>().toEqualTypeOf<DndEventInfo<Row>>();
+expectTypeOf<DndEvent<Row>["info"]["id"]>().toEqualTypeOf<number>();
+expectTypeOf<DndEvent<{ key: number }>["info"]["id"]>().toEqualTypeOf<unknown>();
+dndzone(() => ({
+    items: rows,
+    onfinalize: (e) => expectTypeOf(e.info.id).toEqualTypeOf<number>(),
+}));
+dndzone(() => ({
+    items: [{ key: 1 }],
+    onfinalize: (e) => expectTypeOf(e.info.id).toEqualTypeOf<unknown>(),
+}));
+// the useComputedStyleForRects option replaces the feature flag
+expectTypeOf<Options["useComputedStyleForRects"]>().toEqualTypeOf<boolean | undefined>();
+
+// the kept constants keep their literal types
 expectTypeOf(TRIGGERS.DRAGGED_ENTERED).toEqualTypeOf<"draggedEntered">();
 expectTypeOf(SOURCES.KEYBOARD).toEqualTypeOf<"keyboard">();
+expectTypeOf(SOURCES.POINTER).toEqualTypeOf<"pointer">();
+expectTypeOf<typeof SHADOW_ITEM_MARKER_PROPERTY_NAME>().toEqualTypeOf<"isDndShadowItem">();
+expectTypeOf<typeof SHADOW_PLACEHOLDER_ITEM_ID>().toEqualTypeOf<"id:dnd-shadow-placeholder-0000">();
+expectTypeOf<typeof DRAGGED_ELEMENT_ID>().toEqualTypeOf<"dnd-action-dragged-el">();
 // a switch over every TRIGGERS key narrows `trigger` to never in the default branch
 export function exhaustiveTriggerSwitch(info: DndEventInfo): void {
     switch (info.trigger) {
@@ -67,42 +119,39 @@ export function exhaustiveTriggerSwitch(info: DndEventInfo): void {
             expectTypeOf(info.trigger).toBeNever();
     }
 }
-// Review Focus 5
-expectTypeOf<Parameters<NonNullable<DndZoneAttributes<Row>["onconsider"]>>[0]>().toEqualTypeOf<
-    CustomEvent<DndEvent<Row>>
->();
-expectTypeOf<Parameters<NonNullable<DndZoneAttributes<Row>["on:finalize"]>>[0]>().toEqualTypeOf<
-    CustomEvent<DndEvent<Row>>
->();
 
-expectTypeOf<typeof SHADOW_ITEM_MARKER_PROPERTY_NAME>().toEqualTypeOf<"isDndShadowItem">();
-expectTypeOf<typeof SHADOW_PLACEHOLDER_ITEM_ID>().toEqualTypeOf<"id:dnd-shadow-placeholder-0000">();
-expectTypeOf<typeof DRAGGED_ELEMENT_ID>().toEqualTypeOf<"dnd-action-dragged-el">();
-
-setKeyboardDragTrigger("space");
-setKeyboardDragTrigger("enter");
-setKeyboardDragTrigger("space_or_enter");
-setKeyboardDragTrigger(null);
-setKeyboardDragTrigger(undefined);
-setKeyboardDragTrigger();
+// configure
+configure({ keyboardDragTrigger: null, ariaStrings: null, debug: true, idKey: "key" });
+configure({ keyboardDragTrigger: "space" });
+configure({ keyboardDragTrigger: "enter" });
+configure({ keyboardDragTrigger: "space_or_enter" });
+configure({ ariaStrings: { dropped: ({ itemLabel, position }) => `${itemLabel} ${position}` } });
 // @ts-expect-error not a trigger
-setKeyboardDragTrigger("tab");
-
-setAriaStrings(null);
-setAriaStrings({ dropped: ({ itemLabel, position }) => `${itemLabel} ${position}` });
-expectTypeOf(setAriaStrings).parameters.toEqualTypeOf<[overrides: AriaStrings | null]>();
+configure({ keyboardDragTrigger: "tab" });
+// @ts-expect-error not a key of DndConfig
+configure({ idkey: "x" });
+expectTypeOf(configure).parameters.toEqualTypeOf<[config: DndConfig]>();
+expectTypeOf(configure).returns.toBeVoid();
 expectTypeOf<AriaStrings["dropped"]>().toEqualTypeOf<
     ((ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string) | undefined
 >();
 expectTypeOf<AriaStrings["zoneDragDisabledInstruction"]>().toEqualTypeOf<string | undefined>();
 expectTypeOf(alertToScreenReader).parameters.toEqualTypeOf<[txt: string, doc?: Document]>();
 
-// Review Focus 3
-setFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT, true);
-setFeatureFlag("USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT", false);
-// @ts-expect-error not a flag
-setFeatureFlag("BOGUS", true);
-expectTypeOf(setFeatureFlag).returns.toBeVoid();
-
-expectTypeOf(overrideItemIdKeyNameBeforeInitialisingDndZones).parameters.toEqualTypeOf<[newKeyName: string]>();
-expectTypeOf(setDebugMode).parameters.toEqualTypeOf<[isDebug: boolean]>();
+// removed exports
+// @ts-expect-error replaced by the useComputedStyleForRects zone option
+void import("@lukez/svelte-dnd").then((m) => m.setFeatureFlag);
+// @ts-expect-error replaced by the useComputedStyleForRects zone option
+void import("@lukez/svelte-dnd").then((m) => m.FEATURE_FLAG_NAMES);
+// @ts-expect-error replaced by configure({ ariaStrings })
+void import("@lukez/svelte-dnd").then((m) => m.setAriaStrings);
+// @ts-expect-error replaced by configure({ keyboardDragTrigger })
+void import("@lukez/svelte-dnd").then((m) => m.setKeyboardDragTrigger);
+// @ts-expect-error replaced by configure({ debug })
+void import("@lukez/svelte-dnd").then((m) => m.setDebugMode);
+// @ts-expect-error replaced by configure({ idKey })
+void import("@lukez/svelte-dnd").then((m) => m.overrideItemIdKeyNameBeforeInitialisingDndZones);
+// @ts-expect-error internal, dndzone wraps it
+void import("@lukez/svelte-dnd").then((m) => m.createZone);
+// @ts-expect-error there are no event attributes left
+export type RemovedDndZoneAttributes = import("@lukez/svelte-dnd").DndZoneAttributes<Row>;

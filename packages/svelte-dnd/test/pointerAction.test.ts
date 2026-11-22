@@ -1,6 +1,6 @@
 import { dndzone } from "../src/pointerAction";
-import { DRAGGED_ELEMENT_ID } from "../src/constants";
-import type { Options } from "../src/types";
+import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../src/constants";
+import type { DndEvent, Options } from "../src/types";
 
 // the frame callbacks are called without a timestamp
 type FrameCallback = (...args: any[]) => void;
@@ -71,6 +71,37 @@ function stubTimeouts() {
 }
 
 describe("pointerAction", () => {
+    it("a throwing onconsider does not break the drag", () => {
+        const reportError = vi.spyOn(window, "reportError").mockImplementation(() => {});
+        const finalizes: DndEvent[] = [];
+        let considerCalls = 0;
+        let created: ReturnType<typeof createZone> | undefined;
+        try {
+            created = createZone({
+                dropAnimationDisabled: true,
+                onconsider: () => {
+                    if (considerCalls++ === 0) throw new Error("boom");
+                },
+                onfinalize: (e) => finalizes.push(e),
+            });
+            startMouseDrag(created.item);
+            window.dispatchEvent(
+                new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+            );
+
+            expect(finalizes.map((e) => e.info.trigger)).to.deep.equal([TRIGGERS.DROPPED_INTO_ZONE]);
+            expect(reportError).toHaveBeenCalledOnce();
+        } finally {
+            reportError.mockRestore();
+            // A drag that ended normally ignores this mouseup; one left behind ends here.
+            window.dispatchEvent(
+                new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+            );
+            created?.action.destroy();
+            created?.zone.remove();
+        }
+    });
+
     it("does not restart observation when the original element is removed while a drop is finalizing", () => {
         const timeouts = stubTimeouts();
         const animationFrameCallbacks: FrameCallback[] = [];

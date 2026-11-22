@@ -1,45 +1,102 @@
-import { SOURCES, TRIGGERS } from "../constants";
+import { SOURCES, TRIGGERS, printDebug } from "../constants";
 import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
-import { dndzone } from "../action";
+import { createZone, readOptions } from "../action";
 import { createStore } from "./simpleStore";
 import { getWindowOf } from "../helpers/util";
-import type { ActionReturn } from "svelte/action";
-import type { DndEvent, DndZoneAttributes, Item, Options } from "../types";
+import { registerZoneInternalHooks } from "../helpers/dispatcher";
+import { fromAction } from "svelte/attachments";
+import type { Attachment } from "svelte/attachments";
+import type { Options } from "../types";
 
+type Store<T> = ReturnType<typeof createStore<T>>;
+
+/** Set on every handle zone element, so a handle finds its zone with closest() */
+const HANDLE_ZONE_ATTRIBUTE = "data-dnd-handle-zone";
+
+interface HandleZoneState {
+    /** the zone's dragDisabled option */
+    userDragDisabled: Store<boolean>;
+    /** the handles bound to this zone, so a nested zone created later can take over its own */
+    handles: Set<HandleBinding>;
+}
+
+interface HandleBinding {
+    handle: HTMLElement;
+    /** binds the handle to a zone, replacing the zone it was bound to */
+    bind(state: HandleZoneState): void;
+}
+
+const zoneToState = new WeakMap<HTMLElement, HandleZoneState>();
+
+// Whether no handle drag is in progress. One store for every handle zone: a drag started from any handle enables every
+// handle zone for the drag, so a drag from zone A can move and drop in zone B, and it resets everywhere when the drag
+// ends.
 const isItemsDragDisabled = createStore(true);
-const userDragDisabled = createStore(false);
 
-function getAddedOptions(): { dragDisabled: boolean; zoneItemTabIndex: number } {
-    return {
-        dragDisabled: userDragDisabled.get() || isItemsDragDisabled.get(),
-        zoneItemTabIndex: -1,
-    };
+// Handles that found no registered zone when they were attached. Svelte runs the attachments of a zone's children before
+// the zone's own attachment, so this is the usual case at mount. The zone adopts them when it is created.
+const pendingHandles = new Set<HTMLElement>();
+// how a pending handle binds to its zone when the zone adopts it
+const pendingHandleToBinding = new WeakMap<HTMLElement, HandleBinding>();
+
+/** The nearest marked handle zone above the element, not the element itself */
+function findZoneOf(el: HTMLElement): HTMLElement | null {
+    return el.parentElement?.closest<HTMLElement>(`[${HANDLE_ZONE_ATTRIBUTE}]`) ?? null;
 }
 
 /**
- * A wrapper action that wraps around the dndzone action to make it easy to work with drag handles.
- * When using this you must also use the 'dragHandle' action (see below) on an element inside each item within the zone.
- * Credit for the idea and initial implementation goes to @gleuch (Greg Leuch) and @geovie (Georg Vienna)
- *
- * @param options - will be passed down to the dndzone
+ * Binds to a new zone the handles whose nearest handle zone it is: pending handles, and handles that an enclosing
+ * zone took because this zone had no marker yet when they were attached. That happens when a nested handle zone mounts
+ * after its outer zone (Svelte attaches the inner handles before the inner zone, so they find the outer zone).
  */
-export function dragHandleZone<T extends Item>(
+function adoptHandles(node: HTMLElement, state: HandleZoneState): void {
+    for (const handle of Array.from(pendingHandles)) {
+        if (node.contains(handle) && findZoneOf(handle) === node) {
+            pendingHandles.delete(handle);
+            const binding = pendingHandleToBinding.get(handle)!;
+            pendingHandleToBinding.delete(handle);
+            binding.bind(state);
+        }
+    }
+    for (let outer = findZoneOf(node); outer; outer = findZoneOf(outer)) {
+        const outerState = zoneToState.get(outer);
+        if (!outerState) continue;
+        for (const binding of Array.from(outerState.handles)) {
+            if (node.contains(binding.handle) && findZoneOf(binding.handle) === node) binding.bind(state);
+        }
+    }
+}
+
+/**
+ * Sets up a dnd zone whose items can only be dragged from their handles. `dragHandleZone` calls it once per element,
+ * then calls `update` with the new options each time the getter's state changes.
+ *
+ * @param node - the element to enhance
+ */
+export function createHandleZone<T extends object>(
     node: HTMLElement,
     options: Options<T>,
-): ActionReturn<Options<T>, DndZoneAttributes<T>> {
-    // Initialise stores from initial options
-    userDragDisabled.set(options?.dragDisabled ?? false);
-
+): { update(o: Options<T>): void; destroy(): void } {
+    const state: HandleZoneState = {
+        userDragDisabled: createStore(options?.dragDisabled ?? false),
+        handles: new Set(),
+    };
     let currentOptions = options;
 
-    const zone = dndzone(node, {
+    function getAddedOptions(): { dragDisabled: boolean; zoneItemTabIndex: number } {
+        return {
+            dragDisabled: state.userDragDisabled.get() || isItemsDragDisabled.get(),
+            zoneItemTabIndex: -1,
+        };
+    }
+
+    const zone = createZone(node, {
         ...currentOptions,
         ...getAddedOptions(),
     });
 
-    // dndzone always returns both update and destroy
     function updateZone(): void {
-        zone.update!({
+        zone.update({
             ...currentOptions,
             ...getAddedOptions(),
         });
@@ -52,58 +109,64 @@ export function dragHandleZone<T extends Item>(
     // it always come through the `update` lifecycle and will call `updateZone`
     // anyway.
 
-    function consider(e: CustomEvent<DndEvent<T>>): void {
-        const {
-            info: { source, trigger },
-        } = e.detail;
-        // Ensure dragging is stopped on drag finish via keyboard
-        if (source === SOURCES.KEYBOARD && trigger === TRIGGERS.DRAG_STOPPED) {
-            isItemsDragDisabled.set(true);
-        }
-    }
+    // The handle bookkeeping runs as the zone's internal hooks, before the user's onconsider/onfinalize. Unlike the user's
+    // callbacks they stay after this zone is torn down, so isItemsDragDisabled resets even when the drag ends on events
+    // the engine sends to this zone after its teardown: the keyboard drop that destroying the focused zone causes, or
+    // a pointer finalize to a destroyed origin or a zone scheduled for removal. They are never removed: a later zone on
+    // the same element replaces them, and a stray reset at the end of a drag sets a store that is already true.
+    registerZoneInternalHooks(node, {
+        onconsider: ({ info: { source, trigger } }) => {
+            // Ensure dragging is stopped on drag finish via keyboard
+            if (source === SOURCES.KEYBOARD && trigger === TRIGGERS.DRAG_STOPPED) {
+                isItemsDragDisabled.set(true);
+            }
+        },
+        onfinalize: ({ info: { source } }) => {
+            // Ensure dragging is stopped on drag finish via pointer (mouse, touch)
+            if (source === SOURCES.POINTER) {
+                isItemsDragDisabled.set(true);
+            }
+        },
+    });
 
-    function finalize(e: CustomEvent<DndEvent<T>>): void {
-        const {
-            info: { source },
-        } = e.detail;
-        // Ensure dragging is stopped on drag finish via pointer (mouse, touch)
-        if (source === SOURCES.POINTER) {
-            isItemsDragDisabled.set(true);
-        }
-    }
-
-    // the handlers take the CustomEvents that helpers/dispatcher dispatches on the zone
-    node.addEventListener("consider", consider as EventListener);
-    node.addEventListener("finalize", finalize as EventListener);
+    node.setAttribute(HANDLE_ZONE_ATTRIBUTE, "");
+    zoneToState.set(node, state);
+    adoptHandles(node, state);
 
     return {
         update: (newOptions: Options<T>) => {
             currentOptions = newOptions;
             // keep store in sync with external prop
-            userDragDisabled.set(currentOptions?.dragDisabled ?? false);
+            state.userDragDisabled.set(currentOptions?.dragDisabled ?? false);
             updateZone();
         },
         destroy: () => {
-            // dndzone always returns both update and destroy
-            zone.destroy!();
-            node.removeEventListener("consider", consider as EventListener);
-            node.removeEventListener("finalize", finalize as EventListener);
+            zone.destroy();
             isItemsDragDisabled.unsubscribe(updateZone);
+            if (zoneToState.get(node) === state) {
+                zoneToState.delete(node);
+                node.removeAttribute(HANDLE_ZONE_ATTRIBUTE);
+            }
         },
     };
 }
 
 /**
- * This should be used to mark drag handles inside items that belong to a 'dragHandleZone' (see above)
+ * Makes an element a drag handle of the nearest handle zone it is in. Returns its cleanup.
+ *
+ * @param handle - an element inside an item of a handle zone
  */
-export function dragHandle(handle: HTMLElement): { update: () => void; destroy: () => void } {
-    handle.setAttribute("role", "button");
+export function attachHandle(handle: HTMLElement): () => void {
+    // the zone the handle is bound to, set when it finds its zone at attach time or when a zone adopts it
+    let boundState: HandleZoneState | undefined;
     // assigned in startDrag before resetStartDrag is registered, so every read follows an assignment
     let releaseWindow: Window;
 
     function startDrag(e: MouseEvent | TouchEvent): void {
         // preventing default to prevent lag on touch devices (because of the browser checking for screen scrolling)
         e.preventDefault();
+        // a handle of a locked zone starts no drag, so nothing would reset the state every handle zone shares
+        if (!boundState || boundState.userDragDisabled.get()) return;
         isItemsDragDisabled.set(false);
 
         // Reset the startDrag/isItemsDragDisabled if the user releases the mouse/touch without initiating a drag, or if the
@@ -115,6 +178,7 @@ export function dragHandle(handle: HTMLElement): { update: () => void; destroy: 
     }
 
     function handleKeyDown(e: KeyboardEvent): void {
+        if (!boundState || boundState.userDragDisabled.get()) return;
         if (isKeyboardDragTriggerKey(e.key)) isItemsDragDisabled.set(false);
     }
 
@@ -125,8 +189,9 @@ export function dragHandle(handle: HTMLElement): { update: () => void; destroy: 
         releaseWindow.removeEventListener("pagehide", resetStartDrag);
     }
 
+    // dragDisabled of the handle's own zone, plus the drag state that every handle zone shares
     const recomputeHandleState = (): void => {
-        const userDisabled = userDragDisabled.get();
+        const userDisabled = boundState!.userDragDisabled.get();
         const internalDisabled = isItemsDragDisabled.get();
 
         if (userDisabled) {
@@ -138,21 +203,79 @@ export function dragHandle(handle: HTMLElement): { update: () => void; destroy: 
         }
     };
 
-    // Subscribe to both stores
-    userDragDisabled.subscribe(recomputeHandleState);
-    isItemsDragDisabled.subscribe(recomputeHandleState);
+    const binding: HandleBinding = {
+        handle,
+        bind: (state) => {
+            const previous = boundState;
+            boundState = state;
+            if (previous) {
+                // a nested zone created after the zone the handle was bound to takes the handle over
+                previous.handles.delete(binding);
+                previous.userDragDisabled.unsubscribe(recomputeHandleState);
+            } else {
+                handle.setAttribute("role", "button");
+                handle.addEventListener("mousedown", startDrag);
+                handle.addEventListener("touchstart", startDrag);
+                handle.addEventListener("keydown", handleKeyDown);
+                isItemsDragDisabled.subscribe(recomputeHandleState);
+            }
+            state.handles.add(binding);
+            // subscribe runs recomputeHandleState, so the handle shows its new zone's state at once
+            state.userDragDisabled.subscribe(recomputeHandleState);
+        },
+    };
 
-    handle.addEventListener("mousedown", startDrag);
-    handle.addEventListener("touchstart", startDrag);
-    handle.addEventListener("keydown", handleKeyDown);
-    return {
-        update: () => {},
-        destroy: () => {
+    const zone = findZoneOf(handle);
+    const state = zone && zoneToState.get(zone);
+    if (state) {
+        binding.bind(state);
+    } else {
+        pendingHandles.add(handle);
+        pendingHandleToBinding.set(handle, binding);
+    }
+
+    return () => {
+        if (pendingHandles.delete(handle)) {
+            pendingHandleToBinding.delete(handle);
+            printDebug(() => ["dragHandle found no dragHandleZone, so it did nothing", handle]);
+        }
+        if (boundState) {
             handle.removeEventListener("mousedown", startDrag);
             handle.removeEventListener("touchstart", startDrag);
             handle.removeEventListener("keydown", handleKeyDown);
-            userDragDisabled.unsubscribe(recomputeHandleState);
             isItemsDragDisabled.unsubscribe(recomputeHandleState);
-        },
+            boundState.userDragDisabled.unsubscribe(recomputeHandleState);
+            boundState.handles.delete(binding);
+            boundState = undefined;
+        }
     };
 }
+
+/** For tests only: how many handles wait for their zone */
+export function _pendingHandleCount(): number {
+    return pendingHandles.size;
+}
+
+/**
+ * Turns the element into a dnd zone whose items can only be dragged from their drag handles. Mark the handle inside
+ * each item with `{@attach dragHandle}`. `dragDisabled` applies to this zone's handles only.
+ * Credit for the idea and initial implementation goes to @gleuch (Greg Leuch) and @geovie (Georg Vienna)
+ *
+ * @param getOptions - returns the zone's options, the same as for `dndzone`
+ * @example
+ * ```svelte
+ * <ul {@attach dragHandleZone(() => ({ items, onconsider: update, onfinalize: update }))}>
+ *     {#each items as item (item.id)}
+ *         <li><span {@attach dragHandle}>::</span> {item.name}</li>
+ *     {/each}
+ * </ul>
+ * ```
+ */
+export function dragHandleZone<T extends object>(getOptions: () => Options<T>): Attachment<HTMLElement> {
+    return fromAction(createHandleZone<T>, () => readOptions(getOptions));
+}
+
+/**
+ * Marks a drag handle inside an item of a `dragHandleZone`. Use it as `{@attach dragHandle}`.
+ */
+export const dragHandle: Attachment<HTMLElement> = attachHandle;

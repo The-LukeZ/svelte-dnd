@@ -7,11 +7,16 @@ import {
 } from "./constants";
 import { isKeyboardDragTriggerKey } from "./keyboardDragTrigger";
 import { styleActiveDropZones, styleInactiveDropZones } from "./helpers/styler";
-import { dispatchConsiderEvent, dispatchFinalizeEvent } from "./helpers/dispatcher";
+import {
+    dispatchConsiderEvent,
+    dispatchFinalizeEvent,
+    registerZoneCallbacks,
+    unregisterZoneCallbacks,
+} from "./helpers/dispatcher";
 import { initAria, announceToScreenReader, destroyAria } from "./helpers/aria";
 import { getWindowOf, toString } from "./helpers/util";
 import { printDebug } from "./constants";
-import type { Item, Options } from "./types";
+import type { DndEvent, Item, Options } from "./types";
 
 // The config of a zone
 type Config = {
@@ -24,6 +29,9 @@ type Config = {
     dropTargetStyle: Record<string, string>;
     dropTargetClasses: string[];
     autoAriaDisabled: boolean;
+    // kept so that triggerAllDzsUpdate, which configures a zone from its config, keeps the zone's callbacks
+    onconsider?: (e: DndEvent) => void;
+    onfinalize?: (e: DndEvent) => void;
 };
 // The global handlers that a document registration added to its window, by event type
 type Registration = {
@@ -43,7 +51,7 @@ let draggedItemType: string | null | undefined;
 let focusedDz: HTMLElement | null | undefined;
 let focusedDzLabel = "";
 let focusedItem: HTMLElement | null | undefined;
-let focusedItemId: string | null | undefined;
+let focusedItemId: unknown;
 let focusedItemLabel = "";
 // Like pointer dragging, a keyboard drag only has destinations in the document it started in.
 let dragDocument: Document | undefined;
@@ -362,10 +370,7 @@ function handleDrop(dispatchConsider = true): void {
     triggerAllDzsUpdate();
 }
 //////
-export function dndzone<T extends Item>(
-    node: HTMLElement,
-    options: Options<T>,
-): { update(newOptions: Options<T>): void; destroy(): void } {
+export function dndzone(node: HTMLElement, options: Options): { update(newOptions: Options): void; destroy(): void } {
     let destroyed = false;
     // configure(options) below sets items and type. Before that only the first configure call reads them, and it checks
     // config.type before setting it.
@@ -572,7 +577,13 @@ export function dndzone<T extends Item>(
         dropTargetStyle = DEFAULT_DROP_TARGET_STYLE,
         dropTargetClasses = [],
         autoAriaDisabled = false,
-    }: Options<T>): void {
+        onconsider,
+        onfinalize,
+    }: Options): void {
+        config.onconsider = onconsider;
+        config.onfinalize = onfinalize;
+        // a torn-down zone gets no callbacks, even when the drop that its teardown causes configures it once more
+        if (!destroyed) registerZoneCallbacks(node, { onconsider, onfinalize });
         config.items = [...items];
         config.dragDisabled = dragDisabled;
         config.dropFromOthersDisabled = dropFromOthersDisabled;
@@ -655,14 +666,16 @@ export function dndzone<T extends Item>(
     }
     configure(options);
 
-    const handles: { update(newOptions: Options<T>): void; destroy(): void } = {
-        update: (newOptions: Options<T>) => {
+    const handles: { update(newOptions: Options): void; destroy(): void } = {
+        update: (newOptions: Options) => {
             printDebug(() => `keyboard dndzone will update newOptions: ${toString(newOptions)}`);
             configure(newOptions);
         },
         destroy: () => {
             if (destroyed) return;
             destroyed = true;
+            // destroying the focused zone drops into it below, and a torn-down zone gets no callbacks
+            unregisterZoneCallbacks(node);
             printDebug(() => "keyboard dndzone will destroy");
             node.removeEventListener("focus", handleZoneFocus);
             // removeEventListener ignores undefined, which it gets for a child without a listener

@@ -1,6 +1,7 @@
 import { TRIGGERS } from "../src/constants";
 import type { Options } from "../src/types";
 import { alertText, createFrame, createList, failOnListenerErrors, key, mouse } from "./helpers/otherWindow";
+import type { NamedItem } from "./helpers/otherWindow";
 
 failOnListenerErrors();
 
@@ -98,7 +99,7 @@ describe("drop-target eligibility", () => {
         source.win.dispatchEvent(mouse(source.win, "mousemove", 50, 20));
         cleanups.push(() => source.win.dispatchEvent(mouse(source.win, "mouseup", 50, 20)));
     }
-    function update(created: ReturnType<typeof createList>, options: Partial<Options>): void {
+    function update(created: ReturnType<typeof createList>, options: Partial<Options<NamedItem>>): void {
         created.action.update({
             items: created.names().map((name) => ({ id: name, name })),
             dropAnimationDisabled: true,

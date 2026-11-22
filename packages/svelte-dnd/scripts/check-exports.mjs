@@ -1,22 +1,17 @@
-// Checks that the ESM and CJS builds export exactly the public API of src/index.js.
+// Checks that the ESM and CJS builds export exactly the public API of src/index.ts.
 import { createRequire } from "node:module";
 
 const EXPECTED = [
     "dndzone",
     "dragHandleZone",
     "dragHandle",
+    "configure",
     "alertToScreenReader",
-    "setAriaStrings",
-    "setKeyboardDragTrigger",
     "TRIGGERS",
     "SOURCES",
     "SHADOW_ITEM_MARKER_PROPERTY_NAME",
     "SHADOW_PLACEHOLDER_ITEM_ID",
     "DRAGGED_ELEMENT_ID",
-    "overrideItemIdKeyNameBeforeInitialisingDndZones",
-    "setDebugMode",
-    "setFeatureFlag",
-    "FEATURE_FLAG_NAMES",
 ].sort();
 
 const require = createRequire(import.meta.url);
