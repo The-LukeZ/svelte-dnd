@@ -354,7 +354,7 @@ A dndzone can live in another window than the one that loaded the library: a sam
 
 This is useful when one app mounts components into several documents (for example, a pop-out editor). A self-contained iframe that loads its own app and imports the library there could already use it without this feature. The difference is that the code can now be loaded in one document while its zones live in another; it does not add dragging between documents.
 
-See the [official example REPL](https://svelte.dev/playground/be37a2f642a14a21ae8c5c11bf0a8055?version=4.2.20) and its [source and setup instructions](examples/other-windows/README.md). For iframe/popup interaction inside Playground, fork/save and reload under your account, or download and run locally.
+See the iframes and popup demo on the docs site, at `/docs/demos/other-windows`.
 
 - Both pointer and keyboard drags stay in the document they started in. They can move items between eligible same-type zones inside that document, but not between the page and an iframe, between sibling iframes, or between popup windows.
 - Each document with zones gets its own screen-reader instructions and announcements. For a custom announcement about a zone in another document, pass that document: `alertToScreenReader(text, zone.ownerDocument)`.

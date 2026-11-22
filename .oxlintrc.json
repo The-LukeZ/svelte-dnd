@@ -21,7 +21,7 @@
         "no-redeclare": "error",
         "no-unexpected-multiline": "error"
     },
-    "ignorePatterns": ["**/dist/**", "**/node_modules/**", "examples/**"],
+    "ignorePatterns": ["**/dist/**", "**/node_modules/**"],
     // A dndzone can live in another window than the one that loaded the library (a same-origin iframe, a popup or an
     // Electron window). Work for a zone uses the zone's own window and document, from getWindowOf in src/helpers/util.ts or
     // from an element's ownerDocument, rather than the loading window's globals.
