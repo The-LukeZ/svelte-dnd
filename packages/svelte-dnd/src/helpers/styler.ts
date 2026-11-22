@@ -60,10 +60,13 @@ export function createDraggedElementFrom(
         }, 0);
     }
     draggedEl.style.margin = "0";
-    // we can't have relative or automatic height and width or it will break the illusion
-    draggedEl.style.boxSizing = "border-box";
-    draggedEl.style.height = `${rect.height}px`;
-    draggedEl.style.width = `${rect.width}px`;
+    // We can't have relative or automatic height and width or it will break the illusion. With useComputedStyleForRects
+    // copyStylesFromTo set the computed width, height and box-sizing, which are in pixels, so the stale rect is not used.
+    if (!useComputedStyleForRects) {
+        draggedEl.style.boxSizing = "border-box";
+        draggedEl.style.height = `${rect.height}px`;
+        draggedEl.style.width = `${rect.width}px`;
+    }
     draggedEl.style.transition = `${trs("top")}, ${trs("left")}, ${trs("background-color")}, ${trs("opacity")}, ${trs("color")} `;
     // this is a workaround for a strange browser bug that causes the right border to disappear when all the transitions are added at the same time
     win.setTimeout(() => ensureMorphSizeTransitions(draggedEl), 0);
@@ -131,8 +134,9 @@ function copyStylesFromTo(copyFromEl: HTMLElement, copyToEl: HTMLElement, useCom
                 s === "opacity" ||
                 s === "color" ||
                 s === "list-style-type" ||
-                // copying with and height to make up for rect update timing issues in some browsers
-                (useComputedStyleForRects && (s === "width" || s === "height")),
+                // copying with and height to make up for rect update timing issues in some browsers, and box-sizing so
+                // that they size the copy as they size the original
+                (useComputedStyleForRects && (s === "width" || s === "height" || s === "box-sizing")),
         )
         .forEach((s) =>
             copyToEl.style.setProperty(s, computedStyle.getPropertyValue(s), computedStyle.getPropertyPriority(s)),

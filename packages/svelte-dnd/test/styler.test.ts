@@ -111,4 +111,32 @@ describe("styler", () => {
             computedEl.remove();
         }
     });
+
+    it("useComputedStyleForRects sizes the dragged clone from the computed style at drag start", () => {
+        // a content-box item whose bounding rect lags behind its computed size, the situation of issue 454
+        const originalEl = createElement(100, 80);
+        originalEl.style.padding = "10px";
+        originalEl.style.boxSizing = "content-box";
+        stubRenderedRect(originalEl, { left: 0, top: 0, width: 300, height: 300 });
+        let plainEl: HTMLElement | undefined;
+        let computedEl: HTMLElement | undefined;
+
+        try {
+            plainEl = createDraggedElementFrom(originalEl);
+            computedEl = createDraggedElementFrom(originalEl, undefined, true);
+
+            expect(plainEl.style.width, "default: sized from the rect").to.equal("300px");
+            expect(plainEl.style.height).to.equal("300px");
+            expect(plainEl.style.boxSizing).to.equal("border-box");
+            expect(computedEl.style.width, "flag: the computed width is kept").to.equal("100px");
+            expect(computedEl.style.height).to.equal("80px");
+            expect(computedEl.style.boxSizing, "so the computed size means what it meant on the item").to.equal(
+                "content-box",
+            );
+        } finally {
+            originalEl.remove();
+            plainEl?.remove();
+            computedEl?.remove();
+        }
+    });
 });

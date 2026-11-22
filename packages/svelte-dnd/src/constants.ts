@@ -86,8 +86,9 @@ export const SHADOW_ITEM_MARKER_PROPERTY_NAME = "isDndShadowItem";
 export const SHADOW_ELEMENT_ATTRIBUTE_NAME = "data-is-dnd-shadow-item-internal";
 export const SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME = "data-is-dnd-shadow-item-hint";
 /**
- * The id of the shadow item during a pointer drag. Each zone's items get the dragged item back, with its own id, when
- * the drag ends.
+ * The id of the shadow item when a pointer drag starts. Once the zone no longer renders the original item, usually a
+ * frame later, the shadow item takes the dragged item's id for the rest of the drag. To find the shadow item, check
+ * `SHADOW_ITEM_MARKER_PROPERTY_NAME` instead of this id.
  */
 export const SHADOW_PLACEHOLDER_ITEM_ID = "id:dnd-shadow-placeholder-0000";
 /** The id of the element that follows the pointer during a pointer drag, for styling it or finding it in tests. */

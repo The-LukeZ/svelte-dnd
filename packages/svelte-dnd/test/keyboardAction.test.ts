@@ -214,6 +214,46 @@ describe("keyboardAction", () => {
         expect(dragStoppedOn, "should stop the drag in its original zone").to.deep.equal([zoneA]);
     });
 
+    it("stops the drag before a click on another item grabs that item", () => {
+        const calls: [string, TRIGGERS, unknown][] = [];
+        const record = (zone: string) => (e: DndEvent) => calls.push([zone, e.info.trigger, e.info.id]);
+        const {
+            children: [itemA],
+        } = createZone([{ id: "a" }, { id: "b" }], { onconsider: record("one") });
+        const {
+            children: [itemC],
+        } = createZone([{ id: "c" }], { onconsider: record("two") });
+
+        itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
+        itemC.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+
+        expect(calls).to.deep.equal([
+            ["one", TRIGGERS.DRAG_STARTED, "a"],
+            ["one", TRIGGERS.DRAG_STOPPED, "a"],
+            ["two", TRIGGERS.DRAG_STARTED, "c"],
+        ]);
+    });
+
+    it("does not grab the clicked item when the drag-stopped handler disables dragging", () => {
+        const triggers: TRIGGERS[] = [];
+        const {
+            action,
+            children: [itemA, itemB],
+        } = createZone([{ id: "a" }, { id: "b" }], {
+            onconsider: (e) => {
+                triggers.push(e.info.trigger);
+                if (e.info.trigger === TRIGGERS.DRAG_STOPPED) {
+                    action.update({ items: [{ id: "a" }, { id: "b" }], dragDisabled: true });
+                }
+            },
+        });
+
+        itemA.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true }));
+        itemB.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+
+        expect(triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DRAG_STOPPED]);
+    });
+
     it("ends the grab when a consumer removes the grabbed item from every zone", () => {
         const triggers: TRIGGERS[] = [];
         const {
