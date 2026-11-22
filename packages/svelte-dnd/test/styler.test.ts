@@ -1,7 +1,7 @@
 import { createDraggedElementFrom, morphDraggedElementToBeLike } from "../src/helpers/styler";
 import { FEATURE_FLAG_NAMES, setFeatureFlag } from "../src/featureFlags";
 
-function createElement(width, height) {
+function createElement(width: number, height: number): HTMLElement {
     const element = document.createElement("div");
     element.style.width = `${width}px`;
     element.style.height = `${height}px`;
@@ -12,15 +12,20 @@ function createElement(width, height) {
     return element;
 }
 
-function stubRenderedRect(element, { left, top, width, height }) {
-    element.getBoundingClientRect = () => ({
-        left,
-        top,
-        right: left + width,
-        bottom: top + height,
-        width,
-        height,
-    });
+function stubRenderedRect(
+    element: HTMLElement,
+    { left, top, width, height }: { left: number; top: number; width: number; height: number },
+): void {
+    // only the fields the library reads
+    element.getBoundingClientRect = () =>
+        ({
+            left,
+            top,
+            right: left + width,
+            bottom: top + height,
+            width,
+            height,
+        }) as DOMRect;
 }
 
 describe("styler", () => {
@@ -40,7 +45,7 @@ describe("styler", () => {
                 return new Proxy(computedStyle, {
                     get(target, property) {
                         if (property === "left" || property === "top") return "25px";
-                        const value = target[property];
+                        const value = (target as any)[property];
                         return typeof value === "function" ? value.bind(target) : value;
                     },
                 });
@@ -70,8 +75,8 @@ describe("styler", () => {
         const originalEl = createElement(100, 100);
         const targetEl = createElement(200, 200);
         const nativeSetTimeout = window.setTimeout;
-        window.setTimeout = () => 1;
-        let draggedEl;
+        window.setTimeout = (() => 1) as unknown as typeof window.setTimeout;
+        let draggedEl: HTMLElement | undefined;
 
         try {
             draggedEl = createDraggedElementFrom(originalEl);
