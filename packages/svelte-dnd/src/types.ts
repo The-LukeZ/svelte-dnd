@@ -33,7 +33,8 @@ export interface Options<T extends object = Item> {
      */
     dragDisabled?: boolean;
     /**
-     * Whether the dragged element keeps its own shape instead of taking the size and styles of the zone it hovers over.
+     * Whether the dragged element keeps its own shape instead of taking the size and styles of the placeholder item in
+     * the zone it hovers over.
      * @default false
      */
     morphDisabled?: boolean;
