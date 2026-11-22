@@ -1,5 +1,7 @@
 // oxlint-disable-next-line no-redeclare -- the value and its union type share a name, as the old enum did
-export const FEATURE_FLAG_NAMES = Object.freeze({
+export const FEATURE_FLAG_NAMES: Readonly<{
+    USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT: "USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT";
+}> = Object.freeze({
     // Default value: false, This flag exists as a workaround for issue 454 (basically a browser bug) - seems like these rect values take time to update when in grid layout. Setting it to true can cause strange behaviour in the REPL for non-grid zones, see issue 470
     USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT: "USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT",
 } as const);

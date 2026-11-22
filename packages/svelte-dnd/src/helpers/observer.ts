@@ -25,7 +25,7 @@ let currentObservation: object | undefined;
 export function observe(
     draggedEl: HTMLElement,
     dropZones: Set<HTMLElement>,
-    intervalMs = INTERVAL_MS,
+    intervalMs: number | undefined = INTERVAL_MS,
     multiScroller: MultiScroller,
     getReferencePoint: () => Point,
 ): void {

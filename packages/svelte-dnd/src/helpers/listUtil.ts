@@ -12,7 +12,7 @@ let dzToShadowIndexToRect: Map<HTMLElement, Map<number, Rect>>;
 /**
  * Resets the cache that allows for smarter "would be index" resolution. Should be called after every drag operation
  */
-export function resetIndexesCache() {
+export function resetIndexesCache(): void {
     printDebug(() => "resetting indexes cache");
     dzToShadowIndexToRect = new Map();
 }

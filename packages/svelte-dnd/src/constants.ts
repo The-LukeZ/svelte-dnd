@@ -40,7 +40,7 @@ export type SOURCES = (typeof SOURCES)[keyof typeof SOURCES];
 // Maps each valid global keyboardDragTrigger value (see setKeyboardDragTrigger) to the
 // KeyboardEvent.key values it covers. Keys that are not part of the active trigger are left
 // completely untouched by the library.
-export const KEYBOARD_DRAG_TRIGGER_KEYS = {
+export const KEYBOARD_DRAG_TRIGGER_KEYS: { space: string[]; enter: string[]; space_or_enter: string[] } = {
     space: [" "],
     enter: ["Enter"],
     space_or_enter: [" ", "Enter"],
@@ -90,7 +90,7 @@ export function overrideItemIdKeyNameBeforeInitialisingDndZones(newKeyName: stri
 }
 
 // eslint-disable-next-line no-restricted-globals -- detects server-side rendering
-export const isOnServer = typeof window === "undefined";
+export const isOnServer: boolean = typeof window === "undefined";
 
 export let printDebug: (generateMessage: () => unknown, logFunction?: (...args: unknown[]) => void) => void = () => {};
 

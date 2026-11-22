@@ -13,7 +13,7 @@ export type MultiScroller = {
  * Creates a scroller than can scroll any of the provided containers or any of their scrollable parents (including the document's scrolling element)
  */
 export function createMultiScroller(
-    baseElementsForScrolling: Iterable<HTMLElement> = [],
+    baseElementsForScrolling: Iterable<HTMLElement> | undefined = [],
     getPointerPosition: () => Point | undefined,
 ): MultiScroller {
     printDebug(() => "creating multi-scroller");
