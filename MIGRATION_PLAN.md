@@ -62,8 +62,8 @@ This repo is a hard fork of [`svelte-dnd-action`](https://github.com/isaacHagoel
 - ~3,100 lines of plain JS DOM logic in `src/`. No Svelte imports; `svelte` is only a peer dependency.
 - Public exports (`src/index.js`): `dndzone`, `dragHandleZone`, `dragHandle`, `alertToScreenReader`, `setAriaStrings`, `setKeyboardDragTrigger`, constants (`TRIGGERS`, `SOURCES`, `SHADOW_ITEM_MARKER_PROPERTY_NAME`, `SHADOW_PLACEHOLDER_ITEM_ID`, `DRAGGED_ELEMENT_ID`, `overrideItemIdKeyNameBeforeInitialisingDndZones`, `setDebugMode`), `setFeatureFlag`, `FEATURE_FLAG_NAMES`.
 - Hand-written types in `typings/index.d.ts`.
-- 15 Cypress specs in `cypress/integration/`, mostly unit-style tests run in a real browser; `otherWindow*` specs need real iframes/popups (support in `cypress/support/other-windows`).
-- Tooling (after stage 1): pnpm workspace, tsdown (ESM + CJS), oxlint, Prettier 3, husky 9 + lint-staged, changesets (pre mode `next`), GitHub Actions CI. Originally Rollup 2 + Babel, ESLint 7, Prettier 2, husky 4, Yarn 1, no CI.
+- 195 tests in `packages/svelte-dnd/test/`, run by Vitest browser mode (Playwright) on Chromium, Firefox and WebKit; other-window tests use real iframes and popups (`test/helpers/otherWindow.js`).
+- Tooling (after stage 2): pnpm workspace, tsdown (ESM + CJS), Vitest browser mode (Playwright), oxlint, Prettier 3, husky 9 + lint-staged, changesets (pre mode `next`), GitHub Actions CI. Originally Rollup 2 + Babel, ESLint 7, Prettier 2, husky 4, Yarn 1, no CI.
 - `examples/` is a list of REPL links. `release-notes.md` holds the upstream history.
 
 ## Stages
@@ -81,7 +81,7 @@ This repo is a hard fork of [`svelte-dnd-action`](https://github.com/isaacHagoel
 - Add changesets (config only, enter pre mode with tag `next`; no publish yet).
 - Done when: `pnpm build`, `pnpm lint`, Cypress all green in CI.
 
-### Stage 2: Tests to Vitest browser mode
+### Stage 2: Tests to Vitest browser mode (done)
 
 - Port all 15 Cypress specs to Vitest browser mode (Playwright: Chromium, Firefox, WebKit).
 - Port the other-window harness (iframe and popup fixtures) and confirm those specs pass.
