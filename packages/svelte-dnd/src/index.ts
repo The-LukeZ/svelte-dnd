@@ -1,4 +1,4 @@
-export { dndzone } from "./action.js";
+export { dndzone } from "./action";
 export { dragHandleZone, dragHandle } from "./wrappers/withDragHandles";
 export { alertToScreenReader, setAriaStrings } from "./helpers/aria";
 export { setKeyboardDragTrigger } from "./keyboardDragTrigger";
@@ -13,3 +13,13 @@ export {
 } from "./constants";
 
 export { setFeatureFlag, FEATURE_FLAG_NAMES } from "./featureFlags";
+
+export type {
+    Item,
+    Options,
+    TransformDraggedElementFunction,
+    DndZoneAttributes,
+    AriaStrings,
+    DndEventInfo,
+    DndEvent,
+} from "./types";

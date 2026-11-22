@@ -2,7 +2,7 @@ import { copyFile } from "node:fs/promises";
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-    entry: ["src/index.js"],
+    entry: ["src/index.ts"],
     format: ["esm", "cjs"],
     outDir: "dist",
     target: "es2020",
