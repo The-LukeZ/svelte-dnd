@@ -10,7 +10,7 @@ order: 3
 
 | `svelte-dnd-action`                                                                          | `@lukez/svelte-dnd`                                                        |
 | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `npm i svelte-dnd-action`                                                                    | `npm i @lukez/svelte-dnd@next`                                             |
+| `npm i svelte-dnd-action`                                                                    | `npm i @lukez/svelte-dnd`                                                  |
 | Svelte 3, 4 or 5                                                                             | Svelte `^5.32.0`                                                           |
 | `use:dndzone={options}`                                                                      | `{@attach dndzone(() => ({ ...options }))}`                                |
 | `on:consider`, `on:finalize`, `e.detail`                                                     | `onconsider`, `onfinalize` options, `e`                                    |
