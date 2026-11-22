@@ -59,6 +59,10 @@
     // Moves the wrapper Svelte rendered here into the other document, and only then lets the lists render
     // inside it, so each zone starts out in its final document. dndzone works with the zone's own document
     // and window: its zones follow the pointer, the keyboard and the screen reader there.
+    // Moving nodes is a workaround that keeps this demo to one file. Svelte delegates onclick, oninput,
+    // onkeydown and similar handlers to the page, so they never fire on moved elements. In an app, mount
+    // a component into the other document instead, with mount(Lists, { target: otherDoc.body }), and copy
+    // its styles there as shareStyles does.
     function moveInto(doc: Document, place: "frame" | "popup") {
         return (element: HTMLElement) => {
             const stopSharing = shareStyles(doc);
