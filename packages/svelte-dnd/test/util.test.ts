@@ -37,8 +37,8 @@ describe("util", () => {
         });
     });
     describe("debug output can be configured", () => {
-        let consoleStub = null;
-        const logStub = (message) => (consoleStub = message);
+        let consoleStub: unknown = null;
+        const logStub = (message: unknown) => (consoleStub = message);
         const logMessage = () => "some debug message";
 
         it("does not log anything by default", () => {
