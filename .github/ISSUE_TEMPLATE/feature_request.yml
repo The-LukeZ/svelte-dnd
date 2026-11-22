@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest a new option, behavior or API.
+labels: [enhancement]
+body:
+    - type: textarea
+      id: problem
+      attributes:
+          label: The problem
+          description: What you are trying to build, and what stops you today.
+      validations:
+          required: true
+    - type: textarea
+      id: proposal
+      attributes:
+          label: Proposed solution
+          description: How you would like it to work. Code showing the API you have in mind helps.
+    - type: textarea
+      id: alternatives
+      attributes:
+          label: Alternatives
+          description: Workarounds you use now or other approaches you considered.

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+    - name: Documentation
+      url: https://svelte-dnd.thelukez.com
+      about: Guides, API reference and demos.
+    - name: Migrating from svelte-dnd-action
+      url: https://svelte-dnd.thelukez.com/docs/migrating
+      about: Steps to move from the original action-based API.

@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in @lukez/svelte-dnd does not work as documented.
+labels: [bug]
+body:
+    - type: textarea
+      id: what
+      attributes:
+          label: What happened
+          description: What you did, what you expected, and what happened instead.
+      validations:
+          required: true
+    - type: input
+      id: repro
+      attributes:
+          label: Reproduction
+          description: A Svelte playground or StackBlitz link, or a small repository. Issues without one take longer to fix.
+          placeholder: https://svelte.dev/playground/...
+    - type: textarea
+      id: steps
+      attributes:
+          label: Steps to reproduce
+          placeholder: |
+              1. Drag the first item over the second zone
+              2. Release
+    - type: input
+      id: version
+      attributes:
+          label: "@lukez/svelte-dnd version"
+          placeholder: 1.0.0
+      validations:
+          required: true
+    - type: input
+      id: svelte
+      attributes:
+          label: Svelte version
+          placeholder: 5.32.0
+      validations:
+          required: true
+    - type: dropdown
+      id: input
+      attributes:
+          label: Input method
+          multiple: true
+          options:
+              - Mouse
+              - Touch
+              - Keyboard
+              - Screen reader
+    - type: input
+      id: browser
+      attributes:
+          label: Browser and OS
+          placeholder: Firefox 140, Windows 11
