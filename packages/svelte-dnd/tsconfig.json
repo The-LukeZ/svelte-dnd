@@ -12,6 +12,6 @@
         "skipLibCheck": true,
         "types": ["vitest/globals"]
     },
-    "include": ["src", "test", "vitest.config.mts", "tsdown.config.ts"],
+    "include": ["src", "test", "test/**/*.svelte", "vitest.config.mts", "tsdown.config.ts"],
     "exclude": ["test/**/*.test-d.ts", "dist"]
 }

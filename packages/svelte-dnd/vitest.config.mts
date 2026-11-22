@@ -1,7 +1,9 @@
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 const config: ViteUserConfig = defineConfig({
+    plugins: [svelte({ configFile: false })],
     test: {
         include: ["test/**/*.test.ts"],
         globals: true,
