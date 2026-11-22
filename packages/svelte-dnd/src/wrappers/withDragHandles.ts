@@ -3,11 +3,13 @@ import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
 import { dndzone } from "../action";
 import { createStore } from "./simpleStore";
 import { getWindowOf } from "../helpers/util";
+import type { ActionReturn } from "svelte/action";
+import type { DndEvent, DndZoneAttributes, Item, Options } from "../types";
 
 const isItemsDragDisabled = createStore(true);
 const userDragDisabled = createStore(false);
 
-function getAddedOptions() {
+function getAddedOptions(): { dragDisabled: boolean; zoneItemTabIndex: number } {
     return {
         dragDisabled: userDragDisabled.get() || isItemsDragDisabled.get(),
         zoneItemTabIndex: -1,
@@ -15,15 +17,18 @@ function getAddedOptions() {
 }
 
 /**
+ * A wrapper action to make it easy to work with drag handles.
+ * When using this you must also use the 'dragHandle' action on an element inside each item within the zone.
  * This is an action that wraps around the dndzone action to make it easy to work with drag handles
  * When using this you must also use the 'dragHandle' action (see below) on an element inside each item within the zone
  * Credit for the idea and initial implementation goes to @gleuch (Greg Leuch) and @geovie (Georg Vienna)
  *
- * @param {HTMLElement} node
  * @param options - will be passed down to the dndzone
- * @return {{update: (newOptions: Object) => {}, destroy: () => {}}}
  */
-export function dragHandleZone(node, options) {
+export function dragHandleZone<T extends Item>(
+    node: HTMLElement,
+    options: Options<T>,
+): ActionReturn<Options<T>, DndZoneAttributes<T>> {
     // Initialise stores from initial options
     userDragDisabled.set(options?.dragDisabled ?? false);
 
@@ -34,8 +39,9 @@ export function dragHandleZone(node, options) {
         ...getAddedOptions(),
     });
 
-    function updateZone() {
-        zone.update({
+    // dndzone always returns both update and destroy
+    function updateZone(): void {
+        zone.update!({
             ...currentOptions,
             ...getAddedOptions(),
         });
@@ -48,7 +54,7 @@ export function dragHandleZone(node, options) {
     // it always come through the `update` lifecycle and will call `updateZone`
     // anyway.
 
-    function consider(e) {
+    function consider(e: CustomEvent<DndEvent<T>>): void {
         const {
             info: { source, trigger },
         } = e.detail;
@@ -58,7 +64,7 @@ export function dragHandleZone(node, options) {
         }
     }
 
-    function finalize(e) {
+    function finalize(e: CustomEvent<DndEvent<T>>): void {
         const {
             info: { source },
         } = e.detail;
@@ -68,20 +74,22 @@ export function dragHandleZone(node, options) {
         }
     }
 
-    node.addEventListener("consider", consider);
-    node.addEventListener("finalize", finalize);
+    // the handlers take the CustomEvents that helpers/dispatcher dispatches on the zone
+    node.addEventListener("consider", consider as EventListener);
+    node.addEventListener("finalize", finalize as EventListener);
 
     return {
-        update: (newOptions) => {
+        update: (newOptions: Options<T>) => {
             currentOptions = newOptions;
             // keep store in sync with external prop
             userDragDisabled.set(currentOptions?.dragDisabled ?? false);
             updateZone();
         },
         destroy: () => {
-            zone.destroy();
-            node.removeEventListener("consider", consider);
-            node.removeEventListener("finalize", finalize);
+            // dndzone always returns both update and destroy
+            zone.destroy!();
+            node.removeEventListener("consider", consider as EventListener);
+            node.removeEventListener("finalize", finalize as EventListener);
             isItemsDragDisabled.unsubscribe(updateZone);
         },
     };
@@ -89,14 +97,13 @@ export function dragHandleZone(node, options) {
 
 /**
  * This should be used to mark drag handles inside items that belong to a 'dragHandleZone' (see above)
- * @param {HTMLElement} handle
- * @return {{update: *, destroy: *}}
  */
-export function dragHandle(handle) {
+export function dragHandle(handle: HTMLElement): { update: () => void; destroy: () => void } {
     handle.setAttribute("role", "button");
-    let releaseWindow;
+    // set in startDrag before resetStartDrag is registered, and resetStartDrag is the only reader
+    let releaseWindow: Window;
 
-    function startDrag(e) {
+    function startDrag(e: MouseEvent | TouchEvent): void {
         // preventing default to prevent lag on touch devices (because of the browser checking for screen scrolling)
         e.preventDefault();
         isItemsDragDisabled.set(false);
@@ -109,18 +116,18 @@ export function dragHandle(handle) {
         releaseWindow.addEventListener("pagehide", resetStartDrag);
     }
 
-    function handleKeyDown(e) {
+    function handleKeyDown(e: KeyboardEvent): void {
         if (isKeyboardDragTriggerKey(e.key)) isItemsDragDisabled.set(false);
     }
 
-    function resetStartDrag() {
+    function resetStartDrag(): void {
         isItemsDragDisabled.set(true);
         releaseWindow.removeEventListener("mouseup", resetStartDrag);
         releaseWindow.removeEventListener("touchend", resetStartDrag);
         releaseWindow.removeEventListener("pagehide", resetStartDrag);
     }
 
-    const recomputeHandleState = () => {
+    const recomputeHandleState = (): void => {
         const userDisabled = userDragDisabled.get();
         const internalDisabled = isItemsDragDisabled.get();
 
