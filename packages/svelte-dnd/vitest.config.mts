@@ -3,7 +3,7 @@ import { defineConfig, type ViteUserConfig } from "vitest/config";
 
 const config: ViteUserConfig = defineConfig({
     test: {
-        include: ["test/**/*.test.{js,ts}"],
+        include: ["test/**/*.test.ts"],
         globals: true,
         // Vitest's default, kept explicit: files run in parallel. Each file runs in its own iframe, so its patched globals
         // (setTimeout, requestAnimationFrame) stay in that file.

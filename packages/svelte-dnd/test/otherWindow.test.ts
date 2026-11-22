@@ -2,6 +2,9 @@ import { dndzone } from "../src/pointerAction";
 import { dndzone as pointerAndKeyboardDndzone } from "../src/action";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
 import { setAriaStrings } from "../src/helpers/aria";
+import type { WindowWithGlobals } from "../src/helpers/util";
+import type { DndEvent, DndZoneAttributes, Item, Options } from "../src/types";
+import type { ActionReturn } from "svelte/action";
 import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../src/constants";
 import { createFrame, createList, failOnListenerErrors, openPopup } from "./helpers/otherWindow";
 
@@ -10,13 +13,18 @@ failOnListenerErrors();
 // A same-origin iframe stands in for any other window the zone can live in (for example a popup
 // opened with window.open): its own Window and Document, while this module was loaded by the
 // test page's window.
-function createZoneInFrame(options = {}, makeZone = dndzone) {
+function createZoneInFrame(
+    options: Partial<Options> = {},
+    makeZone: (node: HTMLElement, options: Options) => ActionReturn<Options, DndZoneAttributes<Item>> = dndzone,
+) {
     const frame = document.createElement("iframe");
     frame.style.width = "300px";
     frame.style.height = "150px";
     document.body.appendChild(frame);
-    const win = frame.contentWindow;
-    const doc = frame.contentDocument;
+    // the frame is attached to the document above, so it has a contentWindow and a contentDocument; the window is
+    // same-origin, so it has the globals of its own realm
+    const win = frame.contentWindow as WindowWithGlobals;
+    const doc = frame.contentDocument!;
     doc.write("<!DOCTYPE html><body></body>");
     doc.close();
     const zone = doc.createElement("div");
@@ -28,31 +36,34 @@ function createZoneInFrame(options = {}, makeZone = dndzone) {
     item.textContent = "item";
     zone.appendChild(item);
     doc.body.appendChild(zone);
-    const triggers = [];
-    zone.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
-    zone.addEventListener("finalize", (e) => triggers.push(e.detail.info.trigger));
-    const action = makeZone(zone, { items: [{ id: 1 }], ...options });
+    const triggers: TRIGGERS[] = [];
+    zone.addEventListener("consider", (e) => triggers.push((e as CustomEvent<DndEvent>).detail.info.trigger));
+    zone.addEventListener("finalize", (e) => triggers.push((e as CustomEvent<DndEvent>).detail.info.trigger));
+    // every zone action returns update and destroy; the ActionReturn type marks them optional
+    const action = makeZone(zone, { items: [{ id: 1 }], ...options }) as Required<
+        ActionReturn<Options, DndZoneAttributes<Item>>
+    >;
     return { action, doc, frame, item, triggers, win, zone };
 }
 
-function mouse(win, type, x, y = x) {
+function mouse(win: WindowWithGlobals, type: string, x: number, y = x) {
     return new win.MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
 }
 
-function startMouseDrag({ item, win }) {
+function startMouseDrag({ item, win }: { item: HTMLElement; win: WindowWithGlobals }) {
     item.dispatchEvent(mouse(win, "mousedown", 5));
     win.dispatchEvent(mouse(win, "mousemove", 10));
 }
 
-const last = (list) => list.triggers[list.triggers.length - 1];
-function listInFrame(options = {}, parent = document) {
+const last = (list: { triggers: TRIGGERS[] }) => list.triggers[list.triggers.length - 1];
+function listInFrame(options: Partial<Parameters<typeof createList>[1]> = {}, parent = document) {
     const frame = createFrame({ parent });
     return {
         ...frame,
         list: createList(frame.doc, { label: "Frame", names: ["f1", "f2"], dropAnimationDisabled: true, ...options }),
     };
 }
-function startDrag({ list, win }) {
+function startDrag({ list, win }: { list: ReturnType<typeof createList>; win: WindowWithGlobals }) {
     list.element("f1").dispatchEvent(mouse(win, "mousedown", 15));
     win.dispatchEvent(mouse(win, "mousemove", 20));
 }
@@ -75,7 +86,8 @@ function expectALoadingWindowDragToWork() {
 
 describe("a drop zone in another window", () => {
     it("starts and finishes a pointer drag from that window's events", async () => {
-        let created;
+        // assigned at the top of the try block; the finally block tolerates a throw before that
+        let created!: ReturnType<typeof createZoneInFrame>;
         try {
             created = createZoneInFrame({ dropAnimationDisabled: true });
             startMouseDrag(created);
@@ -101,7 +113,8 @@ describe("a drop zone in another window", () => {
         // A hidden or fully covered window gets no animation frames, while the window the zone
         // is in (a popup on top of it) keeps getting them.
         const originalRequestAnimationFrame = window.requestAnimationFrame;
-        let created;
+        // assigned at the top of the try block; the finally block tolerates a throw before that
+        let created!: ReturnType<typeof createZoneInFrame>;
         try {
             window.requestAnimationFrame = () => 0;
             created = createZoneInFrame({ dropAnimationDisabled: true });
@@ -147,10 +160,13 @@ describe("a drop zone in another window", () => {
         loadingZone.appendChild(document.createElement("div"));
         wrapper.appendChild(loadingZone);
         document.body.appendChild(wrapper);
-        const loadingTriggers = [];
-        loadingZone.addEventListener("consider", (e) => loadingTriggers.push(e.detail.info.trigger));
+        const loadingTriggers: TRIGGERS[] = [];
+        loadingZone.addEventListener("consider", (e) =>
+            loadingTriggers.push((e as CustomEvent<DndEvent>).detail.info.trigger),
+        );
         const loadingAction = dndzone(loadingZone, { items: [{ id: 2 }], dropAnimationDisabled: true });
-        let created;
+        // assigned at the top of the try block; the finally block tolerates a throw before that
+        let created!: ReturnType<typeof createZoneInFrame>;
         try {
             created = createZoneInFrame({ dropAnimationDisabled: true });
             // Model the framework re-rendering the list on drag start, which starts the observation.
@@ -185,7 +201,7 @@ describe("a drop zone in another window", () => {
     it("does not style a zone in another window when its options change during a drag", () => {
         const loadingList = createList(document, { label: "Loading", names: ["l1"] });
         const created = listInFrame();
-        const updateLoadingList = (options) =>
+        const updateLoadingList = (options: Partial<Options>) =>
             loadingList.action.update({ items: [{ id: "l1", name: "l1" }], ...options });
         try {
             startDrag(created);
@@ -209,7 +225,7 @@ describe("a drop zone in another window", () => {
 });
 
 describe("keyboard and aria support for a drop zone in another window", () => {
-    let created;
+    let created: ReturnType<typeof createZoneInFrame>;
     beforeEach(() => {
         created = createZoneInFrame({}, pointerAndKeyboardDndzone);
         created.zone.setAttribute("aria-label", "To do");
@@ -220,15 +236,16 @@ describe("keyboard and aria support for a drop zone in another window", () => {
         created.frame.remove();
     });
 
-    function key(k) {
+    function key(k: string) {
         return new created.win.KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true });
     }
-    function click(el) {
+    function click(el: Element) {
         el.dispatchEvent(new created.win.MouseEvent("click", { bubbles: true, cancelable: true }));
     }
 
     it("describes the zone with instructions in the zone's document", () => {
-        const instruction = created.doc.getElementById(created.zone.getAttribute("aria-describedby"));
+        // the zone's action sets aria-describedby to the id of the instruction div it creates in the zone's document
+        const instruction = created.doc.getElementById(created.zone.getAttribute("aria-describedby")!)!;
         expect(instruction.textContent).to.equal(
             "Tab to one the items and press space-bar or enter to start dragging it",
         );
@@ -243,7 +260,8 @@ describe("keyboard and aria support for a drop zone in another window", () => {
 
     it("announces in the zone's document", () => {
         created.item.dispatchEvent(key("Enter"));
-        expect(created.doc.getElementById("dnd-action-aria-alert").textContent).to.equal(
+        // the zone's action creates the alert div in the zone's document
+        expect(created.doc.getElementById("dnd-action-aria-alert")!.textContent).to.equal(
             "Started dragging item Card A. Use the arrow keys to move it within its list To do",
         );
     });
@@ -273,8 +291,10 @@ describe("keyboard and aria support for a drop zone in another window", () => {
         const loadingItem = document.createElement("div");
         loadingZone.appendChild(loadingItem);
         document.body.appendChild(loadingZone);
-        const triggers = [];
-        loadingZone.addEventListener("consider", (e) => triggers.push(e.detail.info.trigger));
+        const triggers: TRIGGERS[] = [];
+        loadingZone.addEventListener("consider", (e) =>
+            triggers.push((e as CustomEvent<DndEvent>).detail.info.trigger),
+        );
         const loadingAction = pointerAndKeyboardDndzone(loadingZone, { items: [{ id: 2 }] });
         try {
             // A popup can close before the app destroys the zones that were in it.
@@ -284,7 +304,8 @@ describe("keyboard and aria support for a drop zone in another window", () => {
             loadingItem.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
             expect(triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DRAG_STOPPED]);
         } finally {
-            loadingAction.destroy();
+            // the full dndzone always returns destroy; the ActionReturn type marks it optional
+            loadingAction.destroy!();
             loadingZone.remove();
         }
     });
@@ -323,7 +344,8 @@ describe("a keyboard drag from a drag handle in another window", () => {
                 new created.win.KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
             );
             expect(created.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
-            expect(created.doc.getElementById("dnd-action-aria-alert").textContent).to.contain(
+            // the zone's action creates the alert div in the zone's document
+            expect(created.doc.getElementById("dnd-action-aria-alert")!.textContent).to.contain(
                 "Started dragging item Card A",
             );
             created.win.dispatchEvent(
@@ -399,7 +421,7 @@ describe("a drag in another window that goes away", () => {
                     return iframeSetTimeout.apply(created.win, args);
                 };
                 created.list.zone.addEventListener("consider", (e) => {
-                    if (e.detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
+                    if ((e as CustomEvent<DndEvent>).detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
                         created.frame.remove();
                         removed = true;
                     }
@@ -439,12 +461,12 @@ describe("a drag in another window that goes away", () => {
                     : undefined;
             try {
                 created.list.zone.addEventListener("consider", (e) => {
-                    if (e.detail.info.trigger === trigger) created.frame.remove();
+                    if ((e as CustomEvent<DndEvent>).detail.info.trigger === trigger) created.frame.remove();
                 });
                 startDrag(created);
-                const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+                const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
                 await sleep(100);
-                created.win.dispatchEvent(mouse(created.win, "mousemove", ...moveTo));
+                created.win.dispatchEvent(mouse(created.win, "mousemove", ...(moveTo as [number, number])));
                 await sleep(200);
                 finalizeCount = created.list.triggers.filter(
                     (t) => t === TRIGGERS.DROPPED_INTO_ZONE || t === TRIGGERS.DROPPED_OUTSIDE_OF_ANY,
@@ -568,7 +590,8 @@ describe("a drag in another window that goes away", () => {
             handleAction.destroy();
             created.action.destroy();
             loadingHandleAction.destroy();
-            loadingZoneAction.destroy();
+            // dragHandleZone always returns destroy; the ActionReturn type marks it optional
+            loadingZoneAction.destroy!();
             loadingZone.remove();
         }
     });
