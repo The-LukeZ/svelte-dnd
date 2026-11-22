@@ -165,6 +165,8 @@ export function attachHandle(handle: HTMLElement): () => void {
     function startDrag(e: MouseEvent | TouchEvent): void {
         // preventing default to prevent lag on touch devices (because of the browser checking for screen scrolling)
         e.preventDefault();
+        // a handle of a locked zone starts no drag, so nothing would reset the state every handle zone shares
+        if (!boundState || boundState.userDragDisabled.get()) return;
         isItemsDragDisabled.set(false);
 
         // Reset the startDrag/isItemsDragDisabled if the user releases the mouse/touch without initiating a drag, or if the
@@ -176,6 +178,7 @@ export function attachHandle(handle: HTMLElement): () => void {
     }
 
     function handleKeyDown(e: KeyboardEvent): void {
+        if (!boundState || boundState.userDragDisabled.get()) return;
         if (isKeyboardDragTriggerKey(e.key)) isItemsDragDisabled.set(false);
     }
 

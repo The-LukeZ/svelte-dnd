@@ -198,6 +198,36 @@ describe("drag handle attachments", () => {
         expectReady(handlesOf(a, "handle-a"), "A");
     });
 
+    it("a handle in a dragDisabled zone does not unlock another zone", { timeout: 10000 }, async () => {
+        const { screen, a, b, calls } = await renderTwoZones();
+        await screen.getByRole("button", { name: "toggle a" }).click();
+        await vi.waitFor(() => expectDisabled(handlesOf(a, "handle-a"), "A"));
+        const handle = handlesOf(a, "handle-a")[0];
+        const from = centre(handle);
+
+        // pointer: B stays locked while the press on A's handle is held
+        handle.dispatchEvent(mouse("mousedown", from.x, from.y));
+        try {
+            expectReady(handlesOf(b, "handle-b"), "B while A's handle is pressed");
+            expectDisabled(handlesOf(a, "handle-a"), "A while its handle is pressed");
+        } finally {
+            window.dispatchEvent(mouse("mouseup", from.x, from.y));
+        }
+
+        // keyboard: the trigger key on A's handle has no release that would reset the shared state
+        handle.focus();
+        key(handle, " ");
+        key(handle, "Enter");
+        expectReady(handlesOf(b, "handle-b"), "B after the trigger keys on A's handle");
+        expectDisabled(handlesOf(a, "handle-a"), "A after the trigger keys on its handle");
+
+        const before = calls.length;
+        for (const item of [...b.children] as HTMLElement[]) {
+            await pressBody(item);
+        }
+        expect(calls.slice(before), "B's items are not draggable without a handle press").to.deep.equal([]);
+    });
+
     async function expectBothLocked(a: HTMLElement, b: HTMLElement, calls: ZoneCall[]): Promise<void> {
         expectReady([...a.querySelectorAll<HTMLElement>("[data-testid^=handle]")], "A");
         expectReady([...b.querySelectorAll<HTMLElement>("[data-testid^=handle]")], "B");
