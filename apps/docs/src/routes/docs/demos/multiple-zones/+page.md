@@ -2,7 +2,7 @@
 title: Multiple zones and types
 description: "Zones that exchange items, and zones that refuse them because of their type."
 section: Demos
-order: 2
+order: 102
 ---
 
 <script>

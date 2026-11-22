@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { extractApi } from "../src/lib/api/extract.ts";
 
 const demosRoutes = new URL("../src/routes/docs/demos/", import.meta.url);
 const demosLib = new URL("../src/lib/demos/", import.meta.url);
@@ -60,5 +61,18 @@ describe("demo pages", () => {
                 expect(allowed, `${name} imports ${specifier}`).toBe(true);
             }
         }
+    });
+});
+
+describe("API pages", () => {
+    const apiRoutes = new URL("../src/routes/docs/api/", import.meta.url);
+    const libIndex = fileURLToPath(new URL("../../../packages/svelte-dnd/src/index.ts", import.meta.url));
+    const apiPages = readdirSync(apiRoutes, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => readFileSync(new URL(`${entry.name}/+page.md`, apiRoutes), "utf8"))
+        .join("\n");
+
+    it.each(Object.keys(extractApi(libIndex)))("place an ApiTable for %s", (name) => {
+        expect(apiPages).toContain(`name="${name}"`);
     });
 });

@@ -2,7 +2,7 @@
 title: Enable and disable
 description: "Turn dragging and dropping on and off per list."
 section: Demos
-order: 10
+order: 110
 ---
 
 <script>

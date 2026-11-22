@@ -15,7 +15,7 @@ Because of that, the library works with any state you have: a `$state` array, a 
 Every event has the same shape: `e.items` is the list the zone should render, and `e.info` describes what happened.
 
 - `onconsider` is for a drag in progress. It fires as the dragged item enters a zone, moves over another index, or leaves. Render the list you receive so the other items make room.
-- `onfinalize` is for a result. It fires when the drag ends, in the zone the item was dropped into and in the zone it came from, if that is another one. Save from here.
+- `onfinalize` is for a result. It fires when the item is dropped, in the zone the item was dropped into and in the zone it came from, if that is another one. A pointer drag sends it once, when the drag ends. A keyboard drag drops the item on every arrow key, so it sends `onfinalize` on every move, and ends with an `onconsider` with the `DRAG_STOPPED` trigger. To save to a server once per drag, see [saving after a drag](/docs/guides/keyboard-and-screen-readers#saving-after-a-drag).
 
 `e.info` has three fields: `trigger`, the kind of event, `id`, the id of the dragged item, and `source`, which is `"pointer"` or `"keyboard"`. Most apps ignore it. Copy on drag and similar behaviors use it.
 
@@ -70,7 +70,7 @@ Check the marker in your `#each` block to style the placeholder:
 Two more things to know about it:
 
 - Your rendering code sees it, so a nested zone that filters or counts items must expect it. Filter on `SHADOW_PLACEHOLDER_ITEM_ID` when you pass `items` down to a nested zone.
-- With nested zones, mark the item with `data-is-dnd-shadow-item-hint={item.isDndShadowItem}` so the library does not set up zones inside the placeholder.
+- With nested zones, mark the item with `data-is-dnd-shadow-item-hint={item.isDndShadowItem}` so the library does not set up zones inside the placeholder. See [nested zones](/docs/guides/nested-zones#the-shadow-hint).
 
 Keyboard drags do not add a shadow item. The item moves in the list directly.
 

@@ -87,7 +87,7 @@ See [Options](/docs/api/options) for every option the getter can return.
 The library never changes your list. It tells you what the list should look like, and you assign it:
 
 - `onconsider` runs again and again while the user drags: the item has entered the zone, moved over another index, or left. The `items` it gives you include a temporary placeholder, so the other items make room. Render that list to show the user where the item would land.
-- `onfinalize` runs once when the drag ends, in the zone the item was dropped into and in the zone it came from. The `items` it gives you are the final list. This is where you save to a server, or update a store.
+- `onfinalize` runs when the item is dropped, in the zone the item was dropped into and in the zone it came from. The `items` it gives you are the final list. A pointer drag sends it once, at the end. A keyboard drag sends it on every arrow key and ends with an `onconsider`, so read [saving after a drag](/docs/guides/keyboard-and-screen-readers#saving-after-a-drag) before you save to a server from it.
 
 Both handlers usually do the same thing, `items = e.items`, so the sample above shares one function. They are two options because they mean different things: a drag in progress and a result. The library relies on both to keep your list in step with the drag, so do not leave either one out. [How it works](/docs/how-it-works) explains the full lifecycle.
 
@@ -95,3 +95,4 @@ Both handlers usually do the same thing, `items = e.items`, so the sample above 
 
 - [How it works](/docs/how-it-works): the consider and finalize lifecycle, the placeholder item, zone types and item ids.
 - [Options](/docs/api/options): every option of a zone.
+- The guides: [drag handles](/docs/guides/drag-handles), [nested zones](/docs/guides/nested-zones), [keyboard and screen readers](/docs/guides/keyboard-and-screen-readers), [styling](/docs/guides/styling) and more.

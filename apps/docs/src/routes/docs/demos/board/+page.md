@@ -2,7 +2,7 @@
 title: Board
 description: "Columns of cards: nested zones, scrolling containers and a scrolling page."
 section: Demos
-order: 3
+order: 103
 ---
 
 <script>
@@ -16,3 +16,5 @@ order: 3
 </LiveExample>
 
 The board is a zone of columns, and each column is a zone of cards. The two levels have different types, `"column"` and `"card"`, so a card cannot land between columns and a column cannot land inside a column. The second column scrolls when its cards do not fit, the board scrolls sideways, and the page scrolls when you drag near its edge. Each column carries `data-is-dnd-shadow-item-hint`, which stops the library from setting up the card zone inside the column's placeholder. See [how it works](/docs/how-it-works) for the shadow item and the [options](/docs/api/options) for `type`.
+
+The [nested zones guide](/docs/guides/nested-zones) explains the two levels and the hint, and the [scrolling guide](/docs/guides/scrolling) explains what scrolls during a drag.
