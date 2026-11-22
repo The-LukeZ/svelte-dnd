@@ -4,6 +4,7 @@ import {
     SHADOW_ITEM_MARKER_PROPERTY_NAME,
 } from "../src/constants";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
+import type { DndEvent, Item } from "../src/types";
 
 describe("dragHandleZone", () => {
     it("destroys its wrapped dndzone", () => {
@@ -12,7 +13,7 @@ describe("dragHandleZone", () => {
         document.body.appendChild(zone);
 
         const action = dragHandleZone(zone, { items: [{ id: 1 }] });
-        action.destroy();
+        action.destroy!();
 
         expect(() => overrideItemIdKeyNameBeforeInitialisingDndZones("id")).not.to.throw();
         zone.remove();
@@ -34,10 +35,11 @@ describe("dragHandleZone", () => {
         nestedZone.appendChild(document.createElement("div"));
         document.body.appendChild(nestedZone);
 
-        const items = [{ id: "dragged" }, { id: "next" }, { id: "last" }];
-        let shadowItems;
+        const items: Item[] = [{ id: "dragged" }, { id: "next" }, { id: "last" }];
+        // assigned by the consider listener before the first read
+        let shadowItems!: Item[];
         rootZone.addEventListener("consider", (e) => {
-            shadowItems = e.detail.items;
+            shadowItems = (e as CustomEvent<DndEvent>).detail.items;
         });
 
         const rootAction = dragHandleZone(rootZone, { items, dropAnimationDisabled: true });
@@ -59,9 +61,9 @@ describe("dragHandleZone", () => {
             // must not broadcast a stale update to the root zone.
             const shadowItem = document.createElement("div");
             rootZone.replaceChild(shadowItem, draggedItem);
-            rootAction.update({ items: shadowItems, dropAnimationDisabled: true });
+            rootAction.update!({ items: shadowItems, dropAnimationDisabled: true });
             shadowItem.remove();
-            nestedAction.destroy();
+            nestedAction.destroy!();
 
             expect(nextItem.hasAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME)).to.equal(false);
             expect(nextItem.style.visibility).to.equal("");
@@ -69,8 +71,8 @@ describe("dragHandleZone", () => {
             window.dispatchEvent(
                 new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
             );
-            nestedAction.destroy();
-            rootAction.destroy();
+            nestedAction.destroy!();
+            rootAction.destroy!();
             handleAction.destroy();
             rootZone.remove();
             nestedZone.remove();
