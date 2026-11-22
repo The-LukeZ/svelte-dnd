@@ -77,8 +77,20 @@ expectTypeOf<TransformDraggedElementFunction>().toEqualTypeOf<
 >();
 expectTypeOf<DndEvent>().toEqualTypeOf<{ items: Item[]; info: DndEventInfo }>();
 expectTypeOf<DndEvent<Row>["items"]>().toEqualTypeOf<Row[]>();
-// the engine passes the item's own id value, whatever its type
+// info.id is inferred from the item's id field, and unknown without one (a custom idKey) or for the default Item
 expectTypeOf<DndEventInfo>().toEqualTypeOf<{ trigger: TRIGGERS; id: unknown; source: SOURCES }>();
+expectTypeOf<DndEventInfo<Row>>().toEqualTypeOf<{ trigger: TRIGGERS; id: number; source: SOURCES }>();
+expectTypeOf<DndEvent<Row>["info"]>().toEqualTypeOf<DndEventInfo<Row>>();
+expectTypeOf<DndEvent<Row>["info"]["id"]>().toEqualTypeOf<number>();
+expectTypeOf<DndEvent<{ key: number }>["info"]["id"]>().toEqualTypeOf<unknown>();
+dndzone(() => ({
+    items: rows,
+    onfinalize: (e) => expectTypeOf(e.info.id).toEqualTypeOf<number>(),
+}));
+dndzone(() => ({
+    items: [{ key: 1 }],
+    onfinalize: (e) => expectTypeOf(e.info.id).toEqualTypeOf<unknown>(),
+}));
 // the useComputedStyleForRects option replaces the feature flag
 expectTypeOf<Options["useComputedStyleForRects"]>().toEqualTypeOf<boolean | undefined>();
 

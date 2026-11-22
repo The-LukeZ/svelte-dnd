@@ -62,18 +62,27 @@ export interface DndConfig {
     debug?: boolean;
 }
 
-export interface DndEventInfo {
+/**
+ * The type of an item's `id` field, or unknown when the item type has none, as with a custom idKey set through
+ * `configure` or the default Item, whose index signature promises no `id` field.
+ */
+type ItemId<T> = T extends { id: infer I } ? I : unknown;
+
+export interface DndEventInfo<T = Item> {
     /** the type of dnd event that took place */
     trigger: TRIGGERS;
-    /** the id of the dragged item: the value of its id key, so the same type as that property */
-    id: unknown;
+    /**
+     * the id of the dragged item: the value of its id key. Inferred from the item's `id` field; unknown when the item
+     * type has no `id` field, as with a custom idKey
+     */
+    id: ItemId<T>;
     /** the type of interaction that the user used to perform the dnd operation */
     source: SOURCES;
 }
 
 export type DndEvent<T = Item> = {
     items: T[];
-    info: DndEventInfo;
+    info: DndEventInfo<T>;
 };
 
 /**

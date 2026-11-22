@@ -146,7 +146,7 @@ When you let TypeScript infer the types, the item type flows from `items` into t
 
 ### `info.id` is not typed as a string
 
-`info.id` is the raw value of the item's id key, not a string. Narrow or cast it before string-only use. Items with numeric ids give you a number there.
+`info.id` is the raw value of the item's id key, not a string. Its type is inferred from the item's `id` field, so `{ id: number }` items give a `number`. With a custom `idKey` the item has no `id` field and `info.id` is `unknown`, so narrow it before string-only use.
 
 ## Global setters became `configure`
 
@@ -337,7 +337,7 @@ Here the handles of the left list are locked, and the handles of the right list 
 - The public generics take `T extends object`, so an `interface` works as an item type. Before, only types with an index signature did.
 - `transformDraggedElement` receives the zone's item type: `TransformDraggedElementFunction<T>` is `(element?, draggedElementData?: T, index?) => void`.
 - `DndZoneAttributes` is removed. There are no event attributes left to type.
-- `DndEventInfo.id` is no longer typed `string`, see above.
+- `DndEventInfo` takes the item type, `DndEventInfo<T>`, and `id` is inferred from the item's `id` field instead of typed `string`, see above.
 - New types: `DndConfig` (the argument of `configure`).
 
 ## Removed exports
