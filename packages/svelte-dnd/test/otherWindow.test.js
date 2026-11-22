@@ -345,13 +345,19 @@ describe("a keyboard drag from a drag handle in another window", () => {
 describe("a drag in another window that goes away", () => {
     it("finalizes a pointer drag whose iframe is removed", () => {
         const created = listInFrame();
-        startDrag(created);
-        expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
-        created.frame.remove();
-        expect(last(created.list), "the app should get the finalize event").to.equal(TRIGGERS.DROPPED_INTO_ZONE);
-        // The app destroys its zone after the iframe is gone.
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            startDrag(created);
+            expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
+            created.frame.remove();
+            expect(last(created.list), "the app should get the finalize event").to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+            // The app destroys its zone after the iframe is gone.
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            // Removing the iframe ends a drag that is still going.
+            created.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
     it("cancels a pending pointer drag whose iframe is removed", () => {
@@ -368,11 +374,16 @@ describe("a drag in another window that goes away", () => {
 
     it("finalizes a pointer drag whose iframe the app removes when the drag starts", () => {
         const created = listInFrame();
-        created.list.zone.addEventListener("consider", () => created.frame.remove(), { once: true });
-        startDrag(created);
-        expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            created.list.zone.addEventListener("consider", () => created.frame.remove(), { once: true });
+            startDrag(created);
+            expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            created.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
     it(
@@ -471,23 +482,35 @@ describe("a drag in another window that goes away", () => {
 
     it("finishes the drop animation at once when the iframe is removed during it", () => {
         const created = listInFrame({ dropAnimationDisabled: false, flipDurationMs: 300 });
-        startDrag(created);
-        created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
-        expect(created.list.triggers, "the drop animation should be running").to.deep.equal([TRIGGERS.DRAG_STARTED]);
-        created.frame.remove();
-        expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            startDrag(created);
+            created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
+            expect(created.list.triggers, "the drop animation should be running").to.deep.equal([
+                TRIGGERS.DRAG_STARTED,
+            ]);
+            created.frame.remove();
+            expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            created.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
     it("finalizes a pointer drag in a nested iframe when the outer iframe is removed", () => {
         const outer = createFrame();
         const created = listInFrame({}, outer.doc);
-        startDrag(created);
-        outer.frame.remove();
-        expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            startDrag(created);
+            outer.frame.remove();
+            expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            outer.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
     it("finalizes a pointer drag whose popup is closed", async () => {

@@ -162,6 +162,8 @@ describe("pointerAction", () => {
             expect(document.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
         } finally {
             timeouts.restore();
+            // Ends a drag the destroyed zone failed to cancel, so it does not block the next test.
+            window.dispatchEvent(createTouchEvent("touchend"));
         }
     });
 
@@ -202,8 +204,9 @@ describe("pointerAction", () => {
             return animationFrameCallbacks.length;
         };
 
+        let created;
         try {
-            const created = createZone({ dropAnimationDisabled: true });
+            created = createZone({ dropAnimationDisabled: true });
             startMouseDrag(created.item);
             created.action.destroy();
             window.dispatchEvent(
@@ -214,6 +217,11 @@ describe("pointerAction", () => {
             expect(created.zone.parentElement).to.equal(null);
         } finally {
             window.requestAnimationFrame = originalRequestAnimationFrame;
+            // A drag that ended normally ignores this mouseup; one left behind ends here.
+            window.dispatchEvent(
+                new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+            );
+            created?.zone.remove();
         }
     });
 });
