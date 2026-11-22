@@ -1,12 +1,14 @@
 import { SOURCES, TRIGGERS } from "../src/constants";
+import type { DndEvent } from "../src/types";
 import { setAriaStrings } from "../src/helpers/aria";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
+import type { WindowWithGlobals } from "../src/helpers/util";
 import { alertText, createFrame, createList, failOnListenerErrors, key } from "./helpers/otherWindow";
 
 failOnListenerErrors();
 
 describe("keyboard arrow ownership", () => {
-    const cleanups = [];
+    const cleanups: (() => void)[] = [];
     afterEach(() =>
         cleanups
             .splice(0)
@@ -15,7 +17,7 @@ describe("keyboard arrow ownership", () => {
     );
     afterEach(() => setAriaStrings(null));
 
-    function list(doc, options) {
+    function list(doc: Document, options: Parameters<typeof createList>[1]): ReturnType<typeof createList> {
         const created = createList(doc, options);
         cleanups.push(() => {
             created.action.destroy();
@@ -23,12 +25,12 @@ describe("keyboard arrow ownership", () => {
         });
         return created;
     }
-    function grab(created, name) {
+    function grab(created: ReturnType<typeof createList>, name: string): void {
         created.element(name).focus();
         key(created.element(name), "Enter");
     }
-    function press(target, arrow) {
-        const event = new target.ownerDocument.defaultView.KeyboardEvent("keydown", {
+    function press(target: Element, arrow: string): KeyboardEvent {
+        const event = new (target.ownerDocument.defaultView as WindowWithGlobals).KeyboardEvent("keydown", {
             key: arrow,
             bubbles: true,
             cancelable: true,
@@ -36,14 +38,14 @@ describe("keyboard arrow ownership", () => {
         target.dispatchEvent(event);
         return event;
     }
-    function expectUnclaimed(target, arrow) {
-        let bubbledEvent;
-        const onKeyDown = (event) => {
+    function expectUnclaimed(target: Element, arrow: string): void {
+        let bubbledEvent: Event | undefined;
+        const onKeyDown = (event: Event): void => {
             bubbledEvent = event;
         };
         const body = target.ownerDocument.body;
         body.addEventListener("keydown", onKeyDown);
-        let event;
+        let event: KeyboardEvent;
         try {
             event = press(target, arrow);
         } finally {
@@ -151,7 +153,7 @@ describe("keyboard arrow ownership", () => {
         it(`leaves arrow keys to a nested ${kind} inside the grabbed item`, () => {
             const source = list(document, { label: "Source", names: ["a", "b", "c"] });
             const control = document.createElement(kind === "contenteditable" ? "span" : kind);
-            if (kind === "a") control.href = "#";
+            if (kind === "a") (control as HTMLAnchorElement).href = "#";
             if (kind === "contenteditable") control.contentEditable = "true";
             source.element("b").appendChild(control);
             grab(source, "b");
@@ -176,16 +178,16 @@ describe("keyboard arrow ownership", () => {
         const zoneAction = dragHandleZone(zone, { items: [{ id: "a" }, { id: "b" }] });
         const handleAction = dragHandle(handle);
         cleanups.push(() => {
-            zoneAction.destroy();
+            zoneAction.destroy!();
             handleAction.destroy();
             zone.remove();
         });
-        const finalized = [];
-        zone.addEventListener("finalize", (event) => finalized.push(event.detail));
+        const finalized: DndEvent[] = [];
+        zone.addEventListener("finalize", (event) => finalized.push((event as CustomEvent<DndEvent>).detail));
         handle.focus();
         key(handle, "Enter");
         expect(document.activeElement).to.equal(first);
-        expect(press(document.activeElement, "ArrowDown").defaultPrevented).to.equal(true);
+        expect(press(document.activeElement!, "ArrowDown").defaultPrevented).to.equal(true);
         expect(finalized).to.have.length(1);
         expect(finalized[0].items.map((item) => item.id)).to.deep.equal(["b", "a"]);
         expect(finalized[0].info.id).to.equal("a");
