@@ -71,14 +71,15 @@ describe("intersection", () => {
             const frame = document.createElement("iframe");
             frame.style.height = "100px";
             document.body.appendChild(frame);
-            frame.contentDocument.write("<!DOCTYPE html><body></body>");
-            frame.contentDocument.close();
-            const el = frame.contentDocument.createElement("div");
+            // the frame is attached above, so it has a contentDocument
+            frame.contentDocument!.write("<!DOCTYPE html><body></body>");
+            frame.contentDocument!.close();
+            const el = frame.contentDocument!.createElement("div");
             el.style.position = "absolute";
             el.style.top = "3000px";
             el.style.width = "50px";
             el.style.height = "50px";
-            frame.contentDocument.body.appendChild(el);
+            frame.contentDocument!.body.appendChild(el);
             try {
                 expect(isElementOffDocument(el)).to.equal(false);
             } finally {
