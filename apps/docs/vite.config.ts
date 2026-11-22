@@ -6,6 +6,7 @@ import { docsmith } from "svelte-docsmith/vite";
 import { defineConfig } from "vite";
 import libPkg from "@lukez/svelte-dnd/package.json" with { type: "json" };
 import { SITE_URL } from "./src/site.ts";
+import { apiReference } from "./src/lib/api/vite-plugin.ts";
 
 export default defineConfig({
     plugins: [
@@ -32,6 +33,8 @@ export default defineConfig({
             },
         }),
         tailwindcss(),
+        // virtual:svelte-dnd-api, the API reference extracted from the library's types and TSDoc
+        apiReference(),
         sveltekit({
             extensions: [".svelte", ".md"],
             preprocess: [vitePreprocess()],
@@ -39,4 +42,7 @@ export default defineConfig({
             adapter: adapter(),
         }),
     ],
+    // Prebundling svelte-docsmith for the browser inlines its fallback modules, which throw without the plugin (such as
+    // svelte-docsmith/site), instead of the virtual modules that docsmith() serves. Dev pages then fail in the browser.
+    optimizeDeps: { exclude: ["svelte-docsmith"] },
 });
