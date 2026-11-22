@@ -24,11 +24,16 @@ jobs:
                   cache: true
                   require-lockfile: true
 
+            # The browsers only change with the Playwright version, so that is the cache key.
+            - name: Read Playwright version
+              id: playwright
+              run: echo "version=$(pnpm --filter @lukez/svelte-dnd exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
             - name: Cache Playwright browsers
               uses: actions/cache@v6
               with:
                   path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+                  key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
             # --with-deps installs the OS libraries too, which the cache does not hold.
             - run: pnpm --filter @lukez/svelte-dnd exec playwright install --with-deps chromium firefox webkit
