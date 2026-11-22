@@ -10,6 +10,7 @@ let activeTrigger: KeyboardDragTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
  * Chooses which key(s) start and stop a keyboard drag on a focused item. Keys outside the trigger are left
  * completely untouched by the library, so the app can use them - ex: "space" keeps Enter free to activate the
  * focused item. This is global and applies to all dndzones. It can be called at any time.
+ * Untouched means no preventDefault and no stopPropagation. This setting is global to the document.
  * Pass null or undefined (or call with no argument) to restore the default, "space_or_enter".
  * @throws {Error} if given anything other than the documented values, null, or undefined
  */

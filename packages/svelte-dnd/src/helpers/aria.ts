@@ -153,6 +153,16 @@ export function alertToScreenReader(txt: string, doc?: Document): void {
  * out goes back to English.
  * This is global and applies to all dndzones.
  * Pass null to restore the built-in English strings.
+ * Existing instruction elements update immediately.
+ * Overrides can be any subset of: dragStarted, movedToPosition, movedToZoneEnd,
+ * movedToZoneStart, dropped (functions taking a context object and returning a string);
+ * zoneActiveInstruction (a string, or a function taking {keyboardDragTrigger} and returning a string -
+ * useful because a hard-coded translation can't name the right key if the app varies the trigger);
+ * zoneDragDisabledInstruction (a string only - a disabled zone has no drag to start, so there is no key
+ * for a formatter to name).
+ * Validation completes before the active strings change.
+ * @throws {Error} if overrides is not an object or null, contains an unknown key, or contains a value of
+ * the wrong type.
  */
 export function setAriaStrings(overrides: AriaStrings | null): void {
     if (overrides === null || overrides === undefined) {
