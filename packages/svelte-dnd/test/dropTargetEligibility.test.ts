@@ -1,10 +1,11 @@
 import { TRIGGERS } from "../src/constants";
+import type { Options } from "../src/types";
 import { alertText, createFrame, createList, failOnListenerErrors, key, mouse } from "./helpers/otherWindow";
 
 failOnListenerErrors();
 
 describe("drop-target eligibility", () => {
-    const cleanups = [];
+    const cleanups: (() => void)[] = [];
     afterEach(() =>
         cleanups
             .splice(0)
@@ -12,7 +13,7 @@ describe("drop-target eligibility", () => {
             .forEach((cleanup) => cleanup()),
     );
 
-    function list(doc, options) {
+    function list(doc: Document, options: Parameters<typeof createList>[1]): ReturnType<typeof createList> {
         const created = createList(doc, options);
         cleanups.push(() => {
             created.action.destroy();
@@ -25,7 +26,7 @@ describe("drop-target eligibility", () => {
         cleanups.push(() => created.frame.remove());
         return created;
     }
-    function grab(created, name) {
+    function grab(created: ReturnType<typeof createList>, name: string): void {
         created.element(name).focus();
         key(created.element(name), "Enter");
     }
@@ -83,7 +84,8 @@ describe("drop-target eligibility", () => {
             grab(source, "a");
             expect(nested.zone.tabIndex).to.equal(-1);
             expect(nested.zone.style.outline).to.equal("");
-            expect(alertText(document).includes("or tab to another list")).to.equal(hasOtherDestination);
+            // the grab announced itself, so the alert exists
+            expect(alertText(document)!.includes("or tab to another list")).to.equal(hasOtherDestination);
             nested.zone.focus();
             expect(source.names()).to.deep.equal(["a"]);
             expect(nested.names()).to.deep.equal(["n"]);
@@ -91,12 +93,12 @@ describe("drop-target eligibility", () => {
         });
     });
 
-    function startPointer(source) {
+    function startPointer(source: ReturnType<typeof createList>): void {
         source.element("a").dispatchEvent(mouse(source.win, "mousedown", 50, 15));
         source.win.dispatchEvent(mouse(source.win, "mousemove", 50, 20));
         cleanups.push(() => source.win.dispatchEvent(mouse(source.win, "mouseup", 50, 20)));
     }
-    function update(created, options) {
+    function update(created: ReturnType<typeof createList>, options: Partial<Options>): void {
         created.action.update({
             items: created.names().map((name) => ({ id: name, name })),
             dropAnimationDisabled: true,
