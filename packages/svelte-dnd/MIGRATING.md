@@ -1,6 +1,6 @@
 # Migrating from `svelte-dnd-action`
 
-`@lukez/svelte-dnd` is a rewrite of the public API for Svelte 5. The drag and drop behavior (pointer, touch, keyboard, aria, scrolling, nested zones, drag handles, other windows) is the same. What changed is how you attach a zone, how you receive updates, and how you configure the library.
+`@lukez/svelte-dnd` is a rewrite of the public API for Svelte 5. The drag and drop behavior (pointer, touch, keyboard, aria, scrolling, nested zones, drag handles, other windows) is the same, including one known limitation of nested zones with the shadow item hint (see [Nested zones and the shadow item hint](#nested-zones-and-the-shadow-item-hint)). What changed is how you attach a zone, how you receive updates, and how you configure the library.
 
 This is a draft. The final guide moves into the docs site in a later stage.
 
@@ -287,7 +287,7 @@ After:
 </ul>
 ```
 
-A handle finds the nearest handle zone around it. A handle outside any handle zone does nothing (it warns once when `debug` is on).
+A handle finds the nearest handle zone around it. A handle outside any handle zone does nothing. When `debug` is on, each such handle logs one debug message when it is removed.
 
 ### `dragDisabled` is per handle zone
 
@@ -334,12 +334,23 @@ Dragging an item from one handle zone into another still works. While a drag is 
 
 Here the handles of the left list are locked, and the handles of the right list still work.
 
+## Nested zones and the shadow item hint
+
+A zone nested inside an item of another zone works as before. While an item is dragged, its zone shows a shadow item in its place, and Svelte renders the nested zone inside the shadow item too. To keep that copy from registering as a second zone for the length of the drag, mark the shadow item's element with `data-is-dnd-shadow-item-hint`, as in `svelte-dnd-action`:
+
+```svelte
+<li data-is-dnd-shadow-item-hint={item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}>
+```
+
+Known limitation: with the hint, the nested zone of the dragged item does not work after the drop. The library skips a zone that is created inside a marked element and never sets it up later, and after the drop the shadow item's element stays on as the dropped item's element. The dropped item's nested zone takes no drags, in or out, until that item is rendered again. This behavior comes from `svelte-dnd-action` and is unchanged in this release. It will be fixed before 1.0.
+
 ## Type changes
 
 - The public generics take `T extends object`, so an `interface` works as an item type. Before, only types with an index signature did.
 - `transformDraggedElement` receives the zone's item type: `TransformDraggedElementFunction<T>` is `(element?, draggedElementData?: T, index?) => void`.
 - `DndZoneAttributes` is removed. There are no event attributes left to type.
 - `DndEventInfo` takes the item type, `DndEventInfo<T>`, and `id` is inferred from the item's `id` field instead of typed `string`, see above.
+- `Item` is `Record<string, unknown>` instead of `Record<string, any>`. Code that leaves the item type out, such as a handler typed `(e: DndEvent) => ...`, gets `unknown` values, so `e.items[0].name` no longer compiles. Pass your item type, as in `DndEvent<Row>`, or let TypeScript infer it from `items`.
 - New types: `DndConfig` (the argument of `configure`).
 
 ## Removed exports
@@ -350,6 +361,6 @@ Here the handles of the left list are locked, and the handles of the right list 
 | `setFeatureFlag`, `FEATURE_FLAG_NAMES`                                                                        | the `useComputedStyleForRects` zone option         |
 | type `DndZoneAttributes`                                                                                      | nothing, `onconsider` and `onfinalize` are options |
 
-Still exported and unchanged: `alertToScreenReader`, `TRIGGERS`, `SOURCES`, `SHADOW_ITEM_MARKER_PROPERTY_NAME`, `SHADOW_PLACEHOLDER_ITEM_ID`, `DRAGGED_ELEMENT_ID`, and the types `Options`, `DndEvent`, `DndEventInfo`, `AriaStrings`, `Item`, `TransformDraggedElementFunction`.
+Still exported and unchanged: `alertToScreenReader`, `TRIGGERS`, `SOURCES`, `SHADOW_ITEM_MARKER_PROPERTY_NAME`, `SHADOW_PLACEHOLDER_ITEM_ID`, `DRAGGED_ELEMENT_ID`, and the type `AriaStrings`. Still exported, with the changes listed under [Type changes](#type-changes): the types `Options`, `DndEvent`, `DndEventInfo`, `Item`, `TransformDraggedElementFunction`.
 
 All other zone options keep their names and meaning.

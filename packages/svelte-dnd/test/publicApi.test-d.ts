@@ -42,7 +42,7 @@ expectTypeOf(
 dndzone({ items: rows });
 // @ts-expect-error items is required
 dndzone(() => ({}));
-// Review Focus 2: a custom id key, no `id`
+// a custom id key, no `id`
 dndzone(() => ({ items: [{ key: 1 }] }));
 
 // dragHandleZone: the same shape
@@ -94,7 +94,7 @@ dndzone(() => ({
 // the useComputedStyleForRects option replaces the feature flag
 expectTypeOf<Options["useComputedStyleForRects"]>().toEqualTypeOf<boolean | undefined>();
 
-// Review Focus 1: the kept constants keep their literal types
+// the kept constants keep their literal types
 expectTypeOf(TRIGGERS.DRAGGED_ENTERED).toEqualTypeOf<"draggedEntered">();
 expectTypeOf(SOURCES.KEYBOARD).toEqualTypeOf<"keyboard">();
 expectTypeOf(SOURCES.POINTER).toEqualTypeOf<"pointer">();

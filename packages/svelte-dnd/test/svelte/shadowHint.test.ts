@@ -63,7 +63,7 @@ describe("shadow hint", () => {
             window.dispatchEvent(mouse("mouseup", x, endY));
         }
         await vi.waitFor(() => expect(calls[calls.length - 1].kind).to.equal("finalize"), { timeout: 3000 });
-        return during;
+        return { during, outer };
     }
 
     /**
@@ -74,10 +74,30 @@ describe("shadow hint", () => {
      */
     it("a zone nested in a shadow item registers no duplicate zone during a drag", { timeout: 10000 }, async () => {
         // 3 items while dragging: 2 real ones and the shadow, whose inner zone element is left alone
-        expect(await dragFirstToEnd(true)).to.equal(2);
+        expect((await dragFirstToEnd(true)).during).to.equal(2);
     });
 
     it("without the hint, Svelte 5 sets up the zone nested in the shadow item", { timeout: 10000 }, async () => {
-        expect(await dragFirstToEnd(false)).to.equal(3);
+        expect((await dragFirstToEnd(false)).during).to.equal(3);
+    });
+
+    /**
+     * Known limitation, inherited from svelte-dnd-action and to be fixed before 1.0. With the hint, the zone nested in
+     * the shadow item is skipped when it is created, and createZone keeps no way to set it up later. After the drop the
+     * shadow item's element stays as the dropped item's element, so the dropped item's nested zone is never set up and
+     * stays inert. `it.fails` passes while the limitation is there: when this test starts to fail, the nested zone is
+     * set up after the drop, and this should become a plain `it`.
+     */
+    it.fails("with the hint, the dropped item's nested zone is set up after the drop", { timeout: 10000 }, async () => {
+        const { outer } = await dragFirstToEnd(true);
+        await vi.waitFor(() =>
+            expect(outer.querySelectorAll('[data-is-dnd-shadow-item-hint="true"]').length).to.equal(0),
+        );
+        const dropped = Array.from(outer.children).find((li) => li.textContent!.includes("o1"))!;
+        expect(
+            dropped.querySelector("ul")!.hasAttribute("aria-describedby"),
+            "the dropped item's zone is set up",
+        ).to.equal(true);
+        expect(createdZonesIn(outer), "inner zones after the drop").to.equal(3);
     });
 });
