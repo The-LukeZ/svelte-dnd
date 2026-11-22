@@ -53,3 +53,42 @@ jobs:
                   name: vitest-failure-screenshots
                   path: packages/svelte-dnd/.vitest/attachments
                   if-no-files-found: ignore
+
+    docs:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+
+            - uses: pnpm/setup@v3
+              with:
+                  runtime: node@24
+                  cache: true
+                  require-lockfile: true
+
+            # The docs app has its own Playwright dependency, so it gets its own cache key.
+            - name: Read Playwright version
+              id: playwright
+              run: echo "version=$(pnpm --filter @lukez/svelte-dnd-docs exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@v6
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-docs-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+            - run: pnpm --filter @lukez/svelte-dnd-docs exec playwright install --with-deps chromium
+
+            # The docs resolve @lukez/svelte-dnd through its gitignored dist, so build it first.
+            - run: pnpm build
+            - run: pnpm docs:check
+            - run: pnpm --filter @lukez/svelte-dnd-docs test
+            - run: pnpm --filter @lukez/svelte-dnd-docs build
+            - run: pnpm --filter @lukez/svelte-dnd-docs test:smoke
+
+            - name: Upload Playwright failure output
+              if: failure()
+              uses: actions/upload-artifact@v7
+              with:
+                  name: docs-smoke-test-results
+                  path: apps/docs/test-results
+                  if-no-files-found: ignore

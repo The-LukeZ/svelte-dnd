@@ -1,0 +1,18 @@
+@import "tailwindcss";
+/* The whole svelte-docsmith CSS contract: package scan, design tokens, typography and animation plugins, base styles. */
+@import "svelte-docsmith/theme.css";
+
+/* A long identifier (overrideItemIdKeyNameBeforeInitialisingDndZones in the changelog, SHADOW_PLACEHOLDER_ITEM_ID as an
+   API heading) would widen the page on a phone. Let it break when it can't fit on its line. Code blocks scroll on their
+   own and are unaffected. Headings take `anywhere` because docsmith lays them out as flex rows, where `break-word` does
+   not let the text shrink. */
+:not(pre) > code {
+    overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    overflow-wrap: anywhere;
+}

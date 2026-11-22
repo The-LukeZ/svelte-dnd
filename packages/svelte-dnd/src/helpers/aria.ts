@@ -126,7 +126,9 @@ function renderInstruction(div: HTMLElement, txt: string): void {
 }
 
 /**
- * Will make the screen reader alert the provided text to the user
+ * Will make the screen reader alert the provided text to the user, through the same live region the library's own
+ * announcements use.
+ * @param txt - the text to announce
  * @param doc - the document to announce in, for a zone in another window such as an iframe or a popup.
  * Defaults to the document that loaded the library.
  */

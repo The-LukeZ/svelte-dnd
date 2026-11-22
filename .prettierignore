@@ -4,3 +4,8 @@ pnpm-lock.yaml
 CHANGELOG.md
 **/.vitest
 .changeset/pre.json
+apps/docs/.svelte-kit
+apps/docs/build
+apps/docs/test-results
+apps/docs/playwright-report
+apps/docs/.wrangler

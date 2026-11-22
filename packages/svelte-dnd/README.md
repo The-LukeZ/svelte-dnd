@@ -1,10 +1,12 @@
 # @lukez/svelte-dnd
 
+**Docs:** https://svelte-dnd.thelukez.com
+
 A fork of [`svelte-dnd-action`](https://github.com/isaacHagoel/svelte-dnd-action) by Isaac Hagoel, being rebuilt for Svelte 5.
 
-> **Work in progress.** The API changed for Svelte 5: zones and drag handles are attachments, `consider` and `finalize` are callback options, and the global setters became `configure`. See [MIGRATING.md](https://github.com/The-LukeZ/svelte-dnd/blob/dev/packages/svelte-dnd/MIGRATING.md) for the steps.
+> **Work in progress.** The API changed for Svelte 5: zones and drag handles are attachments, `consider` and `finalize` are callback options, and the global setters became `configure`. See the [migration guide](https://svelte-dnd.thelukez.com/docs/migrating) for the steps.
 >
-> The docs below still describe the original `svelte-dnd-action` API. The full rewrite of this README comes with the docs site.
+> The docs below still describe the original `svelte-dnd-action` API. The rewrite of this README comes in a later release. The [docs site](https://svelte-dnd.thelukez.com) describes the current API.
 
 This is a feature-complete implementation of drag and drop for Svelte using a custom action. It supports almost every imaginable drag and drop use-case, any input device and is fully accessible. <br />
 It requires very minimal configuration, while offering a rich set of primitives that allow overriding basically any of its default behaviours (using the handler functions). <br /><br />
@@ -324,9 +326,9 @@ Notes:
 - [Super basic, single list, no animation](https://svelte.dev/playground/bbd709b1a00b453e94658392c97a018a?version=3)
 - [Super basic, single list, with animation](https://svelte.dev/playground/3d544791e5c24fd4aa1eb983d749f776?version=3)
 - [Multiple dndzones, multiple types](https://svelte.dev/playground/4d23eb3b9e184b90b58f0867010ad258?version=3)
-- [Zones in same-origin iframes and popup windows](https://svelte.dev/playground/be37a2f642a14a21ae8c5c11bf0a8055?version=4.2.20) — for the full demo, log in, fork/save and reload, or download/run locally; Playground isolates other documents for visitors.
+- [Zones in same-origin iframes and popup windows](https://svelte.dev/playground/be37a2f642a14a21ae8c5c11bf0a8055?version=4.2.20) (for the full demo, log in, fork/save and reload, or download/run locally; Playground isolates other documents for visitors).
 - [Board (nested zones and multiple types), scrolling containers, scrolling page](https://svelte.dev/playground/e2ef044af75c4b16b424b8219fb31fd9?version=3)
-- [Experimental: make an entire board skippable in the Tab order while preserving keyboard drag and drop](https://svelte.dev/playground/14286b9c0f924d8e94d5267d219f8424?version=5.56.8) — a prototype wrapper built using the existing tabindex options; see the example for current limitations.
+- [Experimental: make an entire board skippable in the Tab order while preserving keyboard drag and drop](https://svelte.dev/playground/14286b9c0f924d8e94d5267d219f8424?version=5.56.8): a prototype wrapper built using the existing tabindex options; see the example for current limitations.
 - [Selectively enable/disable drag/drop](https://svelte.dev/playground/44c9229556f3456e9883c10fc0aa0ee9?version=3)
 - [Custom active dropzone styling](https://svelte.dev/playground/4ceecc5bae54490b811bd62d4d613e59?version=3)
 - [Customizing the dragged element](https://svelte.dev/playground/438fca28bb1f4eb1b34eff9dc6a728dc?version=3)
@@ -354,7 +356,7 @@ A dndzone can live in another window than the one that loaded the library: a sam
 
 This is useful when one app mounts components into several documents (for example, a pop-out editor). A self-contained iframe that loads its own app and imports the library there could already use it without this feature. The difference is that the code can now be loaded in one document while its zones live in another; it does not add dragging between documents.
 
-See the [official example REPL](https://svelte.dev/playground/be37a2f642a14a21ae8c5c11bf0a8055?version=4.2.20) and its [source and setup instructions](examples/other-windows/README.md). For iframe/popup interaction inside Playground, fork/save and reload under your account, or download and run locally.
+See the [iframes and popup demo](https://svelte-dnd.thelukez.com/docs/demos/other-windows) on the docs site.
 
 - Both pointer and keyboard drags stay in the document they started in. They can move items between eligible same-type zones inside that document, but not between the page and an iframe, between sibling iframes, or between popup windows.
 - Each document with zones gets its own screen-reader instructions and announcements. For a custom announcement about a zone in another document, pass that document: `alertToScreenReader(text, zone.ownerDocument)`.
