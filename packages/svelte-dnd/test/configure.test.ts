@@ -45,6 +45,26 @@ describe("configure", () => {
         expect(getKeyboardDragTrigger()).to.equal("enter");
     });
 
+    it("applies nothing when a later key is invalid", () => {
+        expect(() => configure({ keyboardDragTrigger: "enter", ariaStrings: { nope: "x" } as never })).to.throw();
+        expect(getKeyboardDragTrigger()).to.equal("space_or_enter");
+    });
+
+    it("applies nothing when idKey is refused because a zone is mounted", () => {
+        mountZone();
+        expect(() => configure({ keyboardDragTrigger: "space", idKey: "key" })).to.throw();
+        expect(getKeyboardDragTrigger()).to.equal("space_or_enter");
+    });
+
+    it("applies nothing when idKey is valid but a later key is invalid", () => {
+        expect(() => configure({ idKey: "key", keyboardDragTrigger: "tab" as never })).to.throw();
+        expect(ITEM_ID_KEY).to.equal("id");
+    });
+
+    it("throws when debug is not a boolean", () => {
+        expect(() => configure({ debug: "yes" as never })).to.throw("debug");
+    });
+
     it("throws when idKey is set while a zone is mounted", () => {
         mountZone();
         expect(() => configure({ idKey: "key" })).to.throw("can only override the id key");

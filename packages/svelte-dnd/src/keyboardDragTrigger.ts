@@ -7,6 +7,21 @@ type KeyboardDragTrigger = "space" | "enter" | "space_or_enter";
 let activeTrigger: KeyboardDragTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
 
 /**
+ * Checks a keyboard drag trigger without applying it. Internal - the setter and configure share it.
+ * @throws {Error} if given anything other than the documented values, null, or undefined
+ */
+export function assertValidKeyboardDragTrigger(trigger: unknown): void {
+    if (trigger === null || trigger === undefined) return;
+    if (typeof trigger !== "string" || !Object.prototype.hasOwnProperty.call(KEYBOARD_DRAG_TRIGGER_KEYS, trigger)) {
+        throw new Error(
+            `configure({ keyboardDragTrigger }) expects one of ${Object.keys(KEYBOARD_DRAG_TRIGGER_KEYS)
+                .map((key) => `"${key}"`)
+                .join(", ")} or null but instead got a ${typeof trigger}, ${toString(trigger)}`,
+        );
+    }
+}
+
+/**
  * Chooses which key(s) start and stop a keyboard drag on a focused item. Keys outside the trigger are left
  * completely untouched by the library, so the app can use them - ex: "space" keeps Enter free to activate the
  * focused item. Set through configure({ keyboardDragTrigger }). This is global and applies to all dndzones. It can be called at any time.
@@ -15,20 +30,8 @@ let activeTrigger: KeyboardDragTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
  * @throws {Error} if given anything other than the documented values, null, or undefined
  */
 export function setKeyboardDragTrigger(trigger?: KeyboardDragTrigger | null): void {
-    if (trigger === null || trigger === undefined) {
-        activeTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
-    } else if (
-        typeof trigger !== "string" ||
-        !Object.prototype.hasOwnProperty.call(KEYBOARD_DRAG_TRIGGER_KEYS, trigger)
-    ) {
-        throw new Error(
-            `configure({ keyboardDragTrigger }) expects one of ${Object.keys(KEYBOARD_DRAG_TRIGGER_KEYS)
-                .map((key) => `"${key}"`)
-                .join(", ")} or null but instead got a ${typeof trigger}, ${toString(trigger)}`,
-        );
-    } else {
-        activeTrigger = trigger;
-    }
+    assertValidKeyboardDragTrigger(trigger);
+    activeTrigger = trigger === null || trigger === undefined ? DEFAULT_KEYBOARD_DRAG_TRIGGER : trigger;
     setInstructionContext({ keyboardDragTrigger: activeTrigger });
 }
 

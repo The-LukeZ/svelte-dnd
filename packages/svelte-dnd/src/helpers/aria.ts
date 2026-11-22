@@ -165,41 +165,50 @@ export function alertToScreenReader(txt: string, doc?: Document): void {
  * the wrong type.
  */
 export function setAriaStrings(overrides: AriaStrings | null): void {
-    if (overrides === null || overrides === undefined) {
-        ariaStrings = { ...DEFAULT_ARIA_STRINGS };
-    } else {
-        if (typeof overrides !== "object" || Array.isArray(overrides)) {
+    assertValidAriaStrings(overrides);
+    ariaStrings =
+        overrides === null || overrides === undefined
+            ? { ...DEFAULT_ARIA_STRINGS }
+            : { ...DEFAULT_ARIA_STRINGS, ...overrides };
+    refreshInstructions();
+}
+
+/**
+ * Checks aria string overrides without applying them. Internal - the setter and configure share it.
+ * @throws {Error} if overrides is not an object, null or undefined, contains an unknown key, or contains a value
+ * of the wrong type.
+ */
+export function assertValidAriaStrings(overrides: unknown): void {
+    if (overrides === null || overrides === undefined) return;
+    if (typeof overrides !== "object" || Array.isArray(overrides)) {
+        throw new Error(
+            `configure({ ariaStrings }) expects an object or null but instead got a ${typeof overrides}, ${toString(overrides)}`,
+        );
+    }
+    Object.keys(overrides).forEach((key) => {
+        if (!Object.prototype.hasOwnProperty.call(DEFAULT_ARIA_STRINGS, key)) {
             throw new Error(
-                `configure({ ariaStrings }) expects an object or null but instead got a ${typeof overrides}, ${toString(overrides)}`,
+                `Can't set non existing aria string ${key}! Supported strings: ${Object.keys(DEFAULT_ARIA_STRINGS)}`,
             );
         }
-        Object.keys(overrides).forEach((key) => {
-            if (!Object.prototype.hasOwnProperty.call(DEFAULT_ARIA_STRINGS, key)) {
-                throw new Error(
-                    `Can't set non existing aria string ${key}! Supported strings: ${Object.keys(DEFAULT_ARIA_STRINGS)}`,
-                );
-            }
-            // the keys were validated against DEFAULT_ARIA_STRINGS above and the value types are checked right below
-            const value = (overrides as Record<string, unknown>)[key];
-            if (FUNCTION_ARIA_STRING_KEYS.includes(key) && typeof value !== "function") {
-                throw new Error(`${key} should be a function but instead it is a ${typeof value}, ${toString(value)}`);
-            }
-            if (
-                STRING_OR_FUNCTION_ARIA_STRING_KEYS.includes(key) &&
-                typeof value !== "string" &&
-                typeof value !== "function"
-            ) {
-                throw new Error(
-                    `${key} should be a string or a function but instead it is a ${typeof value}, ${toString(value)}`,
-                );
-            }
-            if (STRING_ONLY_ARIA_STRING_KEYS.includes(key) && typeof value !== "string") {
-                throw new Error(`${key} should be a string but instead it is a ${typeof value}, ${toString(value)}`);
-            }
-        });
-        ariaStrings = { ...DEFAULT_ARIA_STRINGS, ...overrides };
-    }
-    refreshInstructions();
+        // the keys were validated against DEFAULT_ARIA_STRINGS above and the value types are checked right below
+        const value = (overrides as Record<string, unknown>)[key];
+        if (FUNCTION_ARIA_STRING_KEYS.includes(key) && typeof value !== "function") {
+            throw new Error(`${key} should be a function but instead it is a ${typeof value}, ${toString(value)}`);
+        }
+        if (
+            STRING_OR_FUNCTION_ARIA_STRING_KEYS.includes(key) &&
+            typeof value !== "string" &&
+            typeof value !== "function"
+        ) {
+            throw new Error(
+                `${key} should be a string or a function but instead it is a ${typeof value}, ${toString(value)}`,
+            );
+        }
+        if (STRING_ONLY_ARIA_STRING_KEYS.includes(key) && typeof value !== "string") {
+            throw new Error(`${key} should be a string but instead it is a ${typeof value}, ${toString(value)}`);
+        }
+    });
 }
 
 function formatAriaString(strings: Required<AriaStrings>, key: keyof AriaStrings, ctx: unknown): string {
