@@ -17,7 +17,15 @@ import {
     setFeatureFlag,
     setKeyboardDragTrigger,
 } from "@lukez/svelte-dnd";
-import type { DndEvent, DndEventInfo, DndZoneAttributes, Options } from "@lukez/svelte-dnd";
+import type {
+    AriaStrings,
+    DndEvent,
+    DndEventInfo,
+    DndZoneAttributes,
+    Item,
+    Options,
+    TransformDraggedElementFunction,
+} from "@lukez/svelte-dnd";
 
 declare const node: HTMLElement;
 
@@ -31,6 +39,11 @@ dndzone(node, {});
 dndzone(node, { items: [{ key: 1 }] });
 expectTypeOf(dragHandle).returns.toEqualTypeOf<{ update: () => void; destroy: () => void }>();
 
+expectTypeOf<Item>().toEqualTypeOf<Record<string, any>>();
+expectTypeOf<Options["transformDraggedElement"]>().toEqualTypeOf<TransformDraggedElementFunction | undefined>();
+expectTypeOf<TransformDraggedElementFunction>().toEqualTypeOf<
+    (element?: HTMLElement, draggedElementData?: Item, index?: number) => void
+>();
 expectTypeOf<DndEvent<Row>["items"]>().toEqualTypeOf<Row[]>();
 expectTypeOf<DndEventInfo>().toEqualTypeOf<{ trigger: TRIGGERS; id: string; source: SOURCES }>();
 // Review Focus 1
@@ -77,6 +90,11 @@ setKeyboardDragTrigger("tab");
 
 setAriaStrings(null);
 setAriaStrings({ dropped: ({ itemLabel, position }) => `${itemLabel} ${position}` });
+expectTypeOf(setAriaStrings).parameters.toEqualTypeOf<[overrides: AriaStrings | null]>();
+expectTypeOf<AriaStrings["dropped"]>().toEqualTypeOf<
+    ((ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string) | undefined
+>();
+expectTypeOf<AriaStrings["zoneDragDisabledInstruction"]>().toEqualTypeOf<string | undefined>();
 expectTypeOf(alertToScreenReader).parameters.toEqualTypeOf<[txt: string, doc?: Document]>();
 
 // Review Focus 3
