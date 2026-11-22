@@ -102,13 +102,12 @@ describe("a drag in another window uses that window's timers and styles", () => 
         },
     );
 
-    it("dispatches consider and finalize events from the zone's window", () => {
+    it("calls onconsider and onfinalize for a drag in the zone's window", () => {
         const { win, list } = createListInFrame({ dropAnimationDisabled: true });
         list.element("a").dispatchEvent(mouse(win, "mousedown", 50, 15));
         win.dispatchEvent(mouse(win, "mousemove", 50, 20));
         win.dispatchEvent(mouse(win, "mouseup", 50, 20));
         expect(list.events.map((e) => e.type)).to.deep.equal(["consider", "finalize"]);
-        list.events.forEach((e) => expect(e).to.be.an.instanceof(win.CustomEvent));
     });
 
     it("reads computed styles through the window of the element", { timeout: 10000 }, async () => {

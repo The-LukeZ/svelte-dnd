@@ -10,13 +10,22 @@ import { destroyAria, initAria } from "../src/helpers/aria";
 describe("keyboardDragTrigger", () => {
     const actions: { destroy?: () => void }[] = [];
     const zones: HTMLElement[] = [];
+    const zoneToTriggers = new WeakMap<HTMLElement, TRIGGERS[]>();
 
     function createZone(items: Item[], options: Partial<Options> = {}, dndzoneFn: typeof dndzone = dndzone) {
         const zone = document.createElement("div");
         items.forEach(() => zone.appendChild(document.createElement("div")));
         document.body.appendChild(zone);
         zones.push(zone);
-        const action = dndzoneFn(zone, { items, ...options });
+        const triggers: TRIGGERS[] = [];
+        zoneToTriggers.set(zone, triggers);
+        // a consumer passes its callbacks on every update, as the options getter of the attachment does
+        const onconsider = (e: DndEvent) => triggers.push(e.info.trigger);
+        const zoneAction = dndzoneFn(zone, { items, onconsider, ...options });
+        const action = {
+            update: (newOptions: Options) => zoneAction.update({ onconsider, ...newOptions }),
+            destroy: () => zoneAction.destroy(),
+        };
         actions.push(action);
         return { zone, action, children: Array.from(zone.children) as HTMLElement[] };
     }
@@ -28,9 +37,8 @@ describe("keyboardDragTrigger", () => {
     }
 
     function recordTriggers(zone: HTMLElement) {
-        const triggers: TRIGGERS[] = [];
-        zone.addEventListener("consider", (e) => triggers.push((e as CustomEvent<DndEvent>).detail.info.trigger));
-        return triggers;
+        // createZone records the triggers of every zone it creates
+        return zoneToTriggers.get(zone)!;
     }
 
     afterEach(() => {

@@ -35,6 +35,10 @@ export interface Options<T extends Item = Item> {
      * Use cursor position instead of dragged element center for drop zone detection
      */
     useCursorForDetection?: boolean;
+    /** called while the user drags, with the items the zone should render now */
+    onconsider?: (event: DndEvent<T>) => void;
+    /** called when the drag ends, with the items the zone should keep */
+    onfinalize?: (event: DndEvent<T>) => void;
 }
 
 export interface DndZoneAttributes<T> {

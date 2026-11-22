@@ -26,6 +26,8 @@ import {
 import {
     dispatchConsiderEvent,
     dispatchFinalizeEvent,
+    registerZoneCallbacks,
+    unregisterZoneCallbacks,
     DRAGGED_ENTERED_EVENT_NAME,
     DRAGGED_LEFT_DOCUMENT_EVENT_NAME,
     DRAGGED_LEFT_EVENT_NAME,
@@ -43,6 +45,7 @@ import {
 } from "./helpers/util";
 import { getBoundingRectNoTransforms, findCenterOfElement, type Point } from "./helpers/intersection";
 import type { Index } from "./helpers/listUtil";
+import type { ZoneCallbacks } from "./helpers/dispatcher";
 import type { Item, Options, TransformDraggedElementFunction } from "./types";
 
 // The config of a zone. dropAnimationDurationMs holds the flipDurationMs option.
@@ -770,7 +773,12 @@ export function dndzone<T extends Item>(
         useCursorForDetection = false,
         dropAnimationDisabled = false,
         delayTouchStart: delayTouchStartOpt = false,
+        onconsider,
+        onfinalize,
     }: Options<T>): void {
+        // A torn-down zone gets no callbacks, even if it is configured once more.
+        // The engine passes items through untouched, so a zone's items are its own T.
+        if (!destroyed) registerZoneCallbacks(node, { onconsider, onfinalize } as ZoneCallbacks);
         const isInDragWindow = isWorkingOnPreviousDrag && node.ownerDocument.defaultView === dragWindow;
         const wasDropTarget =
             node === originDropZone || (config.type === draggedElType && !config.dropFromOthersDisabled);
@@ -871,6 +879,8 @@ export function dndzone<T extends Item>(
         destroy: () => {
             if (destroyed) return;
             destroyed = true;
+            // a zone kept until the drop ends (scheduled for removal, or the origin of a drop into another) gets no callbacks
+            unregisterZoneCallbacks(node);
             cancelPendingDrag();
             // the zone's children are the rendered items, HTML elements.
             // removeEventListener ignores undefined, which it gets for a child without a listener.

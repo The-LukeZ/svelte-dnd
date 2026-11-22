@@ -7,11 +7,17 @@ import {
 } from "./constants";
 import { isKeyboardDragTriggerKey } from "./keyboardDragTrigger";
 import { styleActiveDropZones, styleInactiveDropZones } from "./helpers/styler";
-import { dispatchConsiderEvent, dispatchFinalizeEvent } from "./helpers/dispatcher";
+import {
+    dispatchConsiderEvent,
+    dispatchFinalizeEvent,
+    registerZoneCallbacks,
+    unregisterZoneCallbacks,
+} from "./helpers/dispatcher";
+import type { ZoneCallbacks } from "./helpers/dispatcher";
 import { initAria, announceToScreenReader, destroyAria } from "./helpers/aria";
 import { getWindowOf, toString } from "./helpers/util";
 import { printDebug } from "./constants";
-import type { Item, Options } from "./types";
+import type { DndEvent, Item, Options } from "./types";
 
 // The config of a zone
 type Config = {
@@ -24,6 +30,9 @@ type Config = {
     dropTargetStyle: Record<string, string>;
     dropTargetClasses: string[];
     autoAriaDisabled: boolean;
+    // kept so that triggerAllDzsUpdate, which configures a zone from its config, keeps the zone's callbacks
+    onconsider?: (e: DndEvent) => void;
+    onfinalize?: (e: DndEvent) => void;
 };
 // The global handlers that a document registration added to its window, by event type
 type Registration = {
@@ -572,7 +581,15 @@ export function dndzone<T extends Item>(
         dropTargetStyle = DEFAULT_DROP_TARGET_STYLE,
         dropTargetClasses = [],
         autoAriaDisabled = false,
+        onconsider,
+        onfinalize,
     }: Options<T>): void {
+        // the engine passes items through untouched, so a zone's items are its own T
+        const callbacks = { onconsider, onfinalize } as ZoneCallbacks;
+        config.onconsider = callbacks.onconsider;
+        config.onfinalize = callbacks.onfinalize;
+        // a torn-down zone gets no callbacks, even when the drop that its teardown causes configures it once more
+        if (!destroyed) registerZoneCallbacks(node, callbacks);
         config.items = [...items];
         config.dragDisabled = dragDisabled;
         config.dropFromOthersDisabled = dropFromOthersDisabled;
@@ -663,6 +680,8 @@ export function dndzone<T extends Item>(
         destroy: () => {
             if (destroyed) return;
             destroyed = true;
+            // destroying the focused zone drops into it below, and a torn-down zone gets no callbacks
+            unregisterZoneCallbacks(node);
             printDebug(() => "keyboard dndzone will destroy");
             node.removeEventListener("focus", handleZoneFocus);
             // removeEventListener ignores undefined, which it gets for a child without a listener
@@ -675,6 +694,7 @@ export function dndzone<T extends Item>(
             dzToHandles.delete(node);
         },
     };
-    dzToHandles.set(node, handles);
+    // the zones share one map; triggerAllDzsUpdate passes each zone its own stored config, so its items are its own T
+    dzToHandles.set(node, handles as { update(newOptions: Options): void; destroy(): void });
     return handles;
 }

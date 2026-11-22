@@ -5,6 +5,7 @@ import {
 } from "../src/constants";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
 import type { DndEvent, Item } from "../src/types";
+import { key } from "./helpers/otherWindow";
 
 describe("dragHandleZone", () => {
     it("destroys its wrapped dndzone", () => {
@@ -36,13 +37,13 @@ describe("dragHandleZone", () => {
         document.body.appendChild(nestedZone);
 
         const items: Item[] = [{ id: "dragged" }, { id: "next" }, { id: "last" }];
-        // assigned by the consider listener before the first read
+        // assigned by the consider callback before the first read
         let shadowItems!: Item[];
-        rootZone.addEventListener("consider", (e) => {
-            shadowItems = (e as CustomEvent<DndEvent>).detail.items;
-        });
+        const onconsider = (e: DndEvent) => {
+            shadowItems = e.items;
+        };
 
-        const rootAction = dragHandleZone(rootZone, { items, dropAnimationDisabled: true });
+        const rootAction = dragHandleZone(rootZone, { items, dropAnimationDisabled: true, onconsider });
         const handleAction = dragHandle(dragHandleEl);
         const nestedAction = dragHandleZone(nestedZone, { items: [{ id: "nested" }], dropAnimationDisabled: true });
 
@@ -61,7 +62,7 @@ describe("dragHandleZone", () => {
             // must not broadcast a stale update to the root zone.
             const shadowItem = document.createElement("div");
             rootZone.replaceChild(shadowItem, draggedItem);
-            rootAction.update!({ items: shadowItems, dropAnimationDisabled: true });
+            rootAction.update!({ items: shadowItems, dropAnimationDisabled: true, onconsider });
             shadowItem.remove();
             nestedAction.destroy!();
 
@@ -76,6 +77,47 @@ describe("dragHandleZone", () => {
             handleAction.destroy();
             rootZone.remove();
             nestedZone.remove();
+        }
+    });
+
+    it("resets the handle state when a handle zone is destroyed mid-drag", () => {
+        function createHandleZone(id: string) {
+            const zone = document.createElement("div");
+            const item = document.createElement("div");
+            const handle = document.createElement("div");
+            item.appendChild(handle);
+            zone.appendChild(item);
+            document.body.appendChild(zone);
+            const considers: DndEvent[] = [];
+            const action = dragHandleZone(zone, { items: [{ id }], onconsider: (e) => considers.push(e) });
+            const handleAction = dragHandle(handle);
+            return { zone, item, handle, action, handleAction, considers };
+        }
+        const press = (el: HTMLElement, key: string) =>
+            el.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+        const a = createHandleZone("a");
+        const b = createHandleZone("b");
+        try {
+            a.handle.focus();
+            press(a.handle, "Enter");
+            expect(b.handle.style.cursor, "a handle drag is in progress").to.equal("grabbing");
+            const callsBeforeDestroy = a.considers.length;
+
+            // the framework destroys the zone that holds the drag, which drops the item
+            a.action.destroy!();
+
+            expect(a.considers.length, "the destroyed zone gets no calls").to.equal(callsBeforeDestroy);
+            expect(b.handle.style.cursor, "the other zone's handle is ready for a new drag").to.equal("grab");
+            expect(b.handle.tabIndex).to.equal(0);
+            press(b.item, " ");
+            expect(b.considers, "the other zone's item is not draggable without its handle").to.deep.equal([]);
+        } finally {
+            key(window, "Escape");
+            [a, b].forEach(({ zone, action, handleAction }) => {
+                action.destroy!();
+                handleAction.destroy();
+                zone.remove();
+            });
         }
     });
 });

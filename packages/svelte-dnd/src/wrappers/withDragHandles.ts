@@ -3,8 +3,9 @@ import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
 import { dndzone } from "../action";
 import { createStore } from "./simpleStore";
 import { getWindowOf } from "../helpers/util";
+import { registerZoneInternalHooks } from "../helpers/dispatcher";
 import type { ActionReturn } from "svelte/action";
-import type { DndEvent, DndZoneAttributes, Item, Options } from "../types";
+import type { DndZoneAttributes, Item, Options } from "../types";
 
 const isItemsDragDisabled = createStore(true);
 const userDragDisabled = createStore(false);
@@ -52,29 +53,25 @@ export function dragHandleZone<T extends Item>(
     // it always come through the `update` lifecycle and will call `updateZone`
     // anyway.
 
-    function consider(e: CustomEvent<DndEvent<T>>): void {
-        const {
-            info: { source, trigger },
-        } = e.detail;
-        // Ensure dragging is stopped on drag finish via keyboard
-        if (source === SOURCES.KEYBOARD && trigger === TRIGGERS.DRAG_STOPPED) {
-            isItemsDragDisabled.set(true);
-        }
-    }
-
-    function finalize(e: CustomEvent<DndEvent<T>>): void {
-        const {
-            info: { source },
-        } = e.detail;
-        // Ensure dragging is stopped on drag finish via pointer (mouse, touch)
-        if (source === SOURCES.POINTER) {
-            isItemsDragDisabled.set(true);
-        }
-    }
-
-    // the handlers take the CustomEvents that helpers/dispatcher dispatches on the zone
-    node.addEventListener("consider", consider as EventListener);
-    node.addEventListener("finalize", finalize as EventListener);
+    // The handle bookkeeping runs as the zone's internal hooks, before the user's onconsider/onfinalize. Unlike the user's
+    // callbacks they stay after this zone is torn down, so isItemsDragDisabled resets even when the drag ends on events
+    // the engine sends to this zone after its teardown: the keyboard drop that destroying the focused zone causes, or
+    // a pointer finalize to a destroyed origin or a zone scheduled for removal. They are never removed: a later zone on
+    // the same element replaces them, and a stray reset at the end of a drag sets a store that is already true.
+    registerZoneInternalHooks(node, {
+        onconsider: ({ info: { source, trigger } }) => {
+            // Ensure dragging is stopped on drag finish via keyboard
+            if (source === SOURCES.KEYBOARD && trigger === TRIGGERS.DRAG_STOPPED) {
+                isItemsDragDisabled.set(true);
+            }
+        },
+        onfinalize: ({ info: { source } }) => {
+            // Ensure dragging is stopped on drag finish via pointer (mouse, touch)
+            if (source === SOURCES.POINTER) {
+                isItemsDragDisabled.set(true);
+            }
+        },
+    });
 
     return {
         update: (newOptions: Options<T>) => {
@@ -86,8 +83,6 @@ export function dragHandleZone<T extends Item>(
         destroy: () => {
             // dndzone always returns both update and destroy
             zone.destroy!();
-            node.removeEventListener("consider", consider as EventListener);
-            node.removeEventListener("finalize", finalize as EventListener);
             isItemsDragDisabled.unsubscribe(updateZone);
         },
     };

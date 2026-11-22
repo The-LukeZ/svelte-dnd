@@ -8,8 +8,8 @@ import type { DndZoneAttributes, Item, Options } from "./types";
 /**
  * A custom action to turn any container to a dnd zone and all of its direct children to draggables
  * Supports mouse, touch and keyboard interactions.
- * Dispatches two events that the container is expected to react to by modifying its list of items,
- * which will then feed back in to this action via the update function
+ * Calls the onconsider and onfinalize options, which the container is expected to react to by modifying its list of
+ * items, which will then feed back in to this action via the update function
  *
  * @param node - the element to enhance
  */
@@ -66,6 +66,8 @@ function validateOptions<T extends Item>(options: Options<T>): void {
         useCursorForDetection,
         delayTouchStart,
         dropAnimationDisabled,
+        onconsider,
+        onfinalize,
         ...rest
     } = options;
     /*eslint-enable*/
@@ -92,6 +94,16 @@ function validateOptions<T extends Item>(options: Options<T>): void {
     if (zoneItemTabIndex && !isInt(zoneItemTabIndex)) {
         throw new Error(
             `zoneItemTabIndex should be a number but instead it is a ${typeof zoneItemTabIndex}, ${toString(zoneItemTabIndex)}`,
+        );
+    }
+    if (onconsider !== undefined && typeof onconsider !== "function") {
+        throw new Error(
+            `onconsider should be a function but instead it is a ${typeof onconsider}, ${toString(onconsider)}`,
+        );
+    }
+    if (onfinalize !== undefined && typeof onfinalize !== "function") {
+        throw new Error(
+            `onfinalize should be a function but instead it is a ${typeof onfinalize}, ${toString(onfinalize)}`,
         );
     }
     if (delayTouchStart !== undefined && delayTouchStart !== false) {

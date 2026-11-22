@@ -175,15 +175,17 @@ describe("keyboard arrow ownership", () => {
         first.appendChild(handle);
         zone.append(first, second);
         document.body.appendChild(zone);
-        const zoneAction = dragHandleZone(zone, { items: [{ id: "a" }, { id: "b" }] });
+        const finalized: DndEvent[] = [];
+        const zoneAction = dragHandleZone(zone, {
+            items: [{ id: "a" }, { id: "b" }],
+            onfinalize: (e) => finalized.push(e),
+        });
         const handleAction = dragHandle(handle);
         cleanups.push(() => {
             zoneAction.destroy!();
             handleAction.destroy();
             zone.remove();
         });
-        const finalized: DndEvent[] = [];
-        zone.addEventListener("finalize", (event) => finalized.push((event as CustomEvent<DndEvent>).detail));
         handle.focus();
         key(handle, "Enter");
         expect(document.activeElement).to.equal(first);
