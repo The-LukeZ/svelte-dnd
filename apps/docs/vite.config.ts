@@ -16,16 +16,10 @@ export default defineConfig({
                 description: "Drag and drop for Svelte 5: nested zones, touch, keyboard and screen reader support.",
                 url: SITE_URL,
                 github: "https://github.com/The-LukeZ/svelte-dnd",
-                editUrl: "https://github.com/The-LukeZ/svelte-dnd/edit/dev/apps/docs",
+                editUrl: "https://github.com/The-LukeZ/svelte-dnd/edit/master/apps/docs",
                 version: libPkg.version,
                 // Every doc page's own OG image, served by src/routes/og/[...slug].png.
                 ogImages: "/og",
-                announcement: {
-                    tag: "Prerelease",
-                    text: "The API may change before 1.0. See the changelog.",
-                    href: "/changelog",
-                    dismissible: false,
-                },
                 nav: [
                     { label: "Docs", href: "/docs/getting-started" },
                     { label: "Demos", href: "/docs/demos/basic" },
