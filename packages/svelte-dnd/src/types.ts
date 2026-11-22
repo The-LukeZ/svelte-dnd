@@ -29,7 +29,6 @@ export interface Options<T extends Item = Item> {
      * Improve touch UX: true => default 80 ms delay, number => custom delay in ms.
      * false/undefined => drag starts instantly (legacy behaviour)
      * On touch devices, wait this long before converting the gesture to a drag.
-     * `true` uses the built-in default (80 ms).
      */
     delayTouchStart?: boolean | number;
     /**

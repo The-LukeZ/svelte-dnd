@@ -20,7 +20,7 @@ export const TRIGGERS: {
     readonly DROPPED_INTO_ZONE: "droppedIntoZone";
     readonly DROPPED_INTO_ANOTHER: "droppedIntoAnother";
     readonly DROPPED_OUTSIDE_OF_ANY: "droppedOutsideOfAny";
-    /** only relevant for keyboard interactions - when the use exists dragging mode */
+    /** only relevant for keyboard interactions - when the user exits dragging mode */
     readonly DRAG_STOPPED: "dragStopped";
 } = {
     DRAG_STARTED: "dragStarted",
