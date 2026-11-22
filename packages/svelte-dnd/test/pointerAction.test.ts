@@ -1,4 +1,5 @@
 import { dndzone } from "../src/pointerAction";
+import { configure } from "../src/configure";
 import { DRAGGED_ELEMENT_ID, SHADOW_ELEMENT_ATTRIBUTE_NAME, TRIGGERS } from "../src/constants";
 import type { DndEvent, Options } from "../src/types";
 
@@ -299,6 +300,7 @@ describe("pointerAction", () => {
             const finalizes: DndEvent[] = [];
             const oldZone = dndzone(zone, { items: [{ id: 1 }, { id: 2 }], flipDurationMs: 200 });
             let newZone: ReturnType<typeof dndzone> | undefined;
+            const parent = zone.parentElement;
             try {
                 dropFirstItemBelowSecond(zone);
                 oldZone.destroy();
@@ -310,6 +312,10 @@ describe("pointerAction", () => {
                 await wait(300);
 
                 expect(finalizes).to.have.length(0);
+                // the old zone's cleanup neither hides nor removes the element the new zone is on
+                expect(zone.isConnected).to.equal(true);
+                expect(zone.parentElement).to.equal(parent);
+                expect(zone.style.display).not.to.equal("none");
             } finally {
                 window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
                 oldZone.destroy();
@@ -362,6 +368,64 @@ describe("pointerAction", () => {
                 zone.remove();
             }
         });
+
+        // a zone of another type on the element must not leave the old zone's type registration behind
+        for (const destroyReplacementEarly of [false, true]) {
+            it(`the old zone's type is unregistered when the new zone has another type${
+                destroyReplacementEarly ? " and is destroyed at once" : ""
+            }`, async () => {
+                const zone = createTwoItemZone();
+                const wrapper = document.createElement("div");
+                document.body.appendChild(wrapper);
+                wrapper.appendChild(zone);
+                const oldZone = dndzone(zone, { items: [{ id: 1 }, { id: 2 }], type: "A", flipDurationMs: 200 });
+                let newZone: ReturnType<typeof dndzone> | undefined;
+                let freshZone: ReturnType<typeof createZone> | undefined;
+                const errors: unknown[] = [];
+                const collectError = (e: ErrorEvent) => {
+                    e.preventDefault();
+                    errors.push(e.error);
+                };
+                window.addEventListener("error", collectError);
+                try {
+                    dropFirstItemBelowSecond(zone);
+                    oldZone.destroy();
+                    newZone = dndzone(zone, { items: [{ id: 2 }, { id: 1 }], type: "B", flipDurationMs: 200 });
+                    if (destroyReplacementEarly) {
+                        // a zone inside the dragged item is destroyed at once, so it is gone before the old zone's cleanup
+                        wrapper.setAttribute("data-is-dnd-original-dragged-item", "");
+                        newZone.destroy();
+                        wrapper.removeAttribute("data-is-dnd-original-dragged-item");
+                    }
+                    await wait(300);
+                    newZone.destroy();
+
+                    // every zone is gone, so the id key can be configured
+                    expect(() => configure({ idKey: "id" })).not.to.throw();
+
+                    // a drag of the old type finds its zones
+                    freshZone = createZone({ type: "A" });
+                    startMouseDrag(freshZone.item);
+                    window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+                    // the drop finishes on a timeout
+                    await wait(50);
+                    expect(errors).to.deep.equal([]);
+                } finally {
+                    window.removeEventListener("error", collectError);
+                    window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+                    oldZone.destroy();
+                    newZone?.destroy();
+                    freshZone?.action.destroy();
+                    freshZone?.zone.remove();
+                    wrapper.remove();
+                    try {
+                        configure({ idKey: "id" });
+                    } catch {
+                        // a leaked zone registration is what the test reports
+                    }
+                }
+            });
+        }
     });
 
     // zones that render their items from the consider and finalize events, as a framework does
