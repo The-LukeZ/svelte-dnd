@@ -35,22 +35,60 @@ export function readOptions<T extends object>(getOptions: () => Options<T>): Opt
     return { ...getOptions() };
 }
 
+type Zone<T extends object> = { update(o: Options<T>): void; destroy(): void };
+
 /**
  * Sets up the pointer and keyboard zones on a node. `dndzone` calls it once per element, then calls `update` with the
  * new options each time the getter's state changes.
+ * A node inside an element marked with the shadow hint waits: it gets no zone while the hint is set, and the real zone
+ * once the hint is removed. The shadow item's element stays as the dropped item's element after a drop, so its nested
+ * zone comes to life then (https://github.com/The-LukeZ/svelte-dnd/issues/7).
  *
  * @param node - the element to enhance
  */
-export function createZone<T extends object>(
-    node: HTMLElement,
-    options: Options<T>,
-): { update(o: Options<T>): void; destroy(): void } {
-    if (shouldIgnoreZone(node)) {
-        return {
-            update: () => {},
-            destroy: () => {},
-        };
+export function createZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
+    let latestOptions = options;
+    let zone: Zone<T> | undefined;
+    let observer: MutationObserver | undefined;
+
+    const hinted = closestHintedAncestor(node);
+    if (hinted) {
+        let watched = hinted;
+        observer = new MutationObserver(() => {
+            const next = closestHintedAncestor(node);
+            if (next) {
+                // the hint moved to another ancestor: watch that one instead
+                if (next !== watched) {
+                    observer!.disconnect();
+                    watched = next;
+                    observer!.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
+                }
+                return;
+            }
+            observer!.disconnect();
+            observer = undefined;
+            zone = createLiveZone(node, latestOptions);
+        });
+        observer.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
+    } else {
+        zone = createLiveZone(node, options);
     }
+
+    return {
+        update: (newOptions: Options<T>) => {
+            latestOptions = newOptions;
+            zone?.update(newOptions);
+        },
+        destroy: () => {
+            observer?.disconnect();
+            observer = undefined;
+            zone?.destroy();
+            zone = undefined;
+        },
+    };
+}
+
+function createLiveZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
     validateOptions(options);
     const pointerZone = pointerDndZone(node, toEngineOptions(options));
     const keyboardZone = keyboardDndZone(node, toEngineOptions(options));
@@ -81,14 +119,14 @@ function toEngineOptions<T extends object>(options: Options<T>): Options {
 }
 
 /**
- * If the user marked something in the ancestry of our node as shadow element, we can ignore it.
- * The check is still needed under Svelte 5: a zone nested in the shadow item is created like any other, and would
- * register a duplicate zone for the length of the drag. The engine cannot tell from the DOM which element is the shadow
- * one at that point, so the user marks it. test/svelte/shadowHint.test.ts shows the nested zone is set up without the
- * mark and skipped with it.
+ * The closest element, the node included, that the user marked as the shadow item, if any.
+ * A zone nested in the shadow item is created like any other under Svelte 5, and would register a duplicate zone for
+ * the length of the drag. The engine cannot tell from the DOM which element is the shadow one at that point, so the user
+ * marks it. test/svelte/shadowHint.test.ts shows the nested zone is set up without the mark, skipped with it, and set up
+ * once the mark is gone after the drop.
  */
-function shouldIgnoreZone(node: HTMLElement): boolean {
-    return !!node.closest(`[${SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME}="true"]`);
+function closestHintedAncestor(node: HTMLElement): Element | null {
+    return node.closest(`[${SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME}="true"]`);
 }
 
 function validateOptions<T extends object>(options: Options<T>): void {

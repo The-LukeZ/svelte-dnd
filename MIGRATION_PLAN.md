@@ -116,7 +116,7 @@ This repo is a hard fork of [`svelte-dnd-action`](https://github.com/isaacHagoel
 
 ### Between stages 4 and 5: bug fixes
 
-- [#7](https://github.com/The-LukeZ/svelte-dnd/issues/7): a zone nested in a dragged item is dead after the drop when the shadow hint is set.
+- [x] [#7](https://github.com/The-LukeZ/svelte-dnd/issues/7): a zone nested in a dragged item is dead after the drop when the shadow hint is set. Fixed: the skipped zone is set up once the hint is removed.
 
 ### Stage 5: Docs site
 

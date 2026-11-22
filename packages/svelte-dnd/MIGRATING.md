@@ -1,6 +1,6 @@
 # Migrating from `svelte-dnd-action`
 
-`@lukez/svelte-dnd` is a rewrite of the public API for Svelte 5. The drag and drop behavior (pointer, touch, keyboard, aria, scrolling, nested zones, drag handles, other windows) is the same, including one known limitation of nested zones with the shadow item hint (see [Nested zones and the shadow item hint](#nested-zones-and-the-shadow-item-hint)). What changed is how you attach a zone, how you receive updates, and how you configure the library.
+`@lukez/svelte-dnd` is a rewrite of the public API for Svelte 5. The drag and drop behavior (pointer, touch, keyboard, aria, scrolling, nested zones, drag handles, other windows) is the same, with one fix for nested zones with the shadow item hint (see [Nested zones and the shadow item hint](#nested-zones-and-the-shadow-item-hint)). What changed is how you attach a zone, how you receive updates, and how you configure the library.
 
 This is a draft. The final guide moves into the docs site in a later stage.
 
@@ -356,7 +356,7 @@ A zone nested inside an item of another zone works as before. While an item is d
 
 Under strict TypeScript, the item type needs the optional field `[SHADOW_ITEM_MARKER_PROPERTY_NAME]?: boolean` (that is, `isDndShadowItem?: boolean`), because the engine sets it on the shadow item.
 
-Known limitation: with the hint, the nested zone of the dragged item does not work after the drop. The library skips a zone that is created inside a marked element and never sets it up later, and after the drop the shadow item's element stays on as the dropped item's element. The dropped item's nested zone takes no drags, in or out, until that item is rendered again. This behavior comes from `svelte-dnd-action` and is unchanged in this release. It is tracked in [#7](https://github.com/The-LukeZ/svelte-dnd/issues/7) and will be fixed before 1.0.
+Fixed in this release: in `svelte-dnd-action`, with the hint, the nested zone of the dragged item stayed dead after the drop. The library skipped a zone created inside a marked element and never set it up later, and after the drop the shadow item's element stays on as the dropped item's element. Now the skipped zone is set up as soon as the hint is removed, so the dropped item's nested zone takes drags again ([#7](https://github.com/The-LukeZ/svelte-dnd/issues/7)).
 
 ## Type changes
 

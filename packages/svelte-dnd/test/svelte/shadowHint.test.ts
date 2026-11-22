@@ -29,11 +29,12 @@ describe("shadow hint", () => {
     });
 
     /** Drags the first outer item to the end, finalizes the drop and returns how many inner zones were set up mid-drag. */
-    async function dragFirstToEnd(hint: boolean) {
+    async function dragFirstToEnd(hint: boolean, onInnerCall?: (kind: string) => void) {
         const calls: { kind: string; detail: DndEvent }[] = [];
         const screen = await render(NestedInShadow, {
             hint,
             onCall: (kind: string, detail: DndEvent) => calls.push({ kind, detail }),
+            onInnerCall,
         });
         const outer = screen.getByTestId("outer").element() as HTMLElement;
         expect(createdZonesIn(outer), "inner zones before the drag").to.equal(3);
@@ -82,32 +83,41 @@ describe("shadow hint", () => {
     });
 
     /**
-     * Known limitation, inherited from svelte-dnd-action and to be fixed before 1.0, tracked in
      * https://github.com/The-LukeZ/svelte-dnd/issues/7. With the hint, the zone nested in the shadow item is skipped
-     * when it is created, and createZone keeps no way to set it up later. After the drop the shadow item's element stays
-     * as the dropped item's element, so the dropped item's nested zone is never set up and stays inert.
-     * This test pins the current behavior rather than using `it.fails`, so that a drag that went wrong fails it instead
-     * of reading as "limitation still present". When #7 is fixed, flip the last two assertions to 3 set-up zones.
+     * while the hint is set. After the drop the shadow item's element stays as the dropped item's element and loses the
+     * hint, so its nested zone must be set up then, and accept a drag.
      */
-    it(
-        "known limitation #7: with the hint, the dropped item's nested zone stays inert",
-        { timeout: 10000 },
-        async () => {
-            const { outer, calls } = await dragFirstToEnd(true);
-            // the drop happened
-            const finalize = calls[calls.length - 1];
-            expect(finalize.kind).to.equal("finalize");
-            expect(finalize.detail.info.id, "the dropped item").to.equal("o1");
-            await vi.waitFor(() =>
-                expect(outer.querySelectorAll('[data-is-dnd-shadow-item-hint="true"]').length).to.equal(0),
-            );
-            const dropped = Array.from(outer.children).find((li) => li.firstChild!.textContent!.trim() === "o1")!;
-            expect(dropped, "the dropped item is rendered").not.to.equal(undefined);
-            expect(
-                dropped.querySelector("ul")!.hasAttribute("aria-describedby"),
-                "the dropped item's zone is not set up (#7)",
-            ).to.equal(false);
-            expect(createdZonesIn(outer), "inner zones set up after the drop (#7)").to.equal(2);
-        },
-    );
+    it("with the hint, the dropped item's nested zone is set up after the drop (#7)", { timeout: 10000 }, async () => {
+        const innerCalls: string[] = [];
+        const { outer, calls } = await dragFirstToEnd(true, (kind) => innerCalls.push(kind));
+        // the drop happened
+        const finalize = calls[calls.length - 1];
+        expect(finalize.kind).to.equal("finalize");
+        expect(finalize.detail.info.id, "the dropped item").to.equal("o1");
+        await vi.waitFor(() =>
+            expect(outer.querySelectorAll('[data-is-dnd-shadow-item-hint="true"]').length).to.equal(0),
+        );
+        const dropped = Array.from(outer.children).find((li) => li.firstChild!.textContent!.trim() === "o1")!;
+        expect(dropped, "the dropped item is rendered").not.to.equal(undefined);
+        const droppedZone = dropped.querySelector("ul")!;
+        await vi.waitFor(() =>
+            expect(droppedZone.hasAttribute("aria-describedby"), "the dropped item's zone is set up").to.equal(true),
+        );
+        expect(createdZonesIn(outer), "inner zones set up after the drop").to.equal(3);
+
+        // the dropped item's zone is live: dragging its item starts a drag in it
+        await sleep(100);
+        const child = droppedZone.firstElementChild as HTMLElement;
+        const r = child.getBoundingClientRect();
+        const x = r.left + 5;
+        const y = r.top + 5;
+        child.dispatchEvent(mouse("mousedown", x, y));
+        try {
+            window.dispatchEvent(mouse("mousemove", x, y + 5));
+            await vi.waitFor(() => expect(innerCalls, "the inner drag should start").to.include("consider"));
+        } finally {
+            window.dispatchEvent(mouse("mouseup", x, y + 5));
+        }
+        await vi.waitFor(() => expect(innerCalls[innerCalls.length - 1]).to.equal("finalize"), { timeout: 3000 });
+    });
 });

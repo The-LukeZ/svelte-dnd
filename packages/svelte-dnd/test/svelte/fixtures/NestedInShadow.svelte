@@ -9,7 +9,12 @@
     let {
         hint = true,
         onCall,
-    }: { hint?: boolean; onCall?: (kind: "consider" | "finalize", detail: DndEvent<Row>) => void } = $props();
+        onInnerCall,
+    }: {
+        hint?: boolean;
+        onCall?: (kind: "consider" | "finalize", detail: DndEvent<Row>) => void;
+        onInnerCall?: (kind: "consider" | "finalize", detail: DndEvent<Row>) => void;
+    } = $props();
 
     let outer = $state<Row[]>([
         { id: "o1", name: "o1" },
@@ -45,8 +50,14 @@
                     items: inner,
                     flipDurationMs: 0,
                     type: "inner",
-                    onconsider: (detail: DndEvent<Row>) => (inner = detail.items),
-                    onfinalize: (detail: DndEvent<Row>) => (inner = detail.items),
+                    onconsider: (detail: DndEvent<Row>) => {
+                        inner = detail.items;
+                        onInnerCall?.("consider", detail);
+                    },
+                    onfinalize: (detail: DndEvent<Row>) => {
+                        inner = detail.items;
+                        onInnerCall?.("finalize", detail);
+                    },
                 }))}
             >
                 {#each inner as child (child.id)}
