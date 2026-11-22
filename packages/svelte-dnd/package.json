@@ -33,6 +33,7 @@
         "build": "tsdown",
         "test": "vitest run --project chromium",
         "test:all": "vitest run",
+        "test:types": "tsc -p tsconfig.types.json",
         "typecheck": "tsc --noEmit",
         "check:exports": "node scripts/check-exports.mjs",
         "check:package": "node scripts/check-exports.mjs && publint && attw --pack"

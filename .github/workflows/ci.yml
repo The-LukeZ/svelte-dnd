@@ -42,6 +42,7 @@ jobs:
             - run: pnpm typecheck
             - run: pnpm format:check
             - run: pnpm build
+            - run: pnpm test:types
             - run: pnpm check:package
             - run: pnpm test:all
 
