@@ -81,17 +81,25 @@ export function decrementActiveDropZoneCount(): void {
 }
 
 /**
+ * Checks that the item id key can be overridden now, without changing it. Internal - the setter and configure share it.
+ * @throws {Error} if there are rendered dndzones or if the key is not a string
+ */
+export function assertValidIdKey(key: unknown): void {
+    if (activeDndZoneCount > 0) {
+        throw new Error("can only override the id key before initialising any dndzone");
+    }
+    if (typeof key !== "string") {
+        throw new Error("item id key has to be a string");
+    }
+}
+
+/**
  * Allows using another key instead of "id" in the items data. This is global and applies to all dndzones.
  * Has to be called when there are no rendered dndzones whatsoever.
  * @throws {Error} if it was called when there are rendered dndzones or if it is given the wrong type (not a string)
  */
 export function overrideItemIdKeyNameBeforeInitialisingDndZones(newKeyName: string): void {
-    if (activeDndZoneCount > 0) {
-        throw new Error("can only override the id key before initialising any dndzone");
-    }
-    if (typeof newKeyName !== "string") {
-        throw new Error("item id key has to be a string");
-    }
+    assertValidIdKey(newKeyName);
     printDebug(() => ["overriding item id key name", newKeyName]);
     ITEM_ID_KEY = newKeyName;
 }
