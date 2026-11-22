@@ -3,7 +3,6 @@ import { dndzone as pointerAndKeyboardDndzone } from "../src/action";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
 import { setAriaStrings } from "../src/helpers/aria";
 import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../src/constants";
-import { server } from "vitest/browser";
 import { createFrame, createList, failOnListenerErrors, openPopup } from "./helpers/otherWindow";
 
 failOnListenerErrors();
@@ -228,9 +227,7 @@ describe("keyboard and aria support for a drop zone in another window", () => {
         el.dispatchEvent(new created.win.MouseEvent("click", { bubbles: true, cancelable: true }));
     }
 
-    // Firefox leaves a written iframe "interactive" after close(), so initAria waits for a DOMContentLoaded that already
-    // fired: https://github.com/The-LukeZ/svelte-dnd/issues/2
-    it("describes the zone with instructions in the zone's document", { fails: server.browser === "firefox" }, () => {
+    it("describes the zone with instructions in the zone's document", () => {
         const instruction = created.doc.getElementById(created.zone.getAttribute("aria-describedby"));
         expect(instruction.textContent).to.equal(
             "Tab to one the items and press space-bar or enter to start dragging it",

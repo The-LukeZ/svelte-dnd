@@ -79,7 +79,9 @@ export function initAria(doc) {
     if (isOnServer) return null;
     // eslint-disable-next-line no-restricted-globals -- the documented default
     doc = doc || document;
-    if (doc.readyState === "complete") {
+    // "interactive" means the body is parsed. Firefox reports it after document.close() on a written document, where
+    // DOMContentLoaded has already fired: https://github.com/The-LukeZ/svelte-dnd/issues/2
+    if (doc.readyState !== "loading") {
         initAriaOnBrowser(doc);
     } else {
         doc.addEventListener("DOMContentLoaded", () => initAriaOnBrowser(doc));
