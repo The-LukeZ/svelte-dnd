@@ -1,6 +1,6 @@
 import { SOURCES, TRIGGERS } from "../constants";
 import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
-import { dndzone } from "../action";
+import { createZone } from "../action";
 import { createStore } from "./simpleStore";
 import { getWindowOf } from "../helpers/util";
 import { registerZoneInternalHooks } from "../helpers/dispatcher";
@@ -18,11 +18,11 @@ function getAddedOptions(): { dragDisabled: boolean; zoneItemTabIndex: number } 
 }
 
 /**
- * A wrapper action that wraps around the dndzone action to make it easy to work with drag handles.
+ * A wrapper action that wraps around createZone to make it easy to work with drag handles.
  * When using this you must also use the 'dragHandle' action (see below) on an element inside each item within the zone.
  * Credit for the idea and initial implementation goes to @gleuch (Greg Leuch) and @geovie (Georg Vienna)
  *
- * @param options - will be passed down to the dndzone
+ * @param options - will be passed down to createZone
  */
 export function dragHandleZone<T extends Item>(
     node: HTMLElement,
@@ -33,14 +33,13 @@ export function dragHandleZone<T extends Item>(
 
     let currentOptions = options;
 
-    const zone = dndzone(node, {
+    const zone = createZone(node, {
         ...currentOptions,
         ...getAddedOptions(),
     });
 
-    // dndzone always returns both update and destroy
     function updateZone(): void {
-        zone.update!({
+        zone.update({
             ...currentOptions,
             ...getAddedOptions(),
         });
@@ -81,8 +80,7 @@ export function dragHandleZone<T extends Item>(
             updateZone();
         },
         destroy: () => {
-            // dndzone always returns both update and destroy
-            zone.destroy!();
+            zone.destroy();
             isItemsDragDisabled.unsubscribe(updateZone);
         },
     };

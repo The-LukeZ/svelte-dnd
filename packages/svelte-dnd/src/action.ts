@@ -2,21 +2,37 @@ import { dndzone as pointerDndZone } from "./pointerAction";
 import { dndzone as keyboardDndZone } from "./keyboardAction";
 import { ITEM_ID_KEY, SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME } from "./constants";
 import { toString } from "./helpers/util";
-import type { ActionReturn } from "svelte/action";
-import type { DndZoneAttributes, Item, Options } from "./types";
+import { untrack } from "svelte";
+import { fromAction } from "svelte/attachments";
+import type { Attachment } from "svelte/attachments";
+import type { Options } from "./types";
 
 /**
- * A custom action to turn any container to a dnd zone and all of its direct children to draggables
+ * Turns any container into a dnd zone and all of its direct children into draggables.
  * Supports mouse, touch and keyboard interactions.
- * Calls the onconsider and onfinalize options, which the container is expected to react to by modifying its list of
- * items, which will then feed back in to this action via the update function
+ * Calls the onconsider and onfinalize options, which the container is expected to react to by reassigning its list of
+ * items, which then feeds back into the zone through the options getter.
+ *
+ * @param getOptions - returns the zone's options. It runs again whenever the state it reads changes, such as `items`
+ * @example
+ * ```svelte
+ * <ul {@attach dndzone(() => ({ items, onconsider: update, onfinalize: update }))}>
+ * ```
+ */
+export function dndzone<T extends object>(getOptions: () => Options<T>): Attachment<HTMLElement> {
+    return fromAction(createZone<T>, getOptions);
+}
+
+/**
+ * Sets up the pointer and keyboard zones on a node. `dndzone` calls it once per element, then calls `update` with the
+ * new options each time the getter's state changes.
  *
  * @param node - the element to enhance
  */
-export function dndzone<T extends Item>(
+export function createZone<T extends object>(
     node: HTMLElement,
     options: Options<T>,
-): ActionReturn<Options<T>, DndZoneAttributes<T>> {
+): { update(o: Options<T>): void; destroy(): void } {
     if (shouldIgnoreZone(node)) {
         return {
             update: () => {},
@@ -28,9 +44,13 @@ export function dndzone<T extends Item>(
     const keyboardZone = keyboardDndZone(node, options);
     return {
         update: (newOptions: Options<T>) => {
-            validateOptions(newOptions);
-            pointerZone.update(newOptions);
-            keyboardZone.update(newOptions);
+            // fromAction calls this inside an effect. Untracked, so the engine's reads of the options (copying items,
+            // the id check) add no dependencies: the zone updates only when what the getter reads changes.
+            untrack(() => {
+                validateOptions(newOptions);
+                pointerZone.update(newOptions);
+                keyboardZone.update(newOptions);
+            });
         },
         destroy: () => {
             pointerZone.destroy();
@@ -47,7 +67,7 @@ function shouldIgnoreZone(node: HTMLElement): boolean {
     return !!node.closest(`[${SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME}="true"]`);
 }
 
-function validateOptions<T extends Item>(options: Options<T>): void {
+function validateOptions<T extends object>(options: Options<T>): void {
     /*eslint-disable*/
     const {
         items,

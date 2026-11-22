@@ -1,8 +1,7 @@
-import type { ActionReturn } from "svelte/action";
-import { dndzone } from "../../src/action";
+import { createZone } from "../../src/action";
 import type { TRIGGERS } from "../../src/constants";
 import type { WindowWithGlobals } from "../../src/helpers/util";
-import type { DndEvent, DndZoneAttributes, Item, Options } from "../../src/types";
+import type { DndEvent, Item, Options } from "../../src/types";
 import { createListeners } from "./callbacks";
 
 // Helpers for zones that live in another document than the one that loaded the library: a same-origin
@@ -55,7 +54,7 @@ export function createList(
     }: { label: string; names: string[]; style?: Partial<CSSStyleDeclaration> } & Partial<Omit<Options, "items">>,
 ): {
     zone: HTMLDivElement;
-    action: Required<ActionReturn<Options, DndZoneAttributes<Item>>>;
+    action: ReturnType<typeof createZone>;
     doc: Document;
     win: WindowWithGlobals;
     triggers: TRIGGERS[];
@@ -106,8 +105,7 @@ export function createList(
         onfinalize: onChange("finalize"),
         ...options,
     });
-    // dndzone always returns both update and destroy; the ActionReturn type marks them optional
-    const action = dndzone(zone, getOptions()) as Required<ActionReturn<Options, DndZoneAttributes<Item>>>;
+    const action = createZone(zone, getOptions());
     return {
         zone,
         action,

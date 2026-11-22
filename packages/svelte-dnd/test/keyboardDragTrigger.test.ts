@@ -1,5 +1,5 @@
 import { dndzone } from "../src/keyboardAction";
-import { dndzone as fullDndzone } from "../src/action";
+import { createZone as fullDndzone } from "../src/action";
 import { TRIGGERS } from "../src/constants";
 import type { DndEvent, Item, Options } from "../src/types";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";

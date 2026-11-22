@@ -1,4 +1,4 @@
-import { dndzone } from "../src/action";
+import { createZone } from "../src/action";
 import { TRIGGERS } from "../src/constants";
 import type { WindowWithGlobals } from "../src/helpers/util";
 import type { Item } from "../src/types";
@@ -398,17 +398,15 @@ describe("keyboard drags stay within their document", () => {
             const source = list(doc, { label: "Source", names: ["s1"] });
             const frameZone = doc.createElement("div");
             doc.body.appendChild(frameZone);
-            const frameAction = dndzone<Item>(frameZone, { items: [] });
-            // dndzone always returns update and destroy; the ActionReturn type marks them optional
-            cleanups.push(() => frameAction.destroy!());
+            const frameAction = createZone<Item>(frameZone, { items: [] });
+            cleanups.push(() => frameAction.destroy());
             grab(source, "s1");
 
             // The app moves the grabbed item into another zone in its own document.
             const movedItem = doc.createElement("div");
             movedItem.addEventListener("focus", () => frameEl.remove());
             frameZone.appendChild(movedItem);
-            // dndzone always returns update and destroy; the ActionReturn type marks them optional
-            frameAction.update!({ items: [{ id: "s1", name: "s1" }] });
+            frameAction.update({ items: [{ id: "s1", name: "s1" }] });
 
             expect(parentList.element("p2").tabIndex, "the drag should have ended").to.equal(0);
         });

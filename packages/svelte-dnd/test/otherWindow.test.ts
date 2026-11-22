@@ -1,5 +1,5 @@
 import { dndzone } from "../src/pointerAction";
-import { dndzone as pointerAndKeyboardDndzone } from "../src/action";
+import { createZone as pointerAndKeyboardDndzone } from "../src/action";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
 import { setAriaStrings } from "../src/helpers/aria";
 import type { WindowWithGlobals } from "../src/helpers/util";
