@@ -31,8 +31,8 @@
     },
     "scripts": {
         "build": "tsdown",
-        "test": "vitest run --project chromium --passWithNoTests && cypress run",
-        "test:all": "vitest run --passWithNoTests && cypress run",
+        "test": "vitest run --project chromium",
+        "test:all": "vitest run",
         "check:exports": "node scripts/check-exports.mjs",
         "check:package": "node scripts/check-exports.mjs && publint && attw --pack"
     },
