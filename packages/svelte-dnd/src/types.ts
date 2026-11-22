@@ -101,8 +101,8 @@ export interface Options<T extends object = Item> {
      */
     useCursorForDetection?: boolean;
     /**
-     * Copies the computed width and height to the dragged clone, and does not set them from the shadow element's
-     * bounding rect while morphing. A workaround for issue 454 (a browser bug): these rect values take time to update
+     * Sizes the dragged clone from computed styles instead of bounding rects: it copies the computed width, height and
+     * box-sizing from the item when the drag starts, and from the shadow element while morphing. A workaround for issue 454 (a browser bug): these rect values take time to update
      * in a grid layout. Setting it can cause strange behaviour in non-grid zones, see issue 470.
      * @default false
      */
