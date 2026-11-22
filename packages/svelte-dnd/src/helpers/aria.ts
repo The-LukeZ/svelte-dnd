@@ -1,16 +1,20 @@
 import { DEFAULT_KEYBOARD_DRAG_TRIGGER, KEYBOARD_DRAG_TRIGGER_PHRASES, isOnServer, printDebug } from "../constants";
 import { toString } from "./util";
+import type { AriaStrings } from "../types";
 
 const INSTRUCTION_IDs = {
     DND_ZONE_ACTIVE: "dnd-zone-active",
     DND_ZONE_DRAG_DISABLED: "dnd-zone-drag-disabled",
 };
-const INSTRUCTION_ID_TO_STRING_KEY = {
+type InstructionStringKey = "zoneActiveInstruction" | "zoneDragDisabledInstruction";
+type InstructionContext = { keyboardDragTrigger: "space" | "enter" | "space_or_enter" };
+
+const INSTRUCTION_ID_TO_STRING_KEY: Record<string, InstructionStringKey> = {
     [INSTRUCTION_IDs.DND_ZONE_ACTIVE]: "zoneActiveInstruction",
     [INSTRUCTION_IDs.DND_ZONE_DRAG_DISABLED]: "zoneDragDisabledInstruction",
 };
 
-const DEFAULT_ARIA_STRINGS = {
+const DEFAULT_ARIA_STRINGS: Required<AriaStrings> = {
     dragStarted: ({ itemLabel, zoneLabel, canMoveBetweenZones }) =>
         `Started dragging item ${itemLabel}. Use the arrow keys to move it within its list ${zoneLabel}` +
         (canMoveBetweenZones ? ", or tab to another list in order to move the item into it" : ""),
@@ -30,16 +34,16 @@ const STRING_OR_FUNCTION_ARIA_STRING_KEYS = ["zoneActiveInstruction"];
 // zoneDragDisabledInstruction has no drag to start and thus no key to name, so it stays string-only.
 const STRING_ONLY_ARIA_STRING_KEYS = ["zoneDragDisabledInstruction"];
 
-let ariaStrings = { ...DEFAULT_ARIA_STRINGS };
-let instructionCtx = { keyboardDragTrigger: DEFAULT_KEYBOARD_DRAG_TRIGGER };
+let ariaStrings: Required<AriaStrings> = { ...DEFAULT_ARIA_STRINGS };
+let instructionCtx: InstructionContext = { keyboardDragTrigger: DEFAULT_KEYBOARD_DRAG_TRIGGER };
 
 const ALERT_DIV_ID = "dnd-action-aria-alert";
 // A map from a document to its alerts div. A zone can live in another window than the one that loaded this module, so each
 // document with zones gets its own alerts and instructions. It is a Map rather than a WeakMap so the instructions in every
 // document can be re-rendered; destroyAria removes the entry.
-const docToAlertsDiv = new Map();
+const docToAlertsDiv = new Map<Document, HTMLDivElement>();
 
-function initAriaOnBrowser(doc) {
+function initAriaOnBrowser(doc: Document): void {
     if (docToAlertsDiv.has(doc)) {
         // it is already initialized
         return;
@@ -72,10 +76,10 @@ function initAriaOnBrowser(doc) {
 
 /**
  * Initializes the static aria instructions so they can be attached to zones
- * @param {Document} [doc] - the document of the zones, defaults to the one that loaded this module
- * @return {{DND_ZONE_ACTIVE: string, DND_ZONE_DRAG_DISABLED: string} | null} - the IDs for static aria instruction (to be used via aria-describedby) or null on the server
+ * @param doc - the document of the zones, defaults to the one that loaded this module
+ * @return the IDs for static aria instruction (to be used via aria-describedby) or null on the server
  */
-export function initAria(doc) {
+export function initAria(doc?: Document): { DND_ZONE_ACTIVE: string; DND_ZONE_DRAG_DISABLED: string } | null {
     if (isOnServer) return null;
     // eslint-disable-next-line no-restricted-globals -- the documented default
     doc = doc || document;
@@ -91,9 +95,9 @@ export function initAria(doc) {
 
 /**
  * Removes all the artifacts (dom elements) added by this module to the given document
- * @param {Document} [doc] - defaults to the document that loaded this module
+ * @param doc - defaults to the document that loaded this module
  */
-export function destroyAria(doc) {
+export function destroyAria(doc?: Document): void {
     if (isOnServer) return;
     // eslint-disable-next-line no-restricted-globals -- the documented default
     doc = doc || document;
@@ -104,7 +108,7 @@ export function destroyAria(doc) {
     docToAlertsDiv.delete(doc);
 }
 
-function instructionToHiddenDiv(doc, id, txt) {
+function instructionToHiddenDiv(doc: Document, id: string, txt: string): HTMLDivElement {
     const div = doc.createElement("div");
     div.id = id;
     renderInstruction(div, txt);
@@ -114,7 +118,7 @@ function instructionToHiddenDiv(doc, id, txt) {
     return div;
 }
 
-function renderInstruction(div, txt) {
+function renderInstruction(div: HTMLElement, txt: string): void {
     div.replaceChildren();
     const paragraph = div.ownerDocument.createElement("p");
     paragraph.textContent = txt;
@@ -123,18 +127,18 @@ function renderInstruction(div, txt) {
 
 /**
  * Will make the screen reader alert the provided text to the user
- * @param {string} txt
- * @param {Document} [doc] - the document to announce in, for a zone in another window such as an iframe or a popup.
- * Defaults to the document that loaded this module.
+ * @param doc - the document to announce in, for a zone in another window such as an iframe or a popup.
+ * Defaults to the document that loaded the library.
  */
-export function alertToScreenReader(txt, doc) {
+export function alertToScreenReader(txt: string, doc?: Document): void {
     if (isOnServer) return;
     // eslint-disable-next-line no-restricted-globals -- the documented default
     doc = doc || document;
     if (!docToAlertsDiv.has(doc)) {
         initAriaOnBrowser(doc);
     }
-    const alertsDiv = docToAlertsDiv.get(doc);
+    // initAriaOnBrowser above registered the document if it was missing
+    const alertsDiv = docToAlertsDiv.get(doc)!;
     alertsDiv.innerHTML = "";
     const alertText = doc.createTextNode(txt);
     alertsDiv.appendChild(alertText);
@@ -144,20 +148,13 @@ export function alertToScreenReader(txt, doc) {
 }
 
 /**
- * Overrides the strings the library announces to screen readers. Each call starts with the built-in
- * English defaults and applies the supplied overrides, so omitted keys return to English when the locale
- * changes. Existing instruction elements update immediately. This setting is global to all dndzones.
+ * Overrides the strings the library speaks to screen readers. Merges over the built-in English defaults,
+ * so each call describes a whole locale rather than patching the previous one - anything a call leaves
+ * out goes back to English.
+ * This is global and applies to all dndzones.
  * Pass null to restore the built-in English strings.
- * @param {Object | null} overrides - any subset of: dragStarted, movedToPosition, movedToZoneEnd,
- * movedToZoneStart, dropped (functions taking a context object and returning a string);
- * zoneActiveInstruction (a string, or a function taking {keyboardDragTrigger} and returning a string -
- * useful because a hard-coded translation can't name the right key if the app varies the trigger);
- * zoneDragDisabledInstruction (a string only - a disabled zone has no drag to start, so there is no key
- * for a formatter to name)
- * @throws {Error} if overrides is not an object or null, contains an unknown key, or contains a value of
- * the wrong type. Validation completes before the active strings change.
  */
-export function setAriaStrings(overrides) {
+export function setAriaStrings(overrides: AriaStrings | null): void {
     if (overrides === null || overrides === undefined) {
         ariaStrings = { ...DEFAULT_ARIA_STRINGS };
     } else {
@@ -172,7 +169,8 @@ export function setAriaStrings(overrides) {
                     `Can't set non existing aria string ${key}! Supported strings: ${Object.keys(DEFAULT_ARIA_STRINGS)}`,
                 );
             }
-            const value = overrides[key];
+            // the keys were validated against DEFAULT_ARIA_STRINGS above and the value types are checked right below
+            const value = (overrides as Record<string, unknown>)[key];
             if (FUNCTION_ARIA_STRING_KEYS.includes(key) && typeof value !== "function") {
                 throw new Error(`${key} should be a function but instead it is a ${typeof value}, ${toString(value)}`);
             }
@@ -194,12 +192,13 @@ export function setAriaStrings(overrides) {
     refreshInstructions();
 }
 
-function formatAriaString(strings, key, ctx) {
+function formatAriaString(strings: Required<AriaStrings>, key: keyof AriaStrings, ctx: unknown): string {
     const ariaString = strings[key];
-    return typeof ariaString === "function" ? ariaString(ctx) : ariaString;
+    // ctx is the context object that matches key, which announceToScreenReader's callers provide
+    return typeof ariaString === "function" ? (ariaString as (ctx: unknown) => string)(ctx) : ariaString;
 }
 
-function formatWithFallback(key, ctx) {
+function formatWithFallback(key: keyof AriaStrings, ctx: unknown): string {
     try {
         return formatAriaString(ariaStrings, key, ctx);
     } catch (err) {
@@ -213,7 +212,7 @@ function formatWithFallback(key, ctx) {
     }
 }
 
-function refreshInstructions() {
+function refreshInstructions(): void {
     if (isOnServer) return;
     docToAlertsDiv.forEach((alertsDiv, doc) =>
         Object.entries(INSTRUCTION_ID_TO_STRING_KEY).forEach(([id, key]) => {
@@ -226,9 +225,8 @@ function refreshInstructions() {
 /**
  * Sets the context the static instruction formatters receive, and re-renders them. Internal - the
  * public entry point is setKeyboardDragTrigger.
- * @param {{keyboardDragTrigger: "space"|"enter"|"space_or_enter"}} ctx
  */
-export function setInstructionContext(ctx) {
+export function setInstructionContext(ctx: InstructionContext): void {
     instructionCtx = { ...ctx };
     refreshInstructions();
 }
@@ -237,10 +235,10 @@ export function setInstructionContext(ctx) {
  * Formats and announces one configured ARIA message. If a consumer formatter throws, the built-in
  * English formatter is used and the error is reported through printDebug. Formatter errors must not
  * escape because this function runs during the drag lifecycle.
- * @param {string} key - one of the keys accepted by setAriaStrings
- * @param {Object} [ctx] - the interpolation context for that key
- * @param {Document} [doc] - the document of the zone the message is about, defaults to the one that loaded this module
+ * @param key - one of the keys accepted by setAriaStrings
+ * @param ctx - the interpolation context for that key
+ * @param doc - the document of the zone the message is about, defaults to the one that loaded this module
  */
-export function announceToScreenReader(key, ctx, doc) {
+export function announceToScreenReader(key: keyof AriaStrings, ctx?: object, doc?: Document): void {
     alertToScreenReader(formatWithFallback(key, ctx), doc);
 }

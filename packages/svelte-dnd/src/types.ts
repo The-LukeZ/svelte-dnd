@@ -19,3 +19,21 @@ export type TransformDraggedElementFunction = (
     draggedElementData?: Item, // the data of the item from the items array
     index?: number, // the index the dragged element would get if dropped into the new dnd-zone
 ) => void;
+
+// Every message key receives the same core context - itemLabel, zoneLabel, position, count -
+// so a consumer can word any of them positionally. Only dragStarted carries an extra.
+export interface AriaStrings {
+    dragStarted?: (ctx: {
+        itemLabel: string;
+        zoneLabel: string;
+        position: number;
+        count: number;
+        canMoveBetweenZones: boolean;
+    }) => string;
+    movedToPosition?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    movedToZoneEnd?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    movedToZoneStart?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    dropped?: (ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string;
+    zoneActiveInstruction?: string | ((ctx: { keyboardDragTrigger: "space" | "enter" | "space_or_enter" }) => string);
+    zoneDragDisabledInstruction?: string;
+}
