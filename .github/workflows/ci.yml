@@ -78,9 +78,11 @@ jobs:
 
             - run: pnpm --filter @lukez/svelte-dnd-docs exec playwright install --with-deps chromium
 
+            # The docs resolve @lukez/svelte-dnd through its gitignored dist, so build it first.
+            - run: pnpm build
             - run: pnpm docs:check
             - run: pnpm --filter @lukez/svelte-dnd-docs test
-            - run: pnpm docs:build
+            - run: pnpm --filter @lukez/svelte-dnd-docs build
             - run: pnpm --filter @lukez/svelte-dnd-docs test:smoke
 
             - name: Upload Playwright failure output

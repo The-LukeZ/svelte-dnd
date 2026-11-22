@@ -1,9 +1,18 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { SITE_URL } from "../src/site.ts";
 
-const sitemap = readFileSync(fileURLToPath(new URL("../build/sitemap.xml", import.meta.url)), "utf8");
+const buildDir = fileURLToPath(new URL("../build/", import.meta.url));
+const sitemap = readFileSync(buildDir + "sitemap.xml", "utf8");
+
+// adapter-static writes "/" as index.html and every other page as <path>.html (or <path>/index.html).
+// `vite preview` serves SvelteKit's own prerendered output, not build/, so this checks the files
+// Cloudflare Pages will actually serve.
+const builtFile = (path: string) =>
+    [path === "/" ? "index.html" : `${path.slice(1)}.html`, `${path.slice(1)}/index.html`].find((file) =>
+        existsSync(buildDir + file),
+    );
 
 const paths = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1].replace(SITE_URL, "") || "/");
 
@@ -36,8 +45,12 @@ for (const path of paths) {
             }
         });
 
+        expect(builtFile(path), `build/ has no file for ${path}`).toBeDefined();
+
         const response = await page.goto(path);
         expect(response?.status()).toBe(200);
+        // page.goto follows redirects silently, so a 308 to a trailing-slash URL must fail here.
+        expect(response?.url()).toBe(new URL(path, "http://localhost:4173").href);
         await page.waitForLoadState("networkidle");
         expect(problems).toEqual([]);
     });
@@ -45,6 +58,8 @@ for (const path of paths) {
 
 test("keyboard drag reorders the basic demo", async ({ page }) => {
     await page.goto("/docs/demos/basic");
+    // Keys pressed before hydration do nothing, and toPass below only retries the assertion.
+    await page.waitForLoadState("networkidle");
     const items = page.locator('ul[aria-label="Basic list"] li');
     const before = (await items.allTextContents()).map((text) => text.trim());
     expect(before.length).toBeGreaterThan(1);

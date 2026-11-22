@@ -4,7 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
     testDir: "smoke",
     forbidOnly: !!process.env.CI,
-    reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+    reporter: "list",
     use: {
         baseURL: "http://localhost:4173",
     },
