@@ -2,7 +2,7 @@
 
 A fork of [`svelte-dnd-action`](https://github.com/isaacHagoel/svelte-dnd-action) by Isaac Hagoel, being rebuilt for Svelte 5.
 
-> **Work in progress.** The API changed for Svelte 5: zones and drag handles are attachments, `consider` and `finalize` are callback options, and the global setters became `configure`. See [MIGRATING.md](MIGRATING.md) for the steps.
+> **Work in progress.** The API changed for Svelte 5: zones and drag handles are attachments, `consider` and `finalize` are callback options, and the global setters became `configure`. See [MIGRATING.md](https://github.com/The-LukeZ/svelte-dnd/blob/dev/packages/svelte-dnd/MIGRATING.md) for the steps.
 >
 > The docs below still describe the original `svelte-dnd-action` API. The full rewrite of this README comes with the docs site.
 
