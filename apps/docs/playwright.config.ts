@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Smoke tests run against the static build served by `vite preview`, so run `pnpm docs:build` first.
+// Smoke tests run against `vite preview`, which serves SvelteKit's own output in `.svelte-kit`, and check the files in `build/` one by one, so run `pnpm docs:build` first.
 export default defineConfig({
     testDir: "smoke",
     forbidOnly: !!process.env.CI,

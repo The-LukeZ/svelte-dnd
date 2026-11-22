@@ -39,8 +39,9 @@ export default defineConfig({
         sveltekit({
             extensions: [".svelte", ".md"],
             preprocess: [vitePreprocess()],
-            // Defaults: pages and assets in `build`, no fallback. Every route prerenders.
-            adapter: adapter(),
+            // Pages and assets go in `build`. Every route prerenders. The 404.html fallback is what Cloudflare Pages serves
+            // (with status 404) for an unknown path, so +error.svelte renders instead of the home page.
+            adapter: adapter({ fallback: "404.html" }),
         }),
     ],
     // Prebundling svelte-docsmith for the browser inlines its fallback modules, which throw without the plugin (such as
