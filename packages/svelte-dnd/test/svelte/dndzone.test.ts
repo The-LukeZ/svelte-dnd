@@ -3,6 +3,7 @@ import { SOURCES, TRIGGERS, setDebugMode } from "../../src/constants";
 import type { DndEvent } from "../../src/types";
 import List from "./fixtures/List.svelte";
 import ListWithAttr from "./fixtures/ListWithAttr.svelte";
+import StateOptions from "./fixtures/StateOptions.svelte";
 
 type Row = { id: number; name: string };
 type Call = { kind: "consider" | "finalize"; detail: DndEvent<Row>; run: number };
@@ -186,5 +187,89 @@ describe("dndzone attachment", () => {
         // every consider reassigned items, so the getter ran again after the last one, before the drop
         expect(finalize.run).to.equal(lastOf(considers).run + 1);
         expect(finalize.run).not.to.equal(0);
+    });
+});
+
+/**
+ * A `$state` options object handed over as `() => options` is never reassigned, so the getter reads no signal of its
+ * own. The zone still has to see the writes to its properties.
+ */
+describe("a $state options object passed through the getter", () => {
+    let errors: string[];
+    const onError = (e: ErrorEvent): number => errors.push(e.message);
+    beforeEach(() => {
+        errors = [];
+        window.addEventListener("error", onError);
+    });
+    afterEach(() => {
+        // ends a keyboard drag a failed test left behind
+        key(window, "Escape");
+        window.removeEventListener("error", onError);
+        expect(errors, "errors thrown by listeners").to.deep.equal([]);
+    });
+
+    /** The item's text without a handle's "::" */
+    const texts = (zone: HTMLElement): string[] => names(zone).map((text) => text!.replace("::", "").trim());
+
+    async function renderState(handles: boolean) {
+        const calls: Omit<Call, "run">[] = [];
+        const screen = await render(StateOptions, {
+            initial: INITIAL(),
+            handles,
+            onCall: (kind: Call["kind"], detail: DndEvent<Row>) => calls.push({ kind, detail }),
+        });
+        const zone = screen.getByTestId("zone").element() as HTMLElement;
+        return { screen, zone, calls };
+    }
+
+    it("keeps a pointer drag going while the callbacks write options.items", { timeout: 10000 }, async () => {
+        const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+        setDebugMode(true);
+        try {
+            const { zone, calls } = await renderState(false);
+            await dragFirstBelowLast(zone, calls);
+            await vi.waitFor(() => expect(texts(zone)).to.deep.equal(["b", "c", "a"]));
+            expect(lastOf(calls).detail.info.trigger).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+            const messages = debug.mock.calls.map(([message]) => String(message));
+            expect(messages.filter((m) => m.startsWith("dndzone good to go options"))).to.have.length(1);
+            expect(messages.filter((m) => m.startsWith("pointer dndzone will update")).length).to.be.greaterThan(1);
+        } finally {
+            setDebugMode(false);
+            debug.mockRestore();
+        }
+    });
+
+    for (const handles of [false, true]) {
+        it(`updates the ${handles ? "handle " : ""}zone when an item is added to options.items`, async () => {
+            const { screen, zone, calls } = await renderState(handles);
+            await screen.getByRole("button", { name: "add" }).click();
+            await vi.waitFor(() => expect(texts(zone)).to.deep.equal(["a", "b", "c", "d"]));
+            // the engine set up the new item for keyboard drags only if update ran with the new items
+            const d = zone.querySelectorAll("li")[3];
+            const start = handles ? d.querySelector<HTMLElement>("[data-testid=handle]")! : d;
+            if (!handles) expect(d.tabIndex, "the added item is focusable").to.equal(0);
+            start.focus();
+            key(start, " ");
+            key(document.activeElement!, "ArrowUp");
+            key(document.activeElement!, " ");
+            await vi.waitFor(() => expect(texts(zone)).to.deep.equal(["a", "b", "d", "c"]));
+            const finalize = lastOf(calls.filter((call) => call.kind === "finalize"));
+            expect(finalize.detail.info.source).to.equal(SOURCES.KEYBOARD);
+            expect(finalize.detail.info.id).to.equal(4);
+        });
+    }
+
+    it("locks the handle zone when options.dragDisabled is set", async () => {
+        const { screen, zone } = await renderState(true);
+        const handles = () => Array.from(zone.querySelectorAll<HTMLElement>("[data-testid=handle]"));
+        handles().forEach((handle) => expect(handle.tabIndex, "a handle before the lock").to.equal(0));
+        await screen.getByRole("button", { name: "lock" }).click();
+        await vi.waitFor(() =>
+            handles().forEach((handle) => expect(handle.tabIndex, "a handle after the lock").to.equal(-1)),
+        );
+        await screen.getByRole("button", { name: "lock" }).click();
+        await vi.waitFor(() =>
+            handles().forEach((handle) => expect(handle.tabIndex, "a handle after the unlock").to.equal(0)),
+        );
     });
 });

@@ -14,13 +14,25 @@ import type { Options } from "./types";
  * items, which then feeds back into the zone through the options getter.
  *
  * @param getOptions - returns the zone's options. It runs again whenever the state it reads changes, such as `items`
+ * or a top-level property of a `$state` options object that it returns
  * @example
  * ```svelte
  * <ul {@attach dndzone(() => ({ items, onconsider: update, onfinalize: update }))}>
  * ```
  */
 export function dndzone<T extends object>(getOptions: () => Options<T>): Attachment<HTMLElement> {
-    return fromAction(createZone<T>, getOptions);
+    return fromAction(createZone<T>, () => readOptions(getOptions));
+}
+
+/**
+ * Calls the getter and copies the top level of what it returns, so the effect that runs the getter tracks each option
+ * it reads. A getter such as `() => options`, where `options` is a `$state` object that is never reassigned, reads no
+ * signal by itself, and the zone would never see `options.items = e.items`. The copy reads every property, which
+ * subscribes the effect to them. Writes deeper down, such as `options.items.push(item)`, stay unseen, the same as for
+ * an `items` array: reassign the property instead.
+ */
+export function readOptions<T extends object>(getOptions: () => Options<T>): Options<T> {
+    return { ...getOptions() };
 }
 
 /**

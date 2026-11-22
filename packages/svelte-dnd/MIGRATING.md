@@ -6,15 +6,15 @@ This is a draft. The final guide moves into the docs site in a later stage.
 
 ## Overview
 
-| `svelte-dnd-action`                                                                          | `@lukez/svelte-dnd`                                               |
-| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `npm i svelte-dnd-action`                                                                    | `npm i @lukez/svelte-dnd`                                         |
-| Svelte 3, 4 or 5                                                                             | Svelte `^5.32.0`                                                  |
-| `use:dndzone={options}`                                                                      | `{@attach dndzone(() => options)}`                                |
-| `on:consider`, `on:finalize`, `e.detail`                                                     | `onconsider`, `onfinalize` options, `e`                           |
-| `setAriaStrings`, `setKeyboardDragTrigger`, `setDebugMode`, `overrideItemIdKeyNameBefore...` | `configure({ ariaStrings, keyboardDragTrigger, debug, idKey })`   |
-| `setFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT, true)`       | `useComputedStyleForRects: true` zone option                      |
-| `use:dragHandleZone`, `use:dragHandle`                                                       | `{@attach dragHandleZone(() => options)}`, `{@attach dragHandle}` |
+| `svelte-dnd-action`                                                                          | `@lukez/svelte-dnd`                                                        |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `npm i svelte-dnd-action`                                                                    | `npm i @lukez/svelte-dnd`                                                  |
+| Svelte 3, 4 or 5                                                                             | Svelte `^5.32.0`                                                           |
+| `use:dndzone={options}`                                                                      | `{@attach dndzone(() => ({ ...options }))}`                                |
+| `on:consider`, `on:finalize`, `e.detail`                                                     | `onconsider`, `onfinalize` options, `e`                                    |
+| `setAriaStrings`, `setKeyboardDragTrigger`, `setDebugMode`, `overrideItemIdKeyNameBefore...` | `configure({ ariaStrings, keyboardDragTrigger, debug, idKey })`            |
+| `setFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT, true)`       | `useComputedStyleForRects: true` zone option                               |
+| `use:dragHandleZone`, `use:dragHandle`                                                       | `{@attach dragHandleZone(() => ({ ...options }))}`, `{@attach dragHandle}` |
 
 ## Package name
 
@@ -81,6 +81,8 @@ After:
 The getter is required. Passing a plain object is a type error.
 
 Reassign `items`, do not change it in place. The library notices a change because the getter reads the `items` binding, so `items = next` works and `items.push(x)` on its own does not. This is the same rule as in `svelte-dnd-action`, and the callbacks below hand you a new array to assign.
+
+You can keep all the options in one `$state` object and return it, as `() => options` or `() => ({ ...options })`. The library copies the top level of what the getter returns inside the effect, so it reads each option and sees a write such as `options.items = e.items` or `options.dragDisabled = true`. A change deeper down, such as `options.items.push(x)`, is not seen, the same as for `items` above.
 
 ## Events became callbacks
 

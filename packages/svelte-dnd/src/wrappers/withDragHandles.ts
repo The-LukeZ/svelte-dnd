@@ -1,6 +1,6 @@
 import { SOURCES, TRIGGERS, printDebug } from "../constants";
 import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
-import { createZone } from "../action";
+import { createZone, readOptions } from "../action";
 import { createStore } from "./simpleStore";
 import { getWindowOf } from "../helpers/util";
 import { registerZoneInternalHooks } from "../helpers/dispatcher";
@@ -272,7 +272,7 @@ export function _pendingHandleCount(): number {
  * ```
  */
 export function dragHandleZone<T extends object>(getOptions: () => Options<T>): Attachment<HTMLElement> {
-    return fromAction(createHandleZone<T>, getOptions);
+    return fromAction(createHandleZone<T>, () => readOptions(getOptions));
 }
 
 /**
