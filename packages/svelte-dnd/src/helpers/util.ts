@@ -30,7 +30,7 @@ export function clearTimeoutIn(timeout?: { win: Window; id: number }): void {
 
 /**
  */
-export function toString(object: object): string {
+export function toString(object: unknown): string {
     return JSON.stringify(object, null, 2);
 }
 
