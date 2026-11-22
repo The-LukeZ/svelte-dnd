@@ -1,7 +1,7 @@
 import { playwright } from "@vitest/browser-playwright";
-import { defineConfig } from "vitest/config";
+import { defineConfig, type ViteUserConfig } from "vitest/config";
 
-export default defineConfig({
+const config: ViteUserConfig = defineConfig({
     test: {
         include: ["test/**/*.test.js"],
         globals: true,
@@ -17,3 +17,5 @@ export default defineConfig({
         },
     },
 });
+
+export default config;
