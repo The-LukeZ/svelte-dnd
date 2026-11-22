@@ -1,5 +1,5 @@
-import { TRIGGERS } from "../../src/constants";
-import { alertText, createFrame, createList, failOnListenerErrors, key, mouse } from "../../test/helpers/otherWindow";
+import { TRIGGERS } from "../src/constants";
+import { alertText, createFrame, createList, failOnListenerErrors, key, mouse } from "./helpers/otherWindow";
 
 failOnListenerErrors();
 
