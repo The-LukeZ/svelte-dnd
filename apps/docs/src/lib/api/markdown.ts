@@ -81,6 +81,26 @@ export function expandApiTables(markdown: string, reference: ApiReference): stri
     return lines.join(eol);
 }
 
+/** A `<Notes />` tag on a line of its own, where the history page places the upstream release notes. */
+const NOTES_TAG = /^[ \t]*<Notes\s*\/>[ \t]*$/gm;
+
+/**
+ * Replaces the `<Notes />` tag of the history page with the text of the upstream release notes, which the page renders
+ * as a component imported from `archive/upstream-release-notes.md`. docsmith writes agent markdown from the page's
+ * source, so without this the tag would reach agents as written.
+ */
+export function expandUpstreamNotes(markdown: string, notes: string): string {
+    const eol = markdown.includes("\r\n") ? "\r\n" : "\n";
+    return markdown.replace(NOTES_TAG, () => notes.trim().replace(/\r?\n/g, eol));
+}
+
+/** The response with its body passed through `expandUpstreamNotes`. A failed response is returned as it is. */
+export async function withUpstreamNotes(response: Response, notes: string): Promise<Response> {
+    if (!response.ok) return response;
+    const body = expandUpstreamNotes(await response.text(), notes);
+    return new Response(body, { status: response.status, headers: response.headers });
+}
+
 /** The response with its body passed through `expandApiTables`. A failed response is returned as it is. */
 export async function withApiTables(response: Response, reference: ApiReference): Promise<Response> {
     if (!response.ok) return response;

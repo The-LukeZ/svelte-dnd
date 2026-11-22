@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { apiEntryMarkdown, expandApiTables, withApiTables } from "../src/lib/api/markdown.ts";
+import { apiEntryMarkdown, expandApiTables, expandUpstreamNotes, withApiTables } from "../src/lib/api/markdown.ts";
 import { extractApi } from "../src/lib/api/extract.ts";
 import type { ApiReference } from "../src/lib/api/types.ts";
 
@@ -125,5 +125,23 @@ describe("withApiTables", () => {
         const out = await withApiTables(response, reference);
         expect(out.status).toBe(404);
         expect(await out.text()).toBe("Not found");
+    });
+});
+
+describe("expandUpstreamNotes", () => {
+    const notes = "## Notes\n\n### 1.0.0\n\nA line.\n";
+
+    it("replaces a Notes tag on its own line with the notes", () => {
+        expect(expandUpstreamNotes("Intro.\n\n<Notes />\n", notes)).toBe(
+            "Intro.\n\n## Notes\n\n### 1.0.0\n\nA line.\n",
+        );
+    });
+
+    it("keeps the line endings of the page", () => {
+        expect(expandUpstreamNotes("Intro.\r\n\r\n<Notes />", "## A\n\nB")).toBe("Intro.\r\n\r\n## A\r\n\r\nB");
+    });
+
+    it("leaves a page without the tag as it is", () => {
+        expect(expandUpstreamNotes("Text <Notes /> inline.\n", notes)).toBe("Text <Notes /> inline.\n");
     });
 });
