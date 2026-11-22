@@ -408,7 +408,11 @@ describe("a drag in another window that goes away", () => {
                     }
                 });
                 startDrag(created);
-                // The first observation runs on the iframe's next animation frame.
+                // The first observation runs on the iframe's next animation frame, which can take a while on a slow
+                // machine. Then give the library time to schedule (or not) more timeouts on the removed iframe.
+                await vi.waitFor(() => expect(removed, "the drag should enter its first zone").to.equal(true), {
+                    timeout: 4000,
+                });
                 await new Promise((resolve) => window.setTimeout(resolve, 200));
                 finalizeCount = created.list.triggers.filter(
                     (trigger) => trigger === TRIGGERS.DROPPED_INTO_ZONE,
