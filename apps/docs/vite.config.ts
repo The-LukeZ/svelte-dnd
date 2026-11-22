@@ -27,9 +27,10 @@ export default defineConfig({
                     external: true,
                     dismissible: false,
                 },
-                // The Demos link ({ label: "Demos", href: "/docs/demos/basic" }) is added with the first demo page:
-                // prerendering fails on a link to a page that does not exist yet.
-                nav: [{ label: "Docs", href: "/docs/getting-started" }],
+                nav: [
+                    { label: "Docs", href: "/docs/getting-started" },
+                    { label: "Demos", href: "/docs/demos/basic" },
+                ],
             },
         }),
         tailwindcss(),

@@ -1,5 +1,19 @@
 <script lang="ts">
     import { Action, CTA, DocsShell, Feature, FeatureGrid, Hero } from "svelte-docsmith";
+    import Basic from "#lib/demos/Basic.svelte";
+
+    const installCommand = "pnpm add @lukez/svelte-dnd@next";
+    let copied = $state(false);
+
+    async function copyInstallCommand() {
+        try {
+            await navigator.clipboard.writeText(installCommand);
+            copied = true;
+            setTimeout(() => (copied = false), 2000);
+        } catch {
+            // The clipboard can be blocked. The command stays selectable in the box.
+        }
+    }
 </script>
 
 <DocsShell search={() => import("svelte-docsmith/search").then((m) => m.docs)} layout="page">
@@ -14,12 +28,22 @@
     </Hero>
 
     <div class="mx-auto max-w-xl px-4 pb-16 md:px-6">
-        <pre class="bg-muted overflow-x-auto rounded-lg border px-4 py-3 text-center font-mono text-sm"><code
-                >pnpm add @lukez/svelte-dnd@next</code
-            ></pre>
+        <div class="bg-muted flex items-center gap-2 rounded-lg border py-2 pr-2 pl-4">
+            <pre class="flex-1 overflow-x-auto font-mono text-sm"><code>{installCommand}</code></pre>
+            <button
+                type="button"
+                class="hover:bg-accent text-muted-foreground hover:text-accent-foreground rounded-md border px-2.5 py-1 text-xs font-medium"
+                onclick={copyInstallCommand}
+            >
+                {copied ? "Copied" : "Copy"}<span class="sr-only"> the install command</span>
+            </button>
+        </div>
     </div>
 
-    <!-- Task 10: the Basic demo goes here, between the install command and the features. -->
+    <div class="mx-auto flex max-w-xl flex-col items-center gap-3 px-4 pb-16 md:px-6">
+        <Basic />
+        <a class="text-sm underline underline-offset-4" href="/docs/demos/basic">More demos</a>
+    </div>
 
     <FeatureGrid title="What you get" columns={3}>
         <Feature title="Any layout">
