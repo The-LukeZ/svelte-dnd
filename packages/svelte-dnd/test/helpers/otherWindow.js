@@ -1,4 +1,4 @@
-import { dndzone } from "../../../src/action";
+import { dndzone } from "../../src/action";
 
 // Helpers for zones that live in another document than the one that loaded the library: a same-origin
 // iframe (its own Window and Document in the same tab) or a popup opened with window.open (its own tab).
@@ -17,14 +17,11 @@ export function createFrame({ parent = document, style = {} } = {}) {
 }
 
 /**
- * Electron, the default Cypress browser, blocks window.open, so this skips the test there. Run the
- * popup tests with a Chromium browser, e.g. `yarn test --browser chrome`, where a blocked popup fails.
- * @param {Mocha.Context} test - the test's `this`
+ * Opens a same-origin popup. A blocked popup fails the test: it never skips it.
  */
-export function openPopup(test) {
+export function openPopup() {
     const win = window.open("", "", "width=400,height=300");
     if (!win) {
-        if (Cypress.browser.name === "electron") test.skip();
         throw new Error("window.open did not open a popup");
     }
     win.document.write("<!DOCTYPE html><body style='margin:0'></body>");
@@ -126,8 +123,8 @@ export function trackListeners(win, types) {
 }
 
 /**
- * Fails a test on an error thrown by an event listener. Cypress can let a test pass, and skip its queued commands, when a
- * listener throws during the test's synchronous part, and the library runs in listeners.
+ * Fails a test on an error thrown by an event listener. The library runs in listeners, and an error thrown there reaches
+ * the window's "error" event rather than the test, so without this a test could pass with a broken drag.
  */
 export function failOnListenerErrors() {
     let errors;

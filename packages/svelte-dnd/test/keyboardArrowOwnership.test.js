@@ -1,6 +1,6 @@
-import { SOURCES, TRIGGERS } from "../../src/constants";
-import { setAriaStrings } from "../../src/helpers/aria";
-import { dragHandle, dragHandleZone } from "../../src/wrappers/withDragHandles";
+import { SOURCES, TRIGGERS } from "../src/constants";
+import { setAriaStrings } from "../src/helpers/aria";
+import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
 import { alertText, createFrame, createList, failOnListenerErrors, key } from "./helpers/otherWindow";
 
 failOnListenerErrors();

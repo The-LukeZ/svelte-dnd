@@ -1,6 +1,7 @@
-import { dndzone } from "../../src/action";
-import { TRIGGERS } from "../../src/constants";
-import { alertToScreenReader, destroyAria, setAriaStrings } from "../../src/helpers/aria";
+import { server } from "vitest/browser";
+import { dndzone } from "../src/action";
+import { TRIGGERS } from "../src/constants";
+import { alertToScreenReader, destroyAria, setAriaStrings } from "../src/helpers/aria";
 import {
     alertText,
     createFrame,
@@ -40,8 +41,8 @@ describe("keyboard drags stay within their document", () => {
         cleanups.push(() => created.frame.remove());
         return created;
     }
-    function popup(test) {
-        const created = openPopup(test);
+    function popup() {
+        const created = openPopup();
         cleanups.push(() => created.win.close());
         return created;
     }
@@ -58,30 +59,38 @@ describe("keyboard drags stay within their document", () => {
         return { parentList, frameList, doc, win };
     }
 
-    it("does not transfer a parent item into an iframe, and can still reorder in the parent", () => {
-        const { parentList, frameList, doc } = parentAndFrameLists();
-        grab(parentList, "p1");
-        expect(alertText(document), "should not promise a destination in another document").to.equal(STARTED_IN_PARENT);
-        expect(frameList.zone.tabIndex, "the iframe list is not a destination").to.equal(-1);
-        expect(frameList.zone.style.outline).to.equal("");
+    // Firefox leaves a written iframe "interactive" after close(), so initAria waits for a DOMContentLoaded that already
+    // fired: https://github.com/The-LukeZ/svelte-dnd/issues/2
+    it(
+        "does not transfer a parent item into an iframe, and can still reorder in the parent",
+        { fails: server.browser === "firefox" },
+        () => {
+            const { parentList, frameList, doc } = parentAndFrameLists();
+            grab(parentList, "p1");
+            expect(alertText(document), "should not promise a destination in another document").to.equal(
+                STARTED_IN_PARENT,
+            );
+            expect(frameList.zone.tabIndex, "the iframe list is not a destination").to.equal(-1);
+            expect(frameList.zone.style.outline).to.equal("");
 
-        frameList.zone.focus();
-        expect(parentList.names()).to.deep.equal(["p1", "p2"]);
-        expect(frameList.names()).to.deep.equal(["f1", "f2"]);
-        expect(frameList.events, "no transfer events").to.deep.equal([]);
-        expect(alertText(doc)).to.equal("");
+            frameList.zone.focus();
+            expect(parentList.names()).to.deep.equal(["p1", "p2"]);
+            expect(frameList.names()).to.deep.equal(["f1", "f2"]);
+            expect(frameList.events, "no transfer events").to.deep.equal([]);
+            expect(alertText(doc)).to.equal("");
 
-        parentList.element("p1").focus();
-        key(parentList.element("p1"), "ArrowDown");
-        expect(parentList.names()).to.deep.equal(["p2", "p1"]);
-        expect(alertText(document)).to.equal("Moved item p1 to position 2 in the list Parent");
+            parentList.element("p1").focus();
+            key(parentList.element("p1"), "ArrowDown");
+            expect(parentList.names()).to.deep.equal(["p2", "p1"]);
+            expect(alertText(document)).to.equal("Moved item p1 to position 2 in the list Parent");
 
-        key(window, "Escape");
-        expect(last(parentList)).to.equal(TRIGGERS.DRAG_STOPPED);
-        expect(alertText(document)).to.equal("Stopped dragging item p1");
-        expect(frameList.zone.tabIndex).to.equal(0);
-        expect(frameList.element("f1").tabIndex).to.equal(0);
-    });
+            key(window, "Escape");
+            expect(last(parentList)).to.equal(TRIGGERS.DRAG_STOPPED);
+            expect(alertText(document)).to.equal("Stopped dragging item p1");
+            expect(frameList.zone.tabIndex).to.equal(0);
+            expect(frameList.element("f1").tabIndex).to.equal(0);
+        },
+    );
 
     it("does not transfer an iframe item into the parent, and can still reorder in the iframe", () => {
         const { parentList, frameList, doc, win } = parentAndFrameLists();
@@ -144,41 +153,48 @@ describe("keyboard drags stay within their document", () => {
         expect(last(nestedList)).to.equal(TRIGGERS.DRAG_STOPPED);
     });
 
-    it("keeps sibling iframe lists separate, with independent aria elements and cleanup", () => {
-        const one = frame({ style: at("0px") });
-        const two = frame({ style: at("250px") });
-        const listOne = list(one.doc, { label: "One", names: ["o1"] });
-        const listTwo = list(two.doc, { label: "Two", names: ["t1"] });
-        [listOne, listTwo].forEach(({ zone, doc }) =>
-            expect(doc.getElementById(zone.getAttribute("aria-describedby"))).not.to.equal(null),
-        );
+    // Firefox leaves a written iframe "interactive" after close(), so initAria waits for a DOMContentLoaded that already
+    // fired: https://github.com/The-LukeZ/svelte-dnd/issues/2
+    it(
+        "keeps sibling iframe lists separate, with independent aria elements and cleanup",
+        { fails: server.browser === "firefox" },
+        () => {
+            const one = frame({ style: at("0px") });
+            const two = frame({ style: at("250px") });
+            const listOne = list(one.doc, { label: "One", names: ["o1"] });
+            const listTwo = list(two.doc, { label: "Two", names: ["t1"] });
+            [listOne, listTwo].forEach(({ zone, doc }) =>
+                expect(doc.getElementById(zone.getAttribute("aria-describedby"))).not.to.equal(null),
+            );
 
-        grab(listOne, "o1");
-        expect(alertText(one.doc)).not.to.contain(MOVE_BETWEEN_LISTS);
-        expect(listTwo.zone.tabIndex).to.equal(-1);
-        expect(listTwo.zone.style.outline).to.equal("");
-        listTwo.zone.focus();
-        expect(listOne.names()).to.deep.equal(["o1"]);
-        expect(listTwo.names()).to.deep.equal(["t1"]);
-        expect(listTwo.events).to.deep.equal([]);
-        key(one.win, "Escape");
+            grab(listOne, "o1");
+            expect(alertText(one.doc)).not.to.contain(MOVE_BETWEEN_LISTS);
+            expect(listTwo.zone.tabIndex).to.equal(-1);
+            expect(listTwo.zone.style.outline).to.equal("");
+            listTwo.zone.focus();
+            expect(listOne.names()).to.deep.equal(["o1"]);
+            expect(listTwo.names()).to.deep.equal(["t1"]);
+            expect(listTwo.events).to.deep.equal([]);
+            key(one.win, "Escape");
 
-        listOne.action.destroy();
-        expect(one.doc.getElementById(ACTIVE_INSTRUCTION_ID), "should remove the first iframe's instructions").to.equal(
-            null,
-        );
-        expect(
-            two.doc.getElementById(ACTIVE_INSTRUCTION_ID),
-            "should keep the second iframe's instructions",
-        ).not.to.equal(null);
-        grab(listTwo, "t1");
-        expect(alertText(two.doc)).not.to.contain(MOVE_BETWEEN_LISTS);
-        key(two.win, "Escape");
-        expect(last(listTwo)).to.equal(TRIGGERS.DRAG_STOPPED);
-    });
+            listOne.action.destroy();
+            expect(
+                one.doc.getElementById(ACTIVE_INSTRUCTION_ID),
+                "should remove the first iframe's instructions",
+            ).to.equal(null);
+            expect(
+                two.doc.getElementById(ACTIVE_INSTRUCTION_ID),
+                "should keep the second iframe's instructions",
+            ).not.to.equal(null);
+            grab(listTwo, "t1");
+            expect(alertText(two.doc)).not.to.contain(MOVE_BETWEEN_LISTS);
+            key(two.win, "Escape");
+            expect(last(listTwo)).to.equal(TRIGGERS.DRAG_STOPPED);
+        },
+    );
 
-    it("moves an item between two lists inside a popup", function () {
-        const created = popup(this);
+    it("moves an item between two lists inside a popup", () => {
+        const created = popup();
         const first = list(created.doc, { label: "First", names: ["a1", "a2"] });
         const second = list(created.doc, { label: "Second", names: ["b1"] });
         grab(first, "a1");
@@ -191,8 +207,8 @@ describe("keyboard drags stay within their document", () => {
         expect(last(second)).to.equal(TRIGGERS.DRAG_STOPPED);
     });
 
-    it("does not offer a popup list as a destination for a drag in the parent, or the other way round", function () {
-        const created = popup(this);
+    it("does not offer a popup list as a destination for a drag in the parent, or the other way round", () => {
+        const created = popup();
         const parentList = list(document, { label: "Parent", names: ["p1", "p2"] });
         const popupList = list(created.doc, { label: "Popup", names: ["q1"] });
 
@@ -285,23 +301,20 @@ describe("keyboard drags stay within their document", () => {
         ).to.have.length(2);
     });
 
-    it("keeps the keyboard handlers of an iframe's next document when the app destroys the previous document's zone late", () => {
+    it("keeps the keyboard handlers of an iframe's next document when the app destroys the previous document's zone late", async () => {
         const { frame: frameEl } = frame();
         const previousList = createList(frameEl.contentDocument, { label: "Previous", names: ["p1"] });
-        cy.then(
-            () =>
-                new Cypress.Promise((resolve) => {
-                    frameEl.addEventListener("load", resolve, { once: true });
-                    frameEl.srcdoc = "<!DOCTYPE html><body style='margin:0'></body>";
-                }),
-        );
-        cy.then(() => {
-            const nextList = list(frameEl.contentDocument, { label: "Next", names: ["n1"] });
-            previousList.action.destroy();
-            grab(nextList, "n1");
-            key(frameEl.contentWindow, "Escape");
-            expect(last(nextList)).to.equal(TRIGGERS.DRAG_STOPPED);
+        // destroyed again by cleanup if the test fails before the app would destroy it
+        cleanups.push(() => previousList.action.destroy());
+        await new Promise((resolve) => {
+            frameEl.addEventListener("load", resolve, { once: true });
+            frameEl.srcdoc = "<!DOCTYPE html><body style='margin:0'></body>";
         });
+        const nextList = list(frameEl.contentDocument, { label: "Next", names: ["n1"] });
+        previousList.action.destroy();
+        grab(nextList, "n1");
+        key(frameEl.contentWindow, "Escape");
+        expect(last(nextList)).to.equal(TRIGGERS.DRAG_STOPPED);
     });
 
     it("ends a keyboard drag whose iframe is removed, and the loading window keeps working", () => {

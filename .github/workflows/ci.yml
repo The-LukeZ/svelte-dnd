@@ -16,13 +16,6 @@ jobs:
         steps:
             - uses: actions/checkout@v7
 
-            # Restored before pnpm/setup, which runs the install (and Cypress's postinstall).
-            - name: Cache Cypress binary
-              uses: actions/cache@v6
-              with:
-                  path: ~/.cache/Cypress
-                  key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-
             # pnpm version comes from "packageManager" in the root package.json.
             # Installs Node, then runs `pnpm install --frozen-lockfile`.
             - uses: pnpm/setup@v3
@@ -31,16 +24,30 @@ jobs:
                   cache: true
                   require-lockfile: true
 
+            # The browsers only change with the Playwright version, so that is the cache key.
+            - name: Read Playwright version
+              id: playwright
+              run: echo "version=$(pnpm --filter @lukez/svelte-dnd exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Playwright browsers
+              uses: actions/cache@v6
+              with:
+                  path: ~/.cache/ms-playwright
+                  key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+            # --with-deps installs the OS libraries too, which the cache does not hold.
+            - run: pnpm --filter @lukez/svelte-dnd exec playwright install --with-deps chromium firefox webkit
+
             - run: pnpm lint
             - run: pnpm format:check
             - run: pnpm build
             - run: pnpm check:package
-            - run: pnpm test
+            - run: pnpm test:all
 
-            - name: Upload Cypress screenshots
+            - name: Upload Vitest failure screenshots
               if: failure()
               uses: actions/upload-artifact@v7
               with:
-                  name: cypress-screenshots
-                  path: packages/svelte-dnd/cypress/screenshots
+                  name: vitest-failure-screenshots
+                  path: packages/svelte-dnd/.vitest/attachments
                   if-no-files-found: ignore

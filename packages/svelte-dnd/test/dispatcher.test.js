@@ -1,5 +1,5 @@
-import { SOURCES, TRIGGERS } from "../../src";
-import { dispatchFinalizeEvent, dispatchConsiderEvent } from "../../src/helpers/dispatcher";
+import { SOURCES, TRIGGERS } from "../src";
+import { dispatchFinalizeEvent, dispatchConsiderEvent } from "../src/helpers/dispatcher";
 
 describe("dispatcher", () => {
     let divEl = document.createElement("div");

@@ -1,4 +1,4 @@
-import { TRIGGERS } from "../../src/constants";
+import { TRIGGERS } from "../src/constants";
 import { alertText, createFrame, createList, failOnListenerErrors, key, mouse } from "./helpers/otherWindow";
 
 failOnListenerErrors();

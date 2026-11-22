@@ -1,8 +1,9 @@
-import { dndzone } from "../../src/pointerAction";
-import { dndzone as pointerAndKeyboardDndzone } from "../../src/action";
-import { dragHandle, dragHandleZone } from "../../src/wrappers/withDragHandles";
-import { setAriaStrings } from "../../src/helpers/aria";
-import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../../src/constants";
+import { dndzone } from "../src/pointerAction";
+import { dndzone as pointerAndKeyboardDndzone } from "../src/action";
+import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
+import { setAriaStrings } from "../src/helpers/aria";
+import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../src/constants";
+import { server } from "vitest/browser";
 import { createFrame, createList, failOnListenerErrors, openPopup } from "./helpers/otherWindow";
 
 failOnListenerErrors();
@@ -74,9 +75,9 @@ function expectALoadingWindowDragToWork() {
 }
 
 describe("a drop zone in another window", () => {
-    it("starts and finishes a pointer drag from that window's events", () => {
+    it("starts and finishes a pointer drag from that window's events", async () => {
         let created;
-        cy.then(() => {
+        try {
             created = createZoneInFrame({ dropAnimationDisabled: true });
             startMouseDrag(created);
 
@@ -84,49 +85,55 @@ describe("a drop zone in another window", () => {
             expect(created.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
 
             created.win.dispatchEvent(mouse(created.win, "mouseup", 10));
-        });
-        cy.window().should(() => {
-            expect(created.doc.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
-            expect(created.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
-        });
-        cy.then(() => {
-            created.action.destroy();
-            created.frame.remove();
-        });
+            await vi.waitFor(
+                () => {
+                    expect(created.doc.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
+                    expect(created.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
+                },
+                { timeout: 4000 },
+            );
+        } finally {
+            created?.action.destroy();
+            created?.frame.remove();
+        }
     });
 
-    it("keeps the drag going while the loading window's animation frames are paused", () => {
+    it("keeps the drag going while the loading window's animation frames are paused", async () => {
         // A hidden or fully covered window gets no animation frames, while the window the zone
         // is in (a popup on top of it) keeps getting them.
         const originalRequestAnimationFrame = window.requestAnimationFrame;
         let created;
-        cy.then(() => {
+        try {
             window.requestAnimationFrame = () => 0;
             created = createZoneInFrame({ dropAnimationDisabled: true });
             // What a framework does on the drag-started consider event: re-render the list,
             // which takes the original element out of the zone.
             created.zone.addEventListener("consider", () => created.item.remove(), { once: true });
             startMouseDrag(created);
-        });
-        // The library keeps the original element in the document once the framework removed it;
-        // that runs on an animation frame.
-        cy.window().should(() => {
-            expect(created.item.parentElement).to.equal(created.doc.body);
-        });
-        cy.then(() => {
+            // The library keeps the original element in the document once the framework removed it;
+            // that runs on an animation frame.
+            await vi.waitFor(
+                () => {
+                    expect(created.item.parentElement).to.equal(created.doc.body);
+                },
+                { timeout: 4000 },
+            );
             window.requestAnimationFrame = originalRequestAnimationFrame;
             created.win.dispatchEvent(mouse(created.win, "mouseup", 10));
-        });
-        cy.window().should(() => {
-            expect(created.doc.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
-        });
-        cy.then(() => {
-            created.action.destroy();
-            created.frame.remove();
-        });
+            await vi.waitFor(
+                () => {
+                    expect(created.doc.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
+                },
+                { timeout: 4000 },
+            );
+        } finally {
+            window.requestAnimationFrame = originalRequestAnimationFrame;
+            created?.action.destroy();
+            created?.frame.remove();
+        }
     });
 
-    it("only considers the zones in the drag's window", () => {
+    it("only considers the zones in the drag's window", async () => {
         // A same-type zone in the loading document that covers the iframe zone's coordinates. It is
         // nested one level deeper, so it would be checked first if it were a candidate.
         const wrapper = document.createElement("div");
@@ -145,29 +152,35 @@ describe("a drop zone in another window", () => {
         loadingZone.addEventListener("consider", (e) => loadingTriggers.push(e.detail.info.trigger));
         const loadingAction = dndzone(loadingZone, { items: [{ id: 2 }], dropAnimationDisabled: true });
         let created;
-        cy.then(() => {
+        try {
             created = createZoneInFrame({ dropAnimationDisabled: true });
             // Model the framework re-rendering the list on drag start, which starts the observation.
             created.zone.addEventListener("consider", () => created.item.remove(), { once: true });
             startMouseDrag(created);
-        });
-        cy.window().should(() => {
-            expect(loadingTriggers).to.deep.equal([]);
-            expect(created.triggers).to.include(TRIGGERS.DRAGGED_ENTERED);
-            expect(loadingZone.style.outline, "should not style the other window's zone as a drop target").to.equal("");
-        });
-        cy.then(() => {
+            await vi.waitFor(
+                () => {
+                    expect(loadingTriggers).to.deep.equal([]);
+                    expect(created.triggers).to.include(TRIGGERS.DRAGGED_ENTERED);
+                    expect(
+                        loadingZone.style.outline,
+                        "should not style the other window's zone as a drop target",
+                    ).to.equal("");
+                },
+                { timeout: 4000 },
+            );
             created.win.dispatchEvent(mouse(created.win, "mouseup", 10));
-        });
-        cy.window().should(() => {
-            expect(created.doc.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
-        });
-        cy.then(() => {
-            created.action.destroy();
-            created.frame.remove();
+            await vi.waitFor(
+                () => {
+                    expect(created.doc.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
+                },
+                { timeout: 4000 },
+            );
+        } finally {
+            created?.action.destroy();
+            created?.frame.remove();
             loadingAction.destroy();
             wrapper.remove();
-        });
+        }
     });
 
     it("does not style a zone in another window when its options change during a drag", () => {
@@ -215,7 +228,9 @@ describe("keyboard and aria support for a drop zone in another window", () => {
         el.dispatchEvent(new created.win.MouseEvent("click", { bubbles: true, cancelable: true }));
     }
 
-    it("describes the zone with instructions in the zone's document", () => {
+    // Firefox leaves a written iframe "interactive" after close(), so initAria waits for a DOMContentLoaded that already
+    // fired: https://github.com/The-LukeZ/svelte-dnd/issues/2
+    it("describes the zone with instructions in the zone's document", { fails: server.browser === "firefox" }, () => {
         const instruction = created.doc.getElementById(created.zone.getAttribute("aria-describedby"));
         expect(instruction.textContent).to.equal(
             "Tab to one the items and press space-bar or enter to start dragging it",
@@ -330,13 +345,19 @@ describe("a keyboard drag from a drag handle in another window", () => {
 describe("a drag in another window that goes away", () => {
     it("finalizes a pointer drag whose iframe is removed", () => {
         const created = listInFrame();
-        startDrag(created);
-        expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
-        created.frame.remove();
-        expect(last(created.list), "the app should get the finalize event").to.equal(TRIGGERS.DROPPED_INTO_ZONE);
-        // The app destroys its zone after the iframe is gone.
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            startDrag(created);
+            expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED]);
+            created.frame.remove();
+            expect(last(created.list), "the app should get the finalize event").to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+            // The app destroys its zone after the iframe is gone.
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            // Removing the iframe ends a drag that is still going.
+            created.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
     it("cancels a pending pointer drag whose iframe is removed", () => {
@@ -353,137 +374,162 @@ describe("a drag in another window that goes away", () => {
 
     it("finalizes a pointer drag whose iframe the app removes when the drag starts", () => {
         const created = listInFrame();
-        created.list.zone.addEventListener("consider", () => created.frame.remove(), { once: true });
-        startDrag(created);
-        expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            created.list.zone.addEventListener("consider", () => created.frame.remove(), { once: true });
+            startDrag(created);
+            expect(created.list.triggers).to.deep.equal([TRIGGERS.DRAG_STARTED, TRIGGERS.DROPPED_INTO_ZONE]);
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            created.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
-    it("finalizes once when the app removes the iframe while the drag enters its first zone", () => {
-        let finalizeCount;
-        let timeoutsAfterRemoval = 0;
-        cy.then({ timeout: 10000 }, () => {
+    it(
+        "finalizes once when the app removes the iframe while the drag enters its first zone",
+        { timeout: 10000 },
+        async () => {
+            let finalizeCount;
+            let timeoutsAfterRemoval = 0;
             const created = listInFrame();
-            // the observation must not schedule its next tick on the removed iframe's window
-            let removed = false;
-            const { setTimeout: iframeSetTimeout } = created.win;
-            created.win.setTimeout = (...args) => {
-                if (removed) timeoutsAfterRemoval++;
-                return iframeSetTimeout.apply(created.win, args);
-            };
-            created.list.zone.addEventListener("consider", (e) => {
-                if (e.detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
-                    created.frame.remove();
-                    removed = true;
-                }
-            });
-            startDrag(created);
-            // The first observation runs on the iframe's next animation frame.
-            return new Promise((resolve) => window.setTimeout(resolve, 200)).then(() => {
+            try {
+                // the observation must not schedule its next tick on the removed iframe's window
+                let removed = false;
+                const { setTimeout: iframeSetTimeout } = created.win;
+                created.win.setTimeout = (...args) => {
+                    if (removed) timeoutsAfterRemoval++;
+                    return iframeSetTimeout.apply(created.win, args);
+                };
+                created.list.zone.addEventListener("consider", (e) => {
+                    if (e.detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
+                        created.frame.remove();
+                        removed = true;
+                    }
+                });
+                startDrag(created);
+                // The first observation runs on the iframe's next animation frame, which can take a while on a slow
+                // machine. Then give the library time to schedule (or not) more timeouts on the removed iframe.
+                await vi.waitFor(() => expect(removed, "the drag should enter its first zone").to.equal(true), {
+                    timeout: 4000,
+                });
+                await new Promise((resolve) => window.setTimeout(resolve, 200));
                 finalizeCount = created.list.triggers.filter(
                     (trigger) => trigger === TRIGGERS.DROPPED_INTO_ZONE,
                 ).length;
-                try {
-                    expectALoadingWindowDragToWork();
-                } finally {
-                    created.list.action.destroy();
-                }
-            });
-        });
-        cy.then(() =>
+                expectALoadingWindowDragToWork();
+            } finally {
+                created.list.action.destroy();
+                created.frame.remove();
+            }
             expect({ finalizeCount, timeoutsAfterRemoval }).to.deep.equal({
                 finalizeCount: 1,
                 timeoutsAfterRemoval: 0,
-            }),
-        );
-    });
+            });
+        },
+    );
 
     [
         { trigger: TRIGGERS.DRAGGED_LEFT_ALL, moveTo: [250, 180], zones: 1 },
         { trigger: TRIGGERS.DRAGGED_ENTERED_ANOTHER, moveTo: [50, 130], zones: 2 },
     ].forEach(({ trigger, moveTo, zones }) => {
-        it(`finalizes once when the app removes the iframe while handling ${trigger}`, () => {
+        it(`finalizes once when the app removes the iframe while handling ${trigger}`, { timeout: 10000 }, async () => {
             let finalizeCount;
-            cy.then({ timeout: 10000 }, () => {
-                const created = listInFrame();
-                const other =
-                    zones > 1
-                        ? createList(created.doc, { label: "Other", names: ["o1"], style: { marginTop: "40px" } })
-                        : undefined;
+            const created = listInFrame();
+            const other =
+                zones > 1
+                    ? createList(created.doc, { label: "Other", names: ["o1"], style: { marginTop: "40px" } })
+                    : undefined;
+            try {
                 created.list.zone.addEventListener("consider", (e) => {
                     if (e.detail.info.trigger === trigger) created.frame.remove();
                 });
                 startDrag(created);
                 const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
-                return sleep(100)
-                    .then(() => {
-                        created.win.dispatchEvent(mouse(created.win, "mousemove", ...moveTo));
-                        return sleep(200);
-                    })
-                    .then(() => {
-                        finalizeCount = created.list.triggers.filter(
-                            (t) => t === TRIGGERS.DROPPED_INTO_ZONE || t === TRIGGERS.DROPPED_OUTSIDE_OF_ANY,
-                        ).length;
-                        try {
-                            expectALoadingWindowDragToWork();
-                        } finally {
-                            created.list.action.destroy();
-                            other?.action.destroy();
-                        }
-                    });
-            });
-            cy.then(() => expect(finalizeCount).to.equal(1));
+                await sleep(100);
+                created.win.dispatchEvent(mouse(created.win, "mousemove", ...moveTo));
+                await sleep(200);
+                finalizeCount = created.list.triggers.filter(
+                    (t) => t === TRIGGERS.DROPPED_INTO_ZONE || t === TRIGGERS.DROPPED_OUTSIDE_OF_ANY,
+                ).length;
+                expectALoadingWindowDragToWork();
+            } finally {
+                created.list.action.destroy();
+                other?.action.destroy();
+                created.frame.remove();
+            }
+            expect(finalizeCount).to.equal(1);
         });
     });
 
-    it("finalizes once when the app removes the iframe while handling the finalize event", () => {
-        cy.then({ timeout: 10000 }, () => {
+    it(
+        "finalizes once when the app removes the iframe while handling the finalize event",
+        { timeout: 10000 },
+        async () => {
             const created = listInFrame({ dropAnimationDisabled: false, flipDurationMs: 50 });
-            created.list.zone.addEventListener("finalize", () => created.frame.remove());
-            startDrag(created);
-            created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
-            return new Promise((resolve) => window.setTimeout(resolve, 200)).then(() => {
+            try {
+                created.list.zone.addEventListener("finalize", () => created.frame.remove());
+                startDrag(created);
+                created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
+                await new Promise((resolve) => window.setTimeout(resolve, 200));
                 expect(
                     created.list.triggers.filter((trigger) => trigger === TRIGGERS.DROPPED_INTO_ZONE),
                 ).to.have.length(1);
                 created.list.action.destroy();
                 expectALoadingWindowDragToWork();
-            });
-        });
-    });
+            } finally {
+                created.list.action.destroy();
+                created.frame.remove();
+            }
+        },
+    );
 
     it("finishes the drop animation at once when the iframe is removed during it", () => {
         const created = listInFrame({ dropAnimationDisabled: false, flipDurationMs: 300 });
-        startDrag(created);
-        created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
-        expect(created.list.triggers, "the drop animation should be running").to.deep.equal([TRIGGERS.DRAG_STARTED]);
-        created.frame.remove();
-        expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            startDrag(created);
+            created.win.dispatchEvent(mouse(created.win, "mouseup", 20));
+            expect(created.list.triggers, "the drop animation should be running").to.deep.equal([
+                TRIGGERS.DRAG_STARTED,
+            ]);
+            created.frame.remove();
+            expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            created.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
     it("finalizes a pointer drag in a nested iframe when the outer iframe is removed", () => {
         const outer = createFrame();
         const created = listInFrame({}, outer.doc);
-        startDrag(created);
-        outer.frame.remove();
-        expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
-        created.list.action.destroy();
-        expectALoadingWindowDragToWork();
+        try {
+            startDrag(created);
+            outer.frame.remove();
+            expect(last(created.list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+            created.list.action.destroy();
+            expectALoadingWindowDragToWork();
+        } finally {
+            outer.frame.remove();
+            created.list.action.destroy();
+        }
     });
 
-    it("finalizes a pointer drag whose popup is closed", function () {
-        const popup = openPopup(this);
+    it("finalizes a pointer drag whose popup is closed", async () => {
+        const popup = openPopup();
         const list = createList(popup.doc, { label: "Popup", names: ["f1", "f2"], dropAnimationDisabled: true });
-        startDrag({ list, win: popup.win });
-        popup.win.close();
-        cy.wrap(list).should(() => expect(last(list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE));
-        cy.then(() => {
+        try {
+            startDrag({ list, win: popup.win });
+            popup.win.close();
+            await vi.waitFor(() => expect(last(list)).to.equal(TRIGGERS.DROPPED_INTO_ZONE), { timeout: 4000 });
             list.action.destroy();
             expectALoadingWindowDragToWork();
-        });
+        } finally {
+            list.action.destroy();
+            popup.win.close();
+        }
     });
 
     it("leaves a zone whose iframe is gone out of a pointer drag in the loading window", () => {

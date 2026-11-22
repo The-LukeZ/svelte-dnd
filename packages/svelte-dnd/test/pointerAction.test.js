@@ -1,5 +1,5 @@
-import { dndzone } from "../../src/pointerAction";
-import { DRAGGED_ELEMENT_ID } from "../../src/constants";
+import { dndzone } from "../src/pointerAction";
+import { DRAGGED_ELEMENT_ID } from "../src/constants";
 
 function createZone(options = {}) {
     const zone = document.createElement("div");
@@ -68,16 +68,17 @@ function stubTimeouts() {
 
 describe("pointerAction", () => {
     it("does not restart observation when the original element is removed while a drop is finalizing", () => {
-        cy.then(() => {
-            const timeouts = stubTimeouts();
-            const animationFrameCallbacks = [];
-            const originalRequestAnimationFrame = window.requestAnimationFrame;
-            window.requestAnimationFrame = (callback) => {
-                animationFrameCallbacks.push(callback);
-                return animationFrameCallbacks.length;
-            };
+        const timeouts = stubTimeouts();
+        const animationFrameCallbacks = [];
+        const originalRequestAnimationFrame = window.requestAnimationFrame;
+        window.requestAnimationFrame = (callback) => {
+            animationFrameCallbacks.push(callback);
+            return animationFrameCallbacks.length;
+        };
 
-            const created = createZone({ flipDurationMs: 100 });
+        let created;
+        try {
+            created = createZone({ flipDurationMs: 100 });
             startMouseDrag(created.item);
             window.dispatchEvent(
                 new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
@@ -91,24 +92,26 @@ describe("pointerAction", () => {
             expect(created.item.parentElement).to.equal(null);
 
             timeouts.runAll();
-            created.action.destroy();
-            created.zone.remove();
+        } finally {
+            created?.action.destroy();
+            created?.zone.remove();
             timeouts.restore();
             window.requestAnimationFrame = originalRequestAnimationFrame;
-        });
+        }
     });
 
     it("unwatches the exact zones when their type changes during an active drag", () => {
-        cy.then(() => {
-            const timeouts = stubTimeouts();
-            const animationFrameCallbacks = [];
-            const originalRequestAnimationFrame = window.requestAnimationFrame;
-            window.requestAnimationFrame = (callback) => {
-                animationFrameCallbacks.push(callback);
-                return animationFrameCallbacks.length;
-            };
+        const timeouts = stubTimeouts();
+        const animationFrameCallbacks = [];
+        const originalRequestAnimationFrame = window.requestAnimationFrame;
+        window.requestAnimationFrame = (callback) => {
+            animationFrameCallbacks.push(callback);
+            return animationFrameCallbacks.length;
+        };
 
-            const created = createZone({ dropAnimationDisabled: true, type: "before" });
+        let created;
+        try {
+            created = createZone({ dropAnimationDisabled: true, type: "before" });
             startMouseDrag(created.item);
             created.item.remove();
             animationFrameCallbacks.shift()();
@@ -119,17 +122,19 @@ describe("pointerAction", () => {
 
             timeouts.runAll();
             expect(document.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
-            created.action.destroy();
-            created.zone.remove();
+        } finally {
+            created?.action.destroy();
+            created?.zone.remove();
             timeouts.restore();
             window.requestAnimationFrame = originalRequestAnimationFrame;
-        });
+        }
     });
 
     it("finishes an animated drop when zones change type during the settle window", () => {
-        cy.then(() => {
-            const timeouts = stubTimeouts();
-            const created = createZone({ flipDurationMs: 100, type: "before" });
+        const timeouts = stubTimeouts();
+        let created;
+        try {
+            created = createZone({ flipDurationMs: 100, type: "before" });
             startMouseDrag(created.item);
             window.dispatchEvent(
                 new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
@@ -138,15 +143,16 @@ describe("pointerAction", () => {
 
             timeouts.runAll();
             expect(document.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
-            created.action.destroy();
-            created.zone.remove();
+        } finally {
+            created?.action.destroy();
+            created?.zone.remove();
             timeouts.restore();
-        });
+        }
     });
 
     it("cancels a delayed touch gesture when its zone is destroyed", () => {
-        cy.then(() => {
-            const timeouts = stubTimeouts();
+        const timeouts = stubTimeouts();
+        try {
             const created = createZone({ delayTouchStart: 50 });
             created.item.dispatchEvent(createTouchEvent("touchstart"));
             created.action.destroy();
@@ -154,20 +160,23 @@ describe("pointerAction", () => {
 
             timeouts.runAll();
             expect(document.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null);
+        } finally {
             timeouts.restore();
-        });
+            // Ends a drag the destroyed zone failed to cancel, so it does not block the next test.
+            window.dispatchEvent(createTouchEvent("touchend"));
+        }
     });
 
     it("allows only one pending touch gesture to become a drag", () => {
-        cy.then(() => {
-            const timeouts = stubTimeouts();
-            const first = createZone({ delayTouchStart: 50, dropAnimationDisabled: true, id: "first", label: "first" });
-            const second = createZone({
-                delayTouchStart: 50,
-                dropAnimationDisabled: true,
-                id: "second",
-                label: "second",
-            });
+        const timeouts = stubTimeouts();
+        const first = createZone({ delayTouchStart: 50, dropAnimationDisabled: true, id: "first", label: "first" });
+        const second = createZone({
+            delayTouchStart: 50,
+            dropAnimationDisabled: true,
+            id: "second",
+            label: "second",
+        });
+        try {
             first.item.dispatchEvent(createTouchEvent("touchstart"));
             second.item.dispatchEvent(createTouchEvent("touchstart"));
 
@@ -175,27 +184,29 @@ describe("pointerAction", () => {
             const draggedElements = document.querySelectorAll(`#${DRAGGED_ELEMENT_ID}`);
             expect(draggedElements).to.have.length(1);
             expect(draggedElements[0].textContent).to.equal("first");
+        } finally {
             window.dispatchEvent(createTouchEvent("touchend"));
             first.action.destroy();
             second.action.destroy();
             first.zone.remove();
             second.zone.remove();
             timeouts.restore();
-        });
+        }
     });
 
     it("does not reattach a zone after its scheduled removal was completed during drop cleanup", () => {
         let originalRequestAnimationFrame;
 
-        cy.then(() => {
-            const animationFrameCallbacks = [];
-            originalRequestAnimationFrame = window.requestAnimationFrame;
-            window.requestAnimationFrame = (callback) => {
-                animationFrameCallbacks.push(callback);
-                return animationFrameCallbacks.length;
-            };
+        const animationFrameCallbacks = [];
+        originalRequestAnimationFrame = window.requestAnimationFrame;
+        window.requestAnimationFrame = (callback) => {
+            animationFrameCallbacks.push(callback);
+            return animationFrameCallbacks.length;
+        };
 
-            const created = createZone({ dropAnimationDisabled: true });
+        let created;
+        try {
+            created = createZone({ dropAnimationDisabled: true });
             startMouseDrag(created.item);
             created.action.destroy();
             window.dispatchEvent(
@@ -204,7 +215,13 @@ describe("pointerAction", () => {
 
             animationFrameCallbacks.forEach((callback) => callback());
             expect(created.zone.parentElement).to.equal(null);
+        } finally {
             window.requestAnimationFrame = originalRequestAnimationFrame;
-        });
+            // A drag that ended normally ignores this mouseup; one left behind ends here.
+            window.dispatchEvent(
+                new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+            );
+            created?.zone.remove();
+        }
     });
 });

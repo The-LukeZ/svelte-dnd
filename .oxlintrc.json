@@ -21,7 +21,7 @@
         "no-redeclare": "error",
         "no-unexpected-multiline": "error"
     },
-    "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/cypress/**", "examples/**"],
+    "ignorePatterns": ["**/dist/**", "**/node_modules/**", "examples/**"],
     // A dndzone can live in another window than the one that loaded the library (a same-origin iframe, a popup or an
     // Electron window). Work for a zone uses the zone's own window and document, from getWindowOf in src/helpers/util.js or
     // from an element's ownerDocument, rather than the loading window's globals.
@@ -30,6 +30,21 @@
             // Config files and scripts run in Node.
             "files": ["**/*.config.{js,cjs,mjs,ts}", "**/scripts/**"],
             "env": { "node": true }
+        },
+        {
+            // Vitest runs with `globals: true` (packages/svelte-dnd/vitest.config.mts).
+            "files": ["packages/svelte-dnd/test/**"],
+            "globals": {
+                "describe": "readonly",
+                "it": "readonly",
+                "test": "readonly",
+                "expect": "readonly",
+                "vi": "readonly",
+                "beforeEach": "readonly",
+                "afterEach": "readonly",
+                "beforeAll": "readonly",
+                "afterAll": "readonly"
+            }
         },
         {
             "files": ["packages/svelte-dnd/src/**"],
