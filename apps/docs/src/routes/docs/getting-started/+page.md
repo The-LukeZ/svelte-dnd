@@ -5,16 +5,10 @@ order: 1
 ---
 
 <script>
-    import { Callout, Tabs, TabItem } from "svelte-docsmith";
+    import { Tabs, TabItem } from "svelte-docsmith";
 </script>
 
 `@lukez/svelte-dnd` is a drag and drop library for Svelte 5. You write a list with an `#each` block, put one attachment on its container, and the user can sort it with the pointer, a touch screen or the keyboard.
-
-<Callout variant="warning" title="Prerelease">
-
-The API may change before 1.0. Until then the package is published under the `next` tag.
-
-</Callout>
 
 ## Install
 
@@ -22,21 +16,21 @@ The API may change before 1.0. Until then the package is published under the `ne
 <TabItem label="pnpm">
 
 ```bash
-pnpm add @lukez/svelte-dnd@next
+pnpm add @lukez/svelte-dnd
 ```
 
 </TabItem>
 <TabItem label="npm">
 
 ```bash
-npm install @lukez/svelte-dnd@next
+npm install @lukez/svelte-dnd
 ```
 
 </TabItem>
 <TabItem label="yarn">
 
 ```bash
-yarn add @lukez/svelte-dnd@next
+yarn add @lukez/svelte-dnd
 ```
 
 </TabItem>

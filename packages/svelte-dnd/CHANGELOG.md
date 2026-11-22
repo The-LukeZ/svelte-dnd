@@ -5,7 +5,7 @@
 ### Major Changes
 
 - cc2bc98: Fork `svelte-dnd-action` 0.9.80 as `@lukez/svelte-dnd`. The package now ships ESM and CommonJS builds from `dist` only (the `svelte` field and raw `src` entry are gone) and is moving to a breaking Svelte 5 rewrite. Expect API changes between `next` prereleases.
-- a221e26: Rewrite the public API for Svelte 5. See [MIGRATING.md](https://github.com/The-LukeZ/svelte-dnd/blob/dev/packages/svelte-dnd/MIGRATING.md) for the steps.
+- a221e26: Rewrite the public API for Svelte 5. See [MIGRATING.md](https://github.com/The-LukeZ/svelte-dnd/blob/master/packages/svelte-dnd/MIGRATING.md) for the steps.
   
   - The action became an attachment factory that takes an options getter: `use:dndzone={options}` is now `{@attach dndzone(() => options)}`. The same applies to `dragHandleZone`.
   - The `consider` and `finalize` DOM events became the `onconsider` and `onfinalize` options. They receive the event directly, so `e.detail.items` is now `e.items`.

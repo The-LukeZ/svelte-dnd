@@ -2,7 +2,7 @@
     import { Action, CTA, DocsShell, Feature, FeatureGrid, Hero } from "svelte-docsmith";
     import Basic from "#lib/demos/Basic.svelte";
 
-    const installCommand = "pnpm add @lukez/svelte-dnd@next";
+    const installCommand = "pnpm add @lukez/svelte-dnd";
     let copied = $state(false);
 
     async function copyInstallCommand() {
