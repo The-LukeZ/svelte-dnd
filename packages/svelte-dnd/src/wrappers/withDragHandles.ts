@@ -16,6 +16,14 @@ const HANDLE_ZONE_ATTRIBUTE = "data-dnd-handle-zone";
 interface HandleZoneState {
     /** the zone's dragDisabled option */
     userDragDisabled: Store<boolean>;
+    /** the handles bound to this zone, so a nested zone created later can take over its own */
+    handles: Set<HandleBinding>;
+}
+
+interface HandleBinding {
+    handle: HTMLElement;
+    /** binds the handle to a zone, replacing the zone it was bound to */
+    bind(state: HandleZoneState): void;
 }
 
 const zoneToState = new WeakMap<HTMLElement, HandleZoneState>();
@@ -28,11 +36,35 @@ const isItemsDragDisabled = createStore(true);
 // Handles that found no registered zone when they were attached. Svelte runs the attachments of a zone's children before
 // the zone's own attachment, so this is the usual case at mount. The zone adopts them when it is created.
 const pendingHandles = new Set<HTMLElement>();
-// what a pending handle runs when its zone adopts it
-const pendingHandleToAdopt = new WeakMap<HTMLElement, (state: HandleZoneState) => void>();
+// how a pending handle binds to its zone when the zone adopts it
+const pendingHandleToBinding = new WeakMap<HTMLElement, HandleBinding>();
 
-function findZoneOf(handle: HTMLElement): HTMLElement | null {
-    return handle.parentElement?.closest<HTMLElement>(`[${HANDLE_ZONE_ATTRIBUTE}]`) ?? null;
+/** The nearest marked handle zone above the element, not the element itself */
+function findZoneOf(el: HTMLElement): HTMLElement | null {
+    return el.parentElement?.closest<HTMLElement>(`[${HANDLE_ZONE_ATTRIBUTE}]`) ?? null;
+}
+
+/**
+ * Binds to a new zone the handles whose nearest handle zone it is: pending handles, and handles that an enclosing
+ * zone took because this zone had no marker yet when they were attached. That happens when a nested handle zone mounts
+ * after its outer zone (Svelte attaches the inner handles before the inner zone, so they find the outer zone).
+ */
+function adoptHandles(node: HTMLElement, state: HandleZoneState): void {
+    for (const handle of Array.from(pendingHandles)) {
+        if (node.contains(handle) && findZoneOf(handle) === node) {
+            pendingHandles.delete(handle);
+            const binding = pendingHandleToBinding.get(handle)!;
+            pendingHandleToBinding.delete(handle);
+            binding.bind(state);
+        }
+    }
+    for (let outer = findZoneOf(node); outer; outer = findZoneOf(outer)) {
+        const outerState = zoneToState.get(outer);
+        if (!outerState) continue;
+        for (const binding of Array.from(outerState.handles)) {
+            if (node.contains(binding.handle) && findZoneOf(binding.handle) === node) binding.bind(state);
+        }
+    }
 }
 
 /**
@@ -45,7 +77,10 @@ export function createHandleZone<T extends object>(
     node: HTMLElement,
     options: Options<T>,
 ): { update(o: Options<T>): void; destroy(): void } {
-    const state: HandleZoneState = { userDragDisabled: createStore(options?.dragDisabled ?? false) };
+    const state: HandleZoneState = {
+        userDragDisabled: createStore(options?.dragDisabled ?? false),
+        handles: new Set(),
+    };
     let currentOptions = options;
 
     function getAddedOptions(): { dragDisabled: boolean; zoneItemTabIndex: number } {
@@ -96,15 +131,7 @@ export function createHandleZone<T extends object>(
 
     node.setAttribute(HANDLE_ZONE_ATTRIBUTE, "");
     zoneToState.set(node, state);
-    // Adopt the pending handles whose nearest handle zone is this one. A handle inside a nested handle zone that is not
-    // created yet stays pending for it; Svelte creates nested zones before their parents, so that is rare.
-    for (const handle of Array.from(pendingHandles)) {
-        if (node.contains(handle) && findZoneOf(handle) === node) {
-            pendingHandles.delete(handle);
-            pendingHandleToAdopt.get(handle)!(state);
-            pendingHandleToAdopt.delete(handle);
-        }
-    }
+    adoptHandles(node, state);
 
     return {
         update: (newOptions: Options<T>) => {
@@ -130,83 +157,94 @@ export function createHandleZone<T extends object>(
  * @param handle - an element inside an item of a handle zone
  */
 export function attachHandle(handle: HTMLElement): () => void {
-    // set when the handle finds its zone, at attach time or when the zone adopts it
-    let detach: (() => void) | undefined;
+    // the zone the handle is bound to, set when it finds its zone at attach time or when a zone adopts it
+    let boundState: HandleZoneState | undefined;
+    // assigned in startDrag before resetStartDrag is registered, so every read follows an assignment
+    let releaseWindow: Window;
 
-    function adopt(state: HandleZoneState): void {
-        handle.setAttribute("role", "button");
-        // assigned in startDrag before resetStartDrag is registered, so every read follows an assignment
-        let releaseWindow: Window;
+    function startDrag(e: MouseEvent | TouchEvent): void {
+        // preventing default to prevent lag on touch devices (because of the browser checking for screen scrolling)
+        e.preventDefault();
+        isItemsDragDisabled.set(false);
 
-        function startDrag(e: MouseEvent | TouchEvent): void {
-            // preventing default to prevent lag on touch devices (because of the browser checking for screen scrolling)
-            e.preventDefault();
-            isItemsDragDisabled.set(false);
-
-            // Reset the startDrag/isItemsDragDisabled if the user releases the mouse/touch without initiating a drag, or
-            // if the handle's window goes away first
-            releaseWindow = getWindowOf(handle);
-            releaseWindow.addEventListener("mouseup", resetStartDrag);
-            releaseWindow.addEventListener("touchend", resetStartDrag);
-            releaseWindow.addEventListener("pagehide", resetStartDrag);
-        }
-
-        function handleKeyDown(e: KeyboardEvent): void {
-            if (isKeyboardDragTriggerKey(e.key)) isItemsDragDisabled.set(false);
-        }
-
-        function resetStartDrag(): void {
-            isItemsDragDisabled.set(true);
-            releaseWindow.removeEventListener("mouseup", resetStartDrag);
-            releaseWindow.removeEventListener("touchend", resetStartDrag);
-            releaseWindow.removeEventListener("pagehide", resetStartDrag);
-        }
-
-        // dragDisabled of the handle's own zone, plus the drag state that every handle zone shares
-        const recomputeHandleState = (): void => {
-            const userDisabled = state.userDragDisabled.get();
-            const internalDisabled = isItemsDragDisabled.get();
-
-            if (userDisabled) {
-                handle.tabIndex = -1;
-                handle.style.cursor = ""; // default cursor
-            } else {
-                handle.tabIndex = internalDisabled ? 0 : -1;
-                handle.style.cursor = internalDisabled ? "grab" : "grabbing";
-            }
-        };
-
-        state.userDragDisabled.subscribe(recomputeHandleState);
-        isItemsDragDisabled.subscribe(recomputeHandleState);
-
-        handle.addEventListener("mousedown", startDrag);
-        handle.addEventListener("touchstart", startDrag);
-        handle.addEventListener("keydown", handleKeyDown);
-        detach = () => {
-            handle.removeEventListener("mousedown", startDrag);
-            handle.removeEventListener("touchstart", startDrag);
-            handle.removeEventListener("keydown", handleKeyDown);
-            state.userDragDisabled.unsubscribe(recomputeHandleState);
-            isItemsDragDisabled.unsubscribe(recomputeHandleState);
-        };
+        // Reset the startDrag/isItemsDragDisabled if the user releases the mouse/touch without initiating a drag, or if the
+        // handle's window goes away first
+        releaseWindow = getWindowOf(handle);
+        releaseWindow.addEventListener("mouseup", resetStartDrag);
+        releaseWindow.addEventListener("touchend", resetStartDrag);
+        releaseWindow.addEventListener("pagehide", resetStartDrag);
     }
+
+    function handleKeyDown(e: KeyboardEvent): void {
+        if (isKeyboardDragTriggerKey(e.key)) isItemsDragDisabled.set(false);
+    }
+
+    function resetStartDrag(): void {
+        isItemsDragDisabled.set(true);
+        releaseWindow.removeEventListener("mouseup", resetStartDrag);
+        releaseWindow.removeEventListener("touchend", resetStartDrag);
+        releaseWindow.removeEventListener("pagehide", resetStartDrag);
+    }
+
+    // dragDisabled of the handle's own zone, plus the drag state that every handle zone shares
+    const recomputeHandleState = (): void => {
+        const userDisabled = boundState!.userDragDisabled.get();
+        const internalDisabled = isItemsDragDisabled.get();
+
+        if (userDisabled) {
+            handle.tabIndex = -1;
+            handle.style.cursor = ""; // default cursor
+        } else {
+            handle.tabIndex = internalDisabled ? 0 : -1;
+            handle.style.cursor = internalDisabled ? "grab" : "grabbing";
+        }
+    };
+
+    const binding: HandleBinding = {
+        handle,
+        bind: (state) => {
+            const previous = boundState;
+            boundState = state;
+            if (previous) {
+                // a nested zone created after the zone the handle was bound to takes the handle over
+                previous.handles.delete(binding);
+                previous.userDragDisabled.unsubscribe(recomputeHandleState);
+            } else {
+                handle.setAttribute("role", "button");
+                handle.addEventListener("mousedown", startDrag);
+                handle.addEventListener("touchstart", startDrag);
+                handle.addEventListener("keydown", handleKeyDown);
+                isItemsDragDisabled.subscribe(recomputeHandleState);
+            }
+            state.handles.add(binding);
+            // subscribe runs recomputeHandleState, so the handle shows its new zone's state at once
+            state.userDragDisabled.subscribe(recomputeHandleState);
+        },
+    };
 
     const zone = findZoneOf(handle);
     const state = zone && zoneToState.get(zone);
     if (state) {
-        adopt(state);
+        binding.bind(state);
     } else {
         pendingHandles.add(handle);
-        pendingHandleToAdopt.set(handle, adopt);
+        pendingHandleToBinding.set(handle, binding);
     }
 
     return () => {
         if (pendingHandles.delete(handle)) {
-            pendingHandleToAdopt.delete(handle);
+            pendingHandleToBinding.delete(handle);
             printDebug(() => ["dragHandle found no dragHandleZone, so it did nothing", handle]);
         }
-        detach?.();
-        detach = undefined;
+        if (boundState) {
+            handle.removeEventListener("mousedown", startDrag);
+            handle.removeEventListener("touchstart", startDrag);
+            handle.removeEventListener("keydown", handleKeyDown);
+            isItemsDragDisabled.unsubscribe(recomputeHandleState);
+            boundState.userDragDisabled.unsubscribe(recomputeHandleState);
+            boundState.handles.delete(binding);
+            boundState = undefined;
+        }
     };
 }
 

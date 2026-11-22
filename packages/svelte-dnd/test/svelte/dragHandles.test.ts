@@ -252,8 +252,7 @@ describe("drag handle attachments", () => {
         await expectBothLocked(a, b, calls);
     });
 
-    it("nested handle zones scope dragDisabled to the inner zone", async () => {
-        const screen = await render(NestedHandleZones);
+    async function expectNestedScoping(screen: Awaited<ReturnType<typeof render>>): Promise<void> {
         const outer = () => handlesOf(document, "outer-handle");
         const inner = () => handlesOf(document, "inner-handle");
         expect(outer()).to.have.length(2);
@@ -269,6 +268,18 @@ describe("drag handle attachments", () => {
         await screen.getByRole("button", { name: "toggle outer" }).click();
         await vi.waitFor(() => expectDisabled(outer(), "outer"));
         expectReady(inner(), "inner");
+    }
+
+    it("nested handle zones scope dragDisabled to the inner zone", async () => {
+        await expectNestedScoping(await render(NestedHandleZones));
+    });
+
+    it("a nested handle zone mounted after its outer zone scopes dragDisabled to itself", async () => {
+        const screen = await render(NestedHandleZones, { innerAtMount: false });
+        expect(handlesOf(document, "inner-handle")).to.have.length(0);
+        await screen.getByRole("button", { name: "show inner" }).click();
+        await vi.waitFor(() => expect(handlesOf(document, "inner-handle")).to.have.length(2));
+        await expectNestedScoping(screen);
     });
 
     // Review Focus 4

@@ -4,6 +4,9 @@
 
     type Row = { id: string; name: string };
 
+    // false mounts the inner zone after the outer one, when the "show inner" button is clicked
+    let { innerAtMount = true }: { innerAtMount?: boolean } = $props();
+
     let outer = $state<Row[]>([
         { id: "o1", name: "o1" },
         { id: "o2", name: "o2" },
@@ -14,6 +17,8 @@
     ]);
     let outerDisabled = $state(false);
     let innerDisabled = $state(false);
+    // svelte-ignore state_referenced_locally
+    let innerShown = $state(innerAtMount);
 </script>
 
 <ul
@@ -31,7 +36,7 @@
         <li>
             <span data-testid="outer-handle" {@attach dragHandle}>::</span>
             {item.name}
-            {#if item.id === "o1"}
+            {#if item.id === "o1" && innerShown}
                 <ul
                     data-testid="inner"
                     {@attach dragHandleZone(() => ({
@@ -53,3 +58,4 @@
 </ul>
 <button onclick={() => (outerDisabled = !outerDisabled)}>toggle outer</button>
 <button onclick={() => (innerDisabled = !innerDisabled)}>toggle inner</button>
+<button onclick={() => (innerShown = true)}>show inner</button>
