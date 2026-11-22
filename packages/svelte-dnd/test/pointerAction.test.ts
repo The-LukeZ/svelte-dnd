@@ -1,5 +1,5 @@
 import { dndzone } from "../src/pointerAction";
-import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../src/constants";
+import { DRAGGED_ELEMENT_ID, SHADOW_ELEMENT_ATTRIBUTE_NAME, TRIGGERS } from "../src/constants";
 import type { DndEvent, Options } from "../src/types";
 
 // the frame callbacks are called without a timestamp
@@ -360,6 +360,159 @@ describe("pointerAction", () => {
                 oldZone.destroy();
                 newZone?.destroy();
                 zone.remove();
+            }
+        });
+    });
+
+    // zones that render their items from the consider and finalize events, as a framework does
+    describe("zones that render from events", () => {
+        type Row = { id: number | string };
+
+        const mouseEvent = (type: string, x: number, y: number) =>
+            new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
+
+        function createRenderedZone(left: number, rows: Row[], options: Partial<Options> = {}, itemStyle = "") {
+            const zone = document.createElement("div");
+            zone.style.cssText = `position: fixed; top: 0; left: ${left}px; width: 200px; height: 200px;`;
+            document.body.appendChild(zone);
+            const elements = new Map<unknown, HTMLElement>();
+            const events: DndEvent[] = [];
+            let current: Options;
+            function render(items: Row[]): void {
+                zone.replaceChildren(
+                    ...items.map((item) => {
+                        let element = elements.get(item.id);
+                        if (!element) {
+                            element = document.createElement("div");
+                            element.style.cssText = `width: 50px; height: 50px; ${itemStyle}`;
+                            element.textContent = String(item.id);
+                            elements.set(item.id, element);
+                        }
+                        return element;
+                    }),
+                );
+            }
+            render(rows);
+            const handle = (event: DndEvent): void => {
+                events.push(event);
+                current = { ...current, items: event.items };
+                render(event.items as Row[]);
+                action.update(current);
+            };
+            current = { ...options, items: rows, dropAnimationDisabled: true, onconsider: handle, onfinalize: handle };
+            const action = dndzone(zone, current);
+            return {
+                zone,
+                events,
+                elementOf: (id: unknown) => elements.get(id)!,
+                destroy: () => {
+                    action.destroy();
+                    zone.remove();
+                },
+            };
+        }
+
+        function centreOf(element: HTMLElement): { x: number; y: number } {
+            const rect = element.getBoundingClientRect();
+            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        }
+
+        // the zone's item ids as text, with the shadow element as "SHADOW"
+        const itemIds = (zone: HTMLElement) =>
+            Array.from(zone.children, (child) =>
+                child.hasAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME) ? "SHADOW" : child.textContent,
+            );
+
+        const draggedElement = () => document.getElementById(DRAGGED_ELEMENT_ID)!;
+
+        // Content-box items with padding: the computed width is 50px while the bounding rect is 70px, so the inline size
+        // of the dragged element shows which of the two the engine used.
+        const PADDED = "padding: 10px;";
+
+        function dragStart(from: HTMLElement): void {
+            const start = centreOf(from);
+            from.dispatchEvent(mouseEvent("mousedown", start.x, start.y));
+            window.dispatchEvent(mouseEvent("mousemove", start.x + 5, start.y + 5));
+        }
+
+        it("uses the origin zone's useComputedStyleForRects for the dragged clone", () => {
+            const origin = createRenderedZone(0, [{ id: 1 }], { useComputedStyleForRects: true }, PADDED);
+            const target = createRenderedZone(300, [{ id: 2 }], {}, PADDED);
+            try {
+                dragStart(origin.elementOf(1));
+
+                // the origin item's bounding rect is 70px, its computed size 50px
+                expect(draggedElement().style.width).to.equal("50px");
+                expect(draggedElement().style.height).to.equal("50px");
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                origin.destroy();
+                target.destroy();
+            }
+        });
+
+        it("uses the target zone's setting while morphing", async () => {
+            const origin = createRenderedZone(0, [{ id: 1 }], {}, "");
+            const target = createRenderedZone(300, [{ id: 2 }], { useComputedStyleForRects: true }, PADDED);
+            try {
+                dragStart(origin.elementOf(1));
+                expect(draggedElement().style.width, "sized from the origin item's rect").to.equal("50px");
+
+                const over = centreOf(target.elementOf(2));
+                window.dispatchEvent(mouseEvent("mousemove", over.x, over.y));
+
+                // the engine detects the drop target on animation frames
+                await vi.waitFor(() =>
+                    expect(
+                        target.zone.querySelector(`[${SHADOW_ELEMENT_ATTRIBUTE_NAME}]`),
+                        "the dragged item is over the target",
+                    ).to.not.equal(null),
+                );
+                // the target's shadow element has a 70px rect and a computed width of 50px
+                expect(draggedElement().style.width).to.equal("50px");
+                expect(draggedElement().style.height).to.equal("50px");
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                origin.destroy();
+                target.destroy();
+            }
+        });
+
+        it("drags items with string ids", async () => {
+            const created = createRenderedZone(0, [{ id: "a" }, { id: "b" }]);
+            try {
+                dragStart(created.elementOf("a"));
+                const below = centreOf(created.elementOf("b"));
+                window.dispatchEvent(mouseEvent("mousemove", below.x, below.y + 20));
+                await vi.waitFor(() => expect(itemIds(created.zone)).to.deep.equal(["b", "SHADOW"]));
+                window.dispatchEvent(mouseEvent("mouseup", below.x, below.y + 20));
+
+                const finalize = created.events[created.events.length - 1];
+                expect(finalize.info.trigger).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+                expect(finalize.info.id).to.equal("a");
+                expect(finalize.items.map((item) => item.id)).to.deep.equal(["b", "a"]);
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                created.destroy();
+            }
+        });
+
+        it("drags a list mixing string and number ids", async () => {
+            const created = createRenderedZone(0, [{ id: "a" }, { id: 2 }]);
+            try {
+                dragStart(created.elementOf(2));
+                const above = centreOf(created.elementOf("a"));
+                window.dispatchEvent(mouseEvent("mousemove", above.x, above.y - 20));
+                await vi.waitFor(() => expect(itemIds(created.zone)).to.deep.equal(["SHADOW", "a"]));
+                window.dispatchEvent(mouseEvent("mouseup", above.x, above.y - 20));
+
+                const finalize = created.events[created.events.length - 1];
+                expect(finalize.info.trigger).to.equal(TRIGGERS.DROPPED_INTO_ZONE);
+                expect(finalize.info.id, "a number id stays a number").to.equal(2);
+                expect(finalize.items.map((item) => item.id)).to.deep.equal([2, "a"]);
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                created.destroy();
             }
         });
     });

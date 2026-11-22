@@ -4,6 +4,7 @@ import type { DndEvent } from "../../src/types";
 import List from "./fixtures/List.svelte";
 import ListWithAttr from "./fixtures/ListWithAttr.svelte";
 import StateOptions from "./fixtures/StateOptions.svelte";
+import { mouse } from "./helpers";
 
 type Row = { id: number; name: string };
 type Call = { kind: "consider" | "finalize"; detail: DndEvent<Row>; run: number };
@@ -17,10 +18,6 @@ const INITIAL = () => [
 const lastOf = <T>(list: T[]): T => list[list.length - 1];
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-function mouse(type: string, x: number, y: number): MouseEvent {
-    return new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
-}
 
 function key(target: EventTarget, k: string): void {
     target.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));

@@ -12,6 +12,7 @@ import type { DndEvent, Item } from "../../src/types";
 import HandleList from "./fixtures/HandleList.svelte";
 import TwoHandleZones from "./fixtures/TwoHandleZones.svelte";
 import NestedHandleZones from "./fixtures/NestedHandleZones.svelte";
+import { mouse } from "./helpers";
 
 type Kind = "consider" | "finalize";
 type Call = { kind: Kind; detail: DndEvent };
@@ -26,10 +27,6 @@ const INITIAL = () => [
 const lastOf = <T>(list: T[]): T => list[list.length - 1];
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-function mouse(type: string, x: number, y: number): MouseEvent {
-    return new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
-}
 
 function key(target: EventTarget, k: string): void {
     target.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true }));
