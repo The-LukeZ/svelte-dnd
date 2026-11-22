@@ -16,3 +16,14 @@ h3,
 h4 {
     overflow-wrap: anywhere;
 }
+
+/* docsmith hardcodes the reading column (max-w-prose, ~65ch) and the docs shell (max-w-7xl) with no option to change
+   them. Unlayered rules beat Tailwind's layered utilities, so these widen both. The shell selector depends on docsmith's
+   markup (the max-w-7xl row that holds #main-content); recheck it after a docsmith upgrade. */
+#main-content article.prose {
+    max-width: 80ch;
+}
+
+.max-w-7xl:has(> #main-content) {
+    max-width: 96rem;
+}
