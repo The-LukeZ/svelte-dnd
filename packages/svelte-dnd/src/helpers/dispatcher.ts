@@ -1,20 +1,16 @@
 import { getWindowOf } from "./util";
+import type { DndEventInfo, Item } from "../types";
+
+// the index the dragged element would get in the zone it is over, as findWouldBeIndex finds it
+type Index = { index: number; isProximityBased: boolean };
+
 // Events are created in the window of the element they are dispatched on, so a listener in that window sees an
 // instance of its own CustomEvent.
 // external events
 const FINALIZE_EVENT_NAME = "finalize";
 const CONSIDER_EVENT_NAME = "consider";
 
-/**
- * @typedef {Object} Info
- * @property {string} trigger
- * @property {string} id
- * @property {string} source
- * @param {Node} el
- * @param {Array} items
- * @param {Info} info
- */
-export function dispatchFinalizeEvent(el, items, info) {
+export function dispatchFinalizeEvent(el: HTMLElement, items: Item[], info: DndEventInfo): void {
     el.dispatchEvent(
         new (getWindowOf(el).CustomEvent)(FINALIZE_EVENT_NAME, {
             detail: { items, info },
@@ -24,11 +20,8 @@ export function dispatchFinalizeEvent(el, items, info) {
 
 /**
  * Dispatches a consider event
- * @param {Node} el
- * @param {Array} items
- * @param {Info} info
  */
-export function dispatchConsiderEvent(el, items, info) {
+export function dispatchConsiderEvent(el: HTMLElement, items: Item[], info: DndEventInfo): void {
     el.dispatchEvent(
         new (getWindowOf(el).CustomEvent)(CONSIDER_EVENT_NAME, {
             detail: { items, info },
@@ -47,7 +40,11 @@ export const DRAGGED_LEFT_TYPES = {
     OUTSIDE_OF_ANY: "outsideOfAny",
 };
 
-export function dispatchDraggedElementEnteredContainer(containerEl, indexObj, draggedEl) {
+export function dispatchDraggedElementEnteredContainer(
+    containerEl: HTMLElement,
+    indexObj: Index,
+    draggedEl: HTMLElement,
+): void {
     containerEl.dispatchEvent(
         new (getWindowOf(containerEl).CustomEvent)(DRAGGED_ENTERED_EVENT_NAME, {
             detail: { indexObj, draggedEl },
@@ -60,7 +57,11 @@ export function dispatchDraggedElementEnteredContainer(containerEl, indexObj, dr
  * @param draggedEl - the dragged element
  * @param theOtherDz - the new dropzone the element entered
  */
-export function dispatchDraggedElementLeftContainerForAnother(containerEl, draggedEl, theOtherDz) {
+export function dispatchDraggedElementLeftContainerForAnother(
+    containerEl: HTMLElement,
+    draggedEl: HTMLElement,
+    theOtherDz: HTMLElement,
+): void {
     containerEl.dispatchEvent(
         new (getWindowOf(containerEl).CustomEvent)(DRAGGED_LEFT_EVENT_NAME, {
             detail: { draggedEl, type: DRAGGED_LEFT_TYPES.LEFT_FOR_ANOTHER, theOtherDz },
@@ -68,21 +69,25 @@ export function dispatchDraggedElementLeftContainerForAnother(containerEl, dragg
     );
 }
 
-export function dispatchDraggedElementLeftContainerForNone(containerEl, draggedEl) {
+export function dispatchDraggedElementLeftContainerForNone(containerEl: HTMLElement, draggedEl: HTMLElement): void {
     containerEl.dispatchEvent(
         new (getWindowOf(containerEl).CustomEvent)(DRAGGED_LEFT_EVENT_NAME, {
             detail: { draggedEl, type: DRAGGED_LEFT_TYPES.OUTSIDE_OF_ANY },
         }),
     );
 }
-export function dispatchDraggedElementIsOverIndex(containerEl, indexObj, draggedEl) {
+export function dispatchDraggedElementIsOverIndex(
+    containerEl: HTMLElement,
+    indexObj: Index,
+    draggedEl: HTMLElement,
+): void {
     containerEl.dispatchEvent(
         new (getWindowOf(containerEl).CustomEvent)(DRAGGED_OVER_INDEX_EVENT_NAME, {
             detail: { indexObj, draggedEl },
         }),
     );
 }
-export function dispatchDraggedLeftDocument(draggedEl) {
+export function dispatchDraggedLeftDocument(draggedEl: HTMLElement): void {
     const win = getWindowOf(draggedEl);
     win.dispatchEvent(
         new win.CustomEvent(DRAGGED_LEFT_DOCUMENT_EVENT_NAME, {
