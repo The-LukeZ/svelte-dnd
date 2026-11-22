@@ -3,7 +3,7 @@ import { findCenterOfElement } from "../src/helpers/intersection";
 
 describe("listUtil", () => {
     describe("findWouldBeIndex", () => {
-        let containerEl, draggedEl;
+        let containerEl: HTMLElement, draggedEl: HTMLElement;
         beforeEach(() => {
             document.body.style.height = "2000px";
             document.body.style.width = "2000px";
