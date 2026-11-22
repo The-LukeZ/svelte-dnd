@@ -62,7 +62,8 @@
             ARIA attributes, instructions and live announcements for screen readers, which you can translate.
         </Feature>
         <Feature title="Small and flexible">
-            No dependencies. Animate with flip, use drag handles, copy on drag, or drag between iframes and windows.
+            No dependencies. Animate with flip, use drag handles, copy on drag, or run zones in iframes and popup
+            windows.
         </Feature>
     </FeatureGrid>
 

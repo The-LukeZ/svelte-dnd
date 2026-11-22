@@ -1,6 +1,6 @@
 <script lang="ts">
     import { flip } from "svelte/animate";
-    import { dndzone, type DndEvent } from "@lukez/svelte-dnd";
+    import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME, type DndEvent } from "@lukez/svelte-dnd";
 
     // The shadow item is a copy of the dragged item with this flag set while a pointer drag is over the zone.
     type Task = { id: number | string; name: string; isDndShadowItem?: boolean };
@@ -14,7 +14,7 @@
     const flipDurationMs = 200;
     // The shadow item is in the list during a drag, so leave it out when counting. Check its marker, not its id: the
     // shadow item takes the dragged item's own id during the drag.
-    const count = $derived(items.filter((item) => !item.isDndShadowItem).length);
+    const count = $derived(items.filter((item) => !item[SHADOW_ITEM_MARKER_PROPERTY_NAME]).length);
 
     function update(e: DndEvent<Task>) {
         items = e.items;
@@ -34,7 +34,7 @@
                 animate:flip={{ duration: flipDurationMs }}
             >
                 {item.name}
-                {#if item.isDndShadowItem}
+                {#if item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}
                     <div
                         class="border-primary text-primary absolute inset-0 visible flex items-center justify-center rounded-md border-2 border-dashed text-sm"
                     >

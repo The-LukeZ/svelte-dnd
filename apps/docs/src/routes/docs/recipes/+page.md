@@ -13,7 +13,7 @@ A palette of colors and a slot that holds one of them. Dropping a color into the
 
 ```svelte
 <script lang="ts">
-    import { dndzone, SOURCES, TRIGGERS, type DndEvent } from "@lukez/svelte-dnd";
+    import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME, SOURCES, TRIGGERS, type DndEvent } from "@lukez/svelte-dnd";
 
     type Color = { id: number; name: string; isDndShadowItem?: boolean };
 
@@ -63,7 +63,7 @@ A palette of colors and a slot that holds one of them. Dropping a color into the
         if (trigger === TRIGGERS.DRAG_STARTED) held = [];
         // While a color hovers the slot, show only the shadow item, so the slot never shows two. When it leaves, show
         // what the slot held: the slot gets no finalize event when the color is dropped somewhere else.
-        const incoming = e.items.filter((color) => color.isDndShadowItem);
+        const incoming = e.items.filter((color) => color[SHADOW_ITEM_MARKER_PROPERTY_NAME]);
         if (incoming.length > 0) slot = incoming;
         else if (trigger === TRIGGERS.DRAGGED_LEFT) slot = held;
         else slot = e.items;

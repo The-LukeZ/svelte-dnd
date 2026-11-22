@@ -73,9 +73,13 @@ There are two ways to style it:
 During a pointer drag, the zone the item hovers renders a [shadow item](/docs/how-it-works#the-shadow-item), marked with `isDndShadowItem: true`. The library sets `visibility: hidden` on its element, so it shows as a gap of the item's size. To draw something in the gap, render the shadow item differently and make your content visible again:
 
 ```svelte
+<script lang="ts">
+    import { SHADOW_ITEM_MARKER_PROPERTY_NAME } from "@lukez/svelte-dnd";
+</script>
+
 {#each items as item (item.id)}
     <li>
-        {#if item.isDndShadowItem}
+        {#if item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}
             <div class="placeholder">Drop here</div>
         {:else}
             {item.name}

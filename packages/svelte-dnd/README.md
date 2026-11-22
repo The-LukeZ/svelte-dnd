@@ -6,7 +6,7 @@ A fork of [`svelte-dnd-action`](https://github.com/isaacHagoel/svelte-dnd-action
 
 > **Work in progress.** The API changed for Svelte 5: zones and drag handles are attachments, `consider` and `finalize` are callback options, and the global setters became `configure`. See the [migration guide](https://svelte-dnd.thelukez.com/docs/migrating) for the steps.
 >
-> The docs below still describe the original `svelte-dnd-action` API. The full rewrite of this README comes with the docs site.
+> The docs below still describe the original `svelte-dnd-action` API. The rewrite of this README comes in a later release. The [docs site](https://svelte-dnd.thelukez.com) describes the current API.
 
 This is a feature-complete implementation of drag and drop for Svelte using a custom action. It supports almost every imaginable drag and drop use-case, any input device and is fully accessible. <br />
 It requires very minimal configuration, while offering a rich set of primitives that allow overriding basically any of its default behaviours (using the handler functions). <br /><br />

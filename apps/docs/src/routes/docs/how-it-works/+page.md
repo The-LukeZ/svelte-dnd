@@ -49,7 +49,7 @@ Check the marker in your `#each` block to style the placeholder:
 
 ```svelte
 <script lang="ts">
-    import { dndzone, type DndEvent } from "@lukez/svelte-dnd";
+    import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME, type DndEvent } from "@lukez/svelte-dnd";
 
     type Task = { id: number; name: string; isDndShadowItem?: boolean };
 
@@ -62,7 +62,7 @@ Check the marker in your `#each` block to style the placeholder:
 
 <ul {@attach dndzone(() => ({ items, onconsider: update, onfinalize: update }))}>
     {#each items as item (item.id)}
-        <li class:placeholder={item.isDndShadowItem}>{item.name}</li>
+        <li class:placeholder={item[SHADOW_ITEM_MARKER_PROPERTY_NAME]}>{item.name}</li>
     {/each}
 </ul>
 ```
@@ -96,7 +96,7 @@ Every item needs a unique id, and the `#each` block uses it as its key. The id i
 </script>
 ```
 
-It applies to every zone, and it throws when a zone is mounted, so call it before any zone renders: at the top of your root layout's `<script>` or at the start of your app. `configure` only sets module state, so it is safe during server-side rendering.
+It applies to every zone, and it throws while any zone is mounted, so call it before any zone renders: at the top of your root layout's `<script>` or at the start of your app. `configure` only sets module state, so it is safe during server-side rendering.
 
 `configure` takes `idKey`, `keyboardDragTrigger`, `ariaStrings` and `debug`. Keys you leave out are not touched.
 

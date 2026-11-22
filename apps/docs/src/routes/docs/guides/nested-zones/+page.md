@@ -86,7 +86,7 @@ The shadow item is in your `items` during a pointer drag, so code that counts or
 ```ts
 import { SHADOW_ITEM_MARKER_PROPERTY_NAME } from "@lukez/svelte-dnd";
 
-const realCards = column.cards.filter((card) => !(SHADOW_ITEM_MARKER_PROPERTY_NAME in card));
+const realCards = column.cards.filter((card) => !card[SHADOW_ITEM_MARKER_PROPERTY_NAME]);
 ```
 
 Check the marker, not the id: the shadow item starts with the id `SHADOW_PLACEHOLDER_ITEM_ID`, but takes the dragged item's own id during the drag.
