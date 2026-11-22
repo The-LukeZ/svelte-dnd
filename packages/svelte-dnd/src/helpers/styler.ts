@@ -1,17 +1,23 @@
 import { SHADOW_ELEMENT_ATTRIBUTE_NAME, DRAGGED_ELEMENT_ID } from "../constants";
-import { findCenter } from "./intersection";
+import { findCenter, type Point } from "./intersection";
 import { svelteNodeClone } from "./svelteNodeClone";
 import { getFeatureFlag, FEATURE_FLAG_NAMES } from "../featureFlags";
 import { getWindowOf } from "./util";
 
 const TRANSITION_DURATION_SECONDS = 0.2;
 
+type Styles = Record<string, string>;
+// lib.dom only knows webkitUserSelect, the property the code sets is WebkitUserSelect
+type StyleWithWebkitUserSelect = CSSStyleDeclaration & { WebkitUserSelect: string };
+// the default of getStyles returns nothing
+type GetStyles = (dz: HTMLElement) => Styles | void;
+type GetClasses = (dz: HTMLElement) => string[];
+
 /**
  * private helper function - creates a transition string for a property
- * @param {string} property
- * @return {string} - the transition string
+ * @return the transition string
  */
-function trs(property) {
+function trs(property: string): string {
     return `${property} ${TRANSITION_DURATION_SECONDS}s ease`;
 }
 
@@ -19,9 +25,8 @@ function trs(property) {
  * Adds the size transitions after the dragged element's initial styles have been applied.
  * This normally happens in a timeout to avoid a browser rendering bug, but a synchronous
  * first morph can happen before that timeout and needs the transitions immediately.
- * @param {HTMLElement} draggedEl
  */
-function ensureMorphSizeTransitions(draggedEl) {
+function ensureMorphSizeTransitions(draggedEl: HTMLElement): void {
     const transitionProperties = draggedEl.style.transitionProperty.split(",").map((property) => property.trim());
     if (transitionProperties.includes("all")) return;
     if (!transitionProperties.includes("width")) draggedEl.style.transition += `, ${trs("width")}`;
@@ -29,11 +34,9 @@ function ensureMorphSizeTransitions(draggedEl) {
 }
 /**
  * clones the given element and applies proper styles and transitions to the dragged element
- * @param {HTMLElement} originalElement
- * @param {Point} [positionCenterOnXY]
- * @return {Node} - the cloned, styled element
+ * @return the cloned, styled element
  */
-export function createDraggedElementFrom(originalElement, positionCenterOnXY) {
+export function createDraggedElementFrom(originalElement: HTMLElement, positionCenterOnXY?: Point): HTMLElement {
     const rect = originalElement.getBoundingClientRect();
     const win = getWindowOf(originalElement);
     const draggedEl = svelteNodeClone(originalElement);
@@ -69,20 +72,21 @@ export function createDraggedElementFrom(originalElement, positionCenterOnXY) {
 
 /**
  * styles the dragged element to a 'dropped' state
- * @param {HTMLElement} draggedEl
  */
-export function moveDraggedElementToWasDroppedState(draggedEl) {
+export function moveDraggedElementToWasDroppedState(draggedEl: HTMLElement): void {
     draggedEl.style.cursor = "grab";
 }
 
 /**
  * Morphs the dragged element style, maintains the mouse pointer within the element
- * @param {HTMLElement} draggedEl
- * @param {HTMLElement} copyFromEl - the element the dragged element should look like, typically the shadow element
- * @param {number} currentMouseX
- * @param {number} currentMouseY
+ * @param copyFromEl - the element the dragged element should look like, typically the shadow element
  */
-export function morphDraggedElementToBeLike(draggedEl, copyFromEl, currentMouseX, currentMouseY) {
+export function morphDraggedElementToBeLike(
+    draggedEl: HTMLElement,
+    copyFromEl: HTMLElement,
+    currentMouseX: number,
+    currentMouseY: number,
+): void {
     ensureMorphSizeTransitions(draggedEl);
     copyStylesFromTo(copyFromEl, draggedEl);
     const newRect = copyFromEl.getBoundingClientRect();
@@ -106,11 +110,7 @@ export function morphDraggedElementToBeLike(draggedEl, copyFromEl, currentMouseX
     }
 }
 
-/**
- * @param {HTMLElement} copyFromEl
- * @param {HTMLElement} copyToEl
- */
-function copyStylesFromTo(copyFromEl, copyToEl) {
+function copyStylesFromTo(copyFromEl: HTMLElement, copyToEl: HTMLElement): void {
     const computedStyle = getWindowOf(copyFromEl).getComputedStyle(copyFromEl);
     Array.from(computedStyle)
         .filter(
@@ -138,28 +138,25 @@ function copyStylesFromTo(copyFromEl, copyToEl) {
 
 /**
  * makes the element compatible with being draggable
- * @param {HTMLElement} draggableEl
- * @param {boolean} dragDisabled
  */
-export function styleDraggable(draggableEl, dragDisabled) {
+export function styleDraggable(draggableEl: HTMLElement, dragDisabled: boolean): void {
     draggableEl.draggable = false;
     draggableEl.ondragstart = () => false;
     if (!dragDisabled) {
         draggableEl.style.userSelect = "none";
-        draggableEl.style.WebkitUserSelect = "none";
+        (draggableEl.style as StyleWithWebkitUserSelect).WebkitUserSelect = "none";
         draggableEl.style.cursor = "grab";
     } else {
         draggableEl.style.userSelect = "";
-        draggableEl.style.WebkitUserSelect = "";
+        (draggableEl.style as StyleWithWebkitUserSelect).WebkitUserSelect = "";
         draggableEl.style.cursor = "";
     }
 }
 
 /**
  * Hides the provided element so that it can stay in the dom without interrupting
- * @param {HTMLElement} dragTarget
  */
-export function hideElement(dragTarget) {
+export function hideElement(dragTarget: HTMLElement): void {
     dragTarget.style.display = "none";
     dragTarget.style.position = "fixed";
     dragTarget.style.zIndex = "-5";
@@ -167,33 +164,36 @@ export function hideElement(dragTarget) {
 
 /**
  * styles the shadow element
- * @param {HTMLElement} shadowEl
  */
-export function decorateShadowEl(shadowEl) {
+export function decorateShadowEl(shadowEl: HTMLElement): void {
     shadowEl.style.visibility = "hidden";
     shadowEl.setAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME, "true");
 }
 
 /**
  * undo the styles the shadow element
- * @param {HTMLElement} shadowEl
  */
-export function unDecorateShadowElement(shadowEl) {
+export function unDecorateShadowElement(shadowEl: HTMLElement): void {
     shadowEl.style.visibility = "";
     shadowEl.removeAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME);
 }
 
 /**
  * will mark the given dropzones as visually active
- * @param {Array<HTMLElement>} dropZones
- * @param {Function} getStyles - maps a dropzone to a styles object (so the styles can be removed)
- * @param {Function} getClasses - maps a dropzone to a classList
+ * @param getStyles - maps a dropzone to a styles object (so the styles can be removed)
+ * @param getClasses - maps a dropzone to a classList
  */
-export function styleActiveDropZones(dropZones, getStyles = () => {}, getClasses = () => []) {
+export function styleActiveDropZones(
+    dropZones: Array<HTMLElement>,
+    getStyles: GetStyles = () => {},
+    getClasses: GetClasses = () => [],
+): void {
     dropZones.forEach((dz) => {
-        const styles = getStyles(dz);
+        // callers always pass getStyles, only its default returns nothing
+        const styles = getStyles(dz) as Styles;
         Object.keys(styles).forEach((style) => {
-            dz.style[style] = styles[style];
+            // the keys of the styles object are CSS property names
+            (dz.style as unknown as Styles)[style] = styles[style];
         });
         getClasses(dz).forEach((c) => dz.classList.add(c));
     });
@@ -201,15 +201,20 @@ export function styleActiveDropZones(dropZones, getStyles = () => {}, getClasses
 
 /**
  * will remove the 'active' styling from given dropzones
- * @param {Array<HTMLElement>} dropZones
- * @param {Function} getStyles - maps a dropzone to a styles object
- * @param {Function} getClasses - maps a dropzone to a classList
+ * @param getStyles - maps a dropzone to a styles object
+ * @param getClasses - maps a dropzone to a classList
  */
-export function styleInactiveDropZones(dropZones, getStyles = () => {}, getClasses = () => []) {
+export function styleInactiveDropZones(
+    dropZones: Array<HTMLElement>,
+    getStyles: GetStyles = () => {},
+    getClasses: GetClasses = () => [],
+): void {
     dropZones.forEach((dz) => {
-        const styles = getStyles(dz);
+        // callers always pass getStyles, only its default returns nothing
+        const styles = getStyles(dz) as Styles;
         Object.keys(styles).forEach((style) => {
-            dz.style[style] = "";
+            // the keys of the styles object are CSS property names
+            (dz.style as unknown as Styles)[style] = "";
         });
         getClasses(dz).forEach((c) => dz.classList.contains(c) && dz.classList.remove(c));
     });
@@ -217,10 +222,9 @@ export function styleInactiveDropZones(dropZones, getStyles = () => {}, getClass
 
 /**
  * will prevent the provided element from shrinking by setting its minWidth and minHeight to the current width and height values
- * @param {HTMLElement} el
- * @return {function(): void} - run this function to undo the operation and restore the original values
+ * @return run this function to undo the operation and restore the original values
  */
-export function preventShrinking(el) {
+export function preventShrinking(el: HTMLElement): () => void {
     const originalMinHeight = el.style.minHeight;
     const computedStyle = getWindowOf(el).getComputedStyle(el);
     el.style.minHeight = computedStyle.getPropertyValue("height");

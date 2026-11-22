@@ -13,3 +13,9 @@ export type DndEvent<T = Item> = {
     items: T[];
     info: DndEventInfo;
 };
+
+export type TransformDraggedElementFunction = (
+    element?: HTMLElement, // the dragged element.
+    draggedElementData?: Item, // the data of the item from the items array
+    index?: number, // the index the dragged element would get if dropped into the new dnd-zone
+) => void;
