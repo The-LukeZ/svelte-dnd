@@ -1,8 +1,11 @@
 import { createZone } from "../../src/action";
 import type { TRIGGERS } from "../../src/constants";
 import type { WindowWithGlobals } from "../../src/helpers/util";
-import type { DndEvent, Item, Options } from "../../src/types";
+import type { DndEvent, Options } from "../../src/types";
 import { createListeners } from "./callbacks";
+
+/** The items of a list made by createList */
+export type NamedItem = { id: string; name: string };
 
 // Helpers for zones that live in another document than the one that loaded the library: a same-origin
 // iframe (its own Window and Document in the same tab) or a popup opened with window.open (its own tab).
@@ -51,14 +54,16 @@ export function createList(
         names,
         style = {},
         ...options
-    }: { label: string; names: string[]; style?: Partial<CSSStyleDeclaration> } & Partial<Omit<Options, "items">>,
+    }: { label: string; names: string[]; style?: Partial<CSSStyleDeclaration> } & Partial<
+        Omit<Options<NamedItem>, "items">
+    >,
 ): {
     zone: HTMLDivElement;
-    action: ReturnType<typeof createZone>;
+    action: ReturnType<typeof createZone<NamedItem>>;
     doc: Document;
     win: WindowWithGlobals;
     triggers: TRIGGERS[];
-    events: { type: "consider" | "finalize"; detail: DndEvent }[];
+    events: { type: "consider" | "finalize"; detail: DndEvent<NamedItem> }[];
     addListener: ReturnType<typeof createListeners>["add"];
     names: () => string[];
     element: (name: string) => HTMLElement;
@@ -67,7 +72,7 @@ export function createList(
     zone.setAttribute("aria-label", label);
     Object.assign(zone.style, { width: "100px", minHeight: "30px" }, style);
     doc.body.appendChild(zone);
-    let items: Item[] = names.map((name) => ({ id: name, name }));
+    let items: NamedItem[] = names.map((name) => ({ id: name, name }));
     let elements = new Map<string, HTMLElement>();
     function render() {
         const nextElements = new Map<string, HTMLElement>();
@@ -86,11 +91,11 @@ export function createList(
     }
     render();
     const triggers: TRIGGERS[] = [];
-    const events: { type: "consider" | "finalize"; detail: DndEvent }[] = [];
+    const events: { type: "consider" | "finalize"; detail: DndEvent<NamedItem> }[] = [];
     const listeners = createListeners();
     const onChange =
         (type: "consider" | "finalize") =>
-        (detail: DndEvent): void => {
+        (detail: DndEvent<NamedItem>): void => {
             triggers.push(detail.info.trigger);
             events.push({ type, detail });
             items = detail.items;
@@ -98,7 +103,7 @@ export function createList(
             action.update(getOptions());
             listeners.call(type, detail);
         };
-    const getOptions = (): Options => ({
+    const getOptions = (): Options<NamedItem> => ({
         items,
         flipDurationMs: 0,
         onconsider: onChange("consider"),

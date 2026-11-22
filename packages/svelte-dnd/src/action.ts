@@ -40,16 +40,16 @@ export function createZone<T extends object>(
         };
     }
     validateOptions(options);
-    const pointerZone = pointerDndZone(node, options);
-    const keyboardZone = keyboardDndZone(node, options);
+    const pointerZone = pointerDndZone(node, toEngineOptions(options));
+    const keyboardZone = keyboardDndZone(node, toEngineOptions(options));
     return {
         update: (newOptions: Options<T>) => {
             // fromAction calls this inside an effect. Untracked, so the engine's reads of the options (copying items,
             // the id check) add no dependencies: the zone updates only when what the getter reads changes.
             untrack(() => {
                 validateOptions(newOptions);
-                pointerZone.update(newOptions);
-                keyboardZone.update(newOptions);
+                pointerZone.update(toEngineOptions(newOptions));
+                keyboardZone.update(toEngineOptions(newOptions));
             });
         },
         destroy: () => {
@@ -57,6 +57,15 @@ export function createZone<T extends object>(
             keyboardZone.destroy();
         },
     };
+}
+
+/**
+ * The engine boundary. The engine reads an item only through its id key, which validateOptions checks, and the shadow
+ * marker it sets itself. It hands the zone's items and the dragged item's data back to the zone's own callbacks and
+ * transformDraggedElement, so they receive the zone's own T while the engine works on its Item shape.
+ */
+function toEngineOptions<T extends object>(options: Options<T>): Options {
+    return options as unknown as Options;
 }
 
 /**

@@ -9,7 +9,7 @@
         onCall,
     }: {
         initial: Row[];
-        onCall?: (kind: "consider" | "finalize", detail: DndEvent) => void;
+        onCall?: (kind: "consider" | "finalize", detail: DndEvent<Row>) => void;
     } = $props();
 
     // svelte-ignore state_referenced_locally

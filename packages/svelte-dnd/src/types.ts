@@ -1,9 +1,12 @@
 import type { TRIGGERS, SOURCES } from "./constants";
 
-// oxlint-disable-next-line typescript/no-explicit-any -- TODO: stage 4, decide whether Item becomes Record<string, unknown>
-export type Item = Record<string, any>;
+/**
+ * The engine's internal shape of an item. Public generics take `T extends object` instead, since an interface without an
+ * index signature does not assign to this type. The id key is checked at runtime.
+ */
+export type Item = Record<string, unknown>;
 
-export interface Options<T extends Item = Item> {
+export interface Options<T extends object = Item> {
     /** the list of items that was used to generate the children of the given node (the list used in the #each block) */
     items: T[];
     /** the type of the dnd zone. children dragged from here can only be dropped in other zones of the same type, defaults to a base type */
@@ -20,7 +23,7 @@ export interface Options<T extends Item = Item> {
     zoneItemTabIndex?: number;
     dropTargetClasses?: string[];
     dropTargetStyle?: Record<string, string>;
-    transformDraggedElement?: TransformDraggedElementFunction;
+    transformDraggedElement?: TransformDraggedElementFunction<T>;
     autoAriaDisabled?: boolean;
     centreDraggedOnCursor?: boolean;
     /** cancels the drop animation to place */
@@ -59,17 +62,11 @@ export interface DndConfig {
     debug?: boolean;
 }
 
-export interface DndZoneAttributes<T> {
-    "on:consider"?: (e: CustomEvent<DndEvent<T>>) => void;
-    "on:finalize"?: (e: CustomEvent<DndEvent<T>>) => void;
-    onconsider?: (e: CustomEvent<DndEvent<T>>) => void;
-    onfinalize?: (e: CustomEvent<DndEvent<T>>) => void;
-}
-
 export interface DndEventInfo {
     /** the type of dnd event that took place */
     trigger: TRIGGERS;
-    id: string;
+    /** the id of the dragged item: the value of its id key, so the same type as that property */
+    id: unknown;
     /** the type of interaction that the user used to perform the dnd operation */
     source: SOURCES;
 }
@@ -84,9 +81,9 @@ export type DndEvent<T = Item> = {
  * @param draggedElementData - the data of the item from the items array
  * @param index - the index the dragged element would get if dropped into the new dnd-zone
  */
-export type TransformDraggedElementFunction = (
+export type TransformDraggedElementFunction<T = Item> = (
     element?: HTMLElement,
-    draggedElementData?: Item,
+    draggedElementData?: T,
     index?: number,
 ) => void;
 

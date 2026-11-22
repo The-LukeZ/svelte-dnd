@@ -4,7 +4,8 @@ import type { DndEvent } from "../../src/types";
 import List from "./fixtures/List.svelte";
 import ListWithAttr from "./fixtures/ListWithAttr.svelte";
 
-type Call = { kind: "consider" | "finalize"; detail: DndEvent; run: number };
+type Row = { id: number; name: string };
+type Call = { kind: "consider" | "finalize"; detail: DndEvent<Row>; run: number };
 
 const INITIAL = () => [
     { id: 1, name: "a" },
@@ -28,7 +29,7 @@ function names(zone: HTMLElement): string[] {
     return Array.from(zone.querySelectorAll("li"), (li) => li.textContent);
 }
 
-function names0(detail: DndEvent): string[] {
+function names0(detail: DndEvent<Row>): string[] {
     return detail.items.map((item) => item.name);
 }
 
@@ -36,7 +37,7 @@ function names0(detail: DndEvent): string[] {
  * Drags the zone's first item below its last item with the mouse and releases it there. Waits for the dragged item to
  * reach the end of the list before releasing, and for the finalize after.
  */
-async function dragFirstBelowLast(zone: HTMLElement, calls: { kind: string; detail: DndEvent }[]): Promise<void> {
+async function dragFirstBelowLast(zone: HTMLElement, calls: { kind: string; detail: DndEvent<Row> }[]): Promise<void> {
     const lis = Array.from(zone.querySelectorAll("li"));
     const first = lis[0].getBoundingClientRect();
     const last = lis[lis.length - 1].getBoundingClientRect();
@@ -82,7 +83,7 @@ describe("dndzone attachment", () => {
         const calls: Call[] = [];
         const screen = await render(List, {
             initial: INITIAL(),
-            onCall: (kind: Call["kind"], detail: DndEvent, run: number) => calls.push({ kind, detail, run }),
+            onCall: (kind: Call["kind"], detail: DndEvent<Row>, run: number) => calls.push({ kind, detail, run }),
         });
         const zone = screen.getByTestId("zone").element() as HTMLElement;
         return { screen, zone, calls };
@@ -150,16 +151,16 @@ describe("dndzone attachment", () => {
         await vi.waitFor(() => expect(names(zone)).to.deep.equal(["a", "b", "d", "c"]));
         const finalize = lastOf(calls.filter((call) => call.kind === "finalize"));
         expect(finalize.detail.info.source).to.equal(SOURCES.KEYBOARD);
-        expect(String(finalize.detail.info.id)).to.equal("4");
+        expect(finalize.detail.info.id).to.equal(4);
     });
 
     it("never fires an onconsider attribute on the zone element", { timeout: 10000 }, async () => {
         const spy = vi.fn();
-        const calls: { kind: "consider" | "finalize"; detail: DndEvent }[] = [];
+        const calls: { kind: "consider" | "finalize"; detail: DndEvent<Row> }[] = [];
         const screen = await render(ListWithAttr, {
             initial: INITIAL(),
             spy,
-            onCall: (kind: Call["kind"], detail: DndEvent) => calls.push({ kind, detail }),
+            onCall: (kind: Call["kind"], detail: DndEvent<Row>) => calls.push({ kind, detail }),
         });
         const zone = screen.getByTestId("zone").element() as HTMLElement;
         await dragFirstBelowLast(zone, calls);

@@ -3,10 +3,11 @@ import { createZone as pointerAndKeyboardDndzone } from "../src/action";
 import { attachHandle, createHandleZone } from "../src/wrappers/withDragHandles";
 import { setAriaStrings } from "../src/helpers/aria";
 import type { WindowWithGlobals } from "../src/helpers/util";
-import type { DndZoneAttributes, Item, Options } from "../src/types";
+import type { Options } from "../src/types";
 import type { ActionReturn } from "svelte/action";
 import { DRAGGED_ELEMENT_ID, TRIGGERS } from "../src/constants";
 import { createFrame, createList, failOnListenerErrors, openPopup } from "./helpers/otherWindow";
+import type { NamedItem } from "./helpers/otherWindow";
 import { createListeners } from "./helpers/callbacks";
 
 failOnListenerErrors();
@@ -16,7 +17,7 @@ failOnListenerErrors();
 // test page's window.
 function createZoneInFrame(
     options: Partial<Options> = {},
-    makeZone: (node: HTMLElement, options: Options) => ActionReturn<Options, DndZoneAttributes<Item>> = dndzone,
+    makeZone: (node: HTMLElement, options: Options) => ActionReturn<Options> = dndzone,
 ) {
     const frame = document.createElement("iframe");
     frame.style.width = "300px";
@@ -52,7 +53,7 @@ function createZoneInFrame(
             listeners.call("finalize", e);
         },
         ...options,
-    }) as Required<ActionReturn<Options, DndZoneAttributes<Item>>>;
+    }) as Required<ActionReturn<Options>>;
     return { action, addListener: listeners.add, doc, frame, item, triggers, win, zone };
 }
 
@@ -212,7 +213,7 @@ describe("a drop zone in another window", () => {
     it("does not style a zone in another window when its options change during a drag", () => {
         const loadingList = createList(document, { label: "Loading", names: ["l1"] });
         const created = listInFrame();
-        const updateLoadingList = (options: Partial<Options>) =>
+        const updateLoadingList = (options: Partial<Options<NamedItem>>) =>
             loadingList.action.update({ items: [{ id: "l1", name: "l1" }], ...options });
         try {
             startDrag(created);

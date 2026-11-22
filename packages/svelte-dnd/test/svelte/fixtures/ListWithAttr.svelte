@@ -12,7 +12,7 @@
         initial: Row[];
         // called if the zone element ever gets a consider or finalize DOM event
         spy: (e: Event) => void;
-        onCall?: (kind: "consider" | "finalize", detail: DndEvent) => void;
+        onCall?: (kind: "consider" | "finalize", detail: DndEvent<Row>) => void;
     } = $props();
 
     // svelte-ignore state_referenced_locally

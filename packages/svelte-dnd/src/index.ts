@@ -14,7 +14,6 @@ export type {
     Item,
     Options,
     TransformDraggedElementFunction,
-    DndZoneAttributes,
     AriaStrings,
     DndConfig,
     DndEventInfo,

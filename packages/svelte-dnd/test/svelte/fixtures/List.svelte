@@ -11,7 +11,7 @@
     }: {
         initial: Row[];
         extra?: Partial<Options<Row>>;
-        onCall?: (kind: "consider" | "finalize", detail: DndEvent, run: number) => void;
+        onCall?: (kind: "consider" | "finalize", detail: DndEvent<Row>, run: number) => void;
     } = $props();
 
     // svelte-ignore state_referenced_locally

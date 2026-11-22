@@ -1,12 +1,12 @@
-// Checks that the ESM and CJS builds export exactly the public API of src/index.js.
+// Checks that the ESM and CJS builds export exactly the public API of src/index.ts.
 import { createRequire } from "node:module";
 
 const EXPECTED = [
     "dndzone",
     "dragHandleZone",
     "dragHandle",
-    "alertToScreenReader",
     "configure",
+    "alertToScreenReader",
     "TRIGGERS",
     "SOURCES",
     "SHADOW_ITEM_MARKER_PROPERTY_NAME",

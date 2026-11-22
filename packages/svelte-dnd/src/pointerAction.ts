@@ -45,7 +45,6 @@ import {
 } from "./helpers/util";
 import { getBoundingRectNoTransforms, findCenterOfElement, type Point } from "./helpers/intersection";
 import type { Index } from "./helpers/listUtil";
-import type { ZoneCallbacks } from "./helpers/dispatcher";
 import type { Item, Options, TransformDraggedElementFunction } from "./types";
 
 // The config of a zone. dropAnimationDurationMs holds the flipDurationMs option.
@@ -509,10 +508,7 @@ function cleanupPostDrop(): void {
     }
 }
 
-export function dndzone<T extends Item>(
-    node: HTMLElement,
-    options: Options<T>,
-): { update(newOptions: Options<T>): void; destroy(): void } {
+export function dndzone(node: HTMLElement, options: Options): { update(newOptions: Options): void; destroy(): void } {
     let initialized = false;
     let destroyed = false;
     // configure(options) below sets items, type and dropAnimationDurationMs. Before that only the debug print reads them,
@@ -778,10 +774,9 @@ export function dndzone<T extends Item>(
         delayTouchStart: delayTouchStartOpt = false,
         onconsider,
         onfinalize,
-    }: Options<T>): void {
+    }: Options): void {
         // A torn-down zone gets no callbacks, even if it is configured once more.
-        // The engine passes items through untouched, so a zone's items are its own T.
-        if (!destroyed) registerZoneCallbacks(node, { onconsider, onfinalize } as ZoneCallbacks);
+        if (!destroyed) registerZoneCallbacks(node, { onconsider, onfinalize });
         const isInDragWindow = isWorkingOnPreviousDrag && node.ownerDocument.defaultView === dragWindow;
         const wasDropTarget =
             node === originDropZone || (config.type === draggedElType && !config.dropFromOthersDisabled);
@@ -877,7 +872,7 @@ export function dndzone<T extends Item>(
     configure(options);
 
     return {
-        update: (newOptions: Options<T>) => {
+        update: (newOptions: Options) => {
             printDebug(() => `pointer dndzone will update newOptions: ${toString(newOptions)}`);
             configure(newOptions);
         },
