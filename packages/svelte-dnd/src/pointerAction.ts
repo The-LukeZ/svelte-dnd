@@ -910,7 +910,13 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
             function destroyDz(): void {
                 printDebug(() => "pointer dndzone will destroy");
                 const registeredConfig = dzToConfig.get(node);
-                if (registeredConfig !== config) return;
+                if (registeredConfig !== config) {
+                    // a zone of the same type on the element shares this registration, and it is the one to remove it.
+                    // Otherwise (another type, or the new zone is gone already) the registration is this zone's to remove.
+                    if (!registeredConfig || registeredConfig.type !== config.type)
+                        unregisterDropZone(node, config.type);
+                    return;
+                }
                 unregisterDropZone(node, registeredConfig.type);
                 dzToConfig.delete(node);
             }
