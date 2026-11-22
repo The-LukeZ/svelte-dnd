@@ -1,5 +1,7 @@
 import { dndzone } from "../src/action";
 import { TRIGGERS } from "../src/constants";
+import type { WindowWithGlobals } from "../src/helpers/util";
+import type { DndEvent, Item } from "../src/types";
 import { alertToScreenReader, destroyAria, setAriaStrings } from "../src/helpers/aria";
 import {
     alertText,
@@ -16,13 +18,13 @@ failOnListenerErrors();
 const STARTED_IN_PARENT = "Started dragging item p1. Use the arrow keys to move it within its list Parent";
 const MOVE_BETWEEN_LISTS = ", or tab to another list in order to move the item into it";
 const ACTIVE_INSTRUCTION_ID = "dnd-zone-active";
-const at = (top) => ({ position: "fixed", left: "0", top });
-const last = (list) => list.triggers[list.triggers.length - 1];
+const at = (top: string) => ({ position: "fixed", left: "0", top });
+const last = (list: ReturnType<typeof createList>) => list.triggers[list.triggers.length - 1];
 
 // A parent-loaded library can serve several documents, but each keyboard drag has document-local destinations,
 // just like pointer dragging. Focus crossing an iframe or popup boundary must not transfer the item.
 describe("keyboard drags stay within their document", () => {
-    const cleanups = [];
+    const cleanups: (() => void)[] = [];
     afterEach(() =>
         cleanups
             .splice(0)
@@ -30,12 +32,12 @@ describe("keyboard drags stay within their document", () => {
             .forEach((cleanup) => cleanup()),
     );
 
-    function list(doc, options) {
+    function list(doc: Document, options: Parameters<typeof createList>[1]) {
         const created = createList(doc, options);
         cleanups.push(() => created.action.destroy());
         return created;
     }
-    function frame(options) {
+    function frame(options?: Parameters<typeof createFrame>[0]) {
         const created = createFrame(options);
         cleanups.push(() => created.frame.remove());
         return created;
@@ -45,7 +47,7 @@ describe("keyboard drags stay within their document", () => {
         cleanups.push(() => created.win.close());
         return created;
     }
-    function grab(created, name) {
+    function grab(created: ReturnType<typeof createList>, name: string) {
         const el = created.element(name);
         el.focus();
         key(el, "Enter");
@@ -149,8 +151,9 @@ describe("keyboard drags stay within their document", () => {
         const two = frame({ style: at("250px") });
         const listOne = list(one.doc, { label: "One", names: ["o1"] });
         const listTwo = list(two.doc, { label: "Two", names: ["t1"] });
+        // dndzone sets aria-describedby on both zones when it initialises them
         [listOne, listTwo].forEach(({ zone, doc }) =>
-            expect(doc.getElementById(zone.getAttribute("aria-describedby"))).not.to.equal(null),
+            expect(doc.getElementById(zone.getAttribute("aria-describedby")!)).not.to.equal(null),
         );
 
         grab(listOne, "o1");
@@ -259,8 +262,9 @@ describe("keyboard drags stay within their document", () => {
 
         expect(doc.getElementById(ACTIVE_INSTRUCTION_ID), "should remove the iframe's instructions").to.equal(null);
         expect(frameListeners.active(), "should remove the iframe's listeners").to.deep.equal([]);
+        // dndzone set aria-describedby on the parent zone when it initialised it
         expect(
-            document.getElementById(parentList.zone.getAttribute("aria-describedby")),
+            document.getElementById(parentList.zone.getAttribute("aria-describedby")!),
             "should keep the parent's instructions for its own zone",
         ).not.to.equal(null);
     });
@@ -287,17 +291,20 @@ describe("keyboard drags stay within their document", () => {
 
     it("keeps the keyboard handlers of an iframe's next document when the app destroys the previous document's zone late", async () => {
         const { frame: frameEl } = frame();
-        const previousList = createList(frameEl.contentDocument, { label: "Previous", names: ["p1"] });
+        // the frame is attached to the document, so it has a contentDocument
+        const previousList = createList(frameEl.contentDocument!, { label: "Previous", names: ["p1"] });
         // destroyed again by cleanup if the test fails before the app would destroy it
         cleanups.push(() => previousList.action.destroy());
         await new Promise((resolve) => {
             frameEl.addEventListener("load", resolve, { once: true });
             frameEl.srcdoc = "<!DOCTYPE html><body style='margin:0'></body>";
         });
-        const nextList = list(frameEl.contentDocument, { label: "Next", names: ["n1"] });
+        // the srcdoc load above gave the frame a new document
+        const nextList = list(frameEl.contentDocument!, { label: "Next", names: ["n1"] });
         previousList.action.destroy();
         grab(nextList, "n1");
-        key(frameEl.contentWindow, "Escape");
+        // the srcdoc load above gave the frame a new window, with the globals of its realm
+        key(frameEl.contentWindow as WindowWithGlobals, "Escape");
         expect(last(nextList)).to.equal(TRIGGERS.DRAG_STOPPED);
     });
 
@@ -322,22 +329,22 @@ describe("keyboard drags stay within their document", () => {
         afterEach(() => setAriaStrings(null));
 
         // A detached document's elements lose their listeners, so watch what the library dispatches on the zone itself.
-        function recordDispatchedTriggers(zone) {
-            const triggers = [];
+        function recordDispatchedTriggers(zone: HTMLElement) {
+            const triggers: TRIGGERS[] = [];
             const { dispatchEvent } = zone;
             zone.dispatchEvent = (event) => {
-                triggers.push(event.detail.info.trigger);
+                triggers.push((event as CustomEvent<DndEvent>).detail.info.trigger);
                 return dispatchEvent.call(zone, event);
             };
             return triggers;
         }
-        function removingFrameFormatter(frameEl) {
-            return ({ itemLabel }) => {
+        function removingFrameFormatter(frameEl: HTMLIFrameElement) {
+            return ({ itemLabel }: { itemLabel: string }) => {
                 frameEl.remove();
                 return itemLabel;
             };
         }
-        function expectAParentDragToWork(parentList) {
+        function expectAParentDragToWork(parentList: ReturnType<typeof createList>) {
             grab(parentList, "p1");
             expect(parentList.triggers[parentList.triggers.length - 1]).to.equal(TRIGGERS.DRAG_STARTED);
             key(window, "Escape");
@@ -374,13 +381,15 @@ describe("keyboard drags stay within their document", () => {
             const dispatched = recordDispatchedTriggers(frameList.zone);
             // Removing the iframe drops DOM listeners before the transfer event. Record its payload directly,
             // rather than expecting the removed app's listener to re-render the destination.
-            const transferredItems = [];
+            const transferredItems: string[][] = [];
             const { dispatchEvent } = target.zone;
             target.zone.dispatchEvent = (event) => {
-                transferredItems.push(event.detail.items.map((item) => item.id));
+                transferredItems.push((event as CustomEvent<DndEvent>).detail.items.map((item) => item.id));
                 return dispatchEvent.call(target.zone, event);
             };
-            setAriaStrings({ movedToZoneStart: removingFrameFormatter(frameList.win.frameElement) });
+            setAriaStrings({
+                movedToZoneStart: removingFrameFormatter(frameList.win.frameElement as HTMLIFrameElement),
+            });
             grab(frameList, "f1");
             target.zone.focus();
             expect(transferredItems).to.deep.equal([["f1", "t1"]]);
@@ -400,15 +409,17 @@ describe("keyboard drags stay within their document", () => {
             const source = list(doc, { label: "Source", names: ["s1"] });
             const frameZone = doc.createElement("div");
             doc.body.appendChild(frameZone);
-            const frameAction = dndzone(frameZone, { items: [] });
-            cleanups.push(() => frameAction.destroy());
+            const frameAction = dndzone<Item>(frameZone, { items: [] });
+            // dndzone always returns update and destroy; the ActionReturn type marks them optional
+            cleanups.push(() => frameAction.destroy!());
             grab(source, "s1");
 
             // The app moves the grabbed item into another zone in its own document.
             const movedItem = doc.createElement("div");
             movedItem.addEventListener("focus", () => frameEl.remove());
             frameZone.appendChild(movedItem);
-            frameAction.update({ items: [{ id: "s1", name: "s1" }] });
+            // dndzone always returns update and destroy; the ActionReturn type marks them optional
+            frameAction.update!({ items: [{ id: "s1", name: "s1" }] });
 
             expect(parentList.element("p2").tabIndex, "the drag should have ended").to.equal(0);
         });
