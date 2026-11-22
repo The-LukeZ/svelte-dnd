@@ -1,6 +1,6 @@
 import { dndzone } from "../src/keyboardAction";
 import { TRIGGERS } from "../src/constants";
-import { setAriaStrings } from "../src/helpers/aria";
+import { configure } from "../src/configure";
 import type { DndEvent, Item, Options } from "../src/types";
 import { recordCalls } from "./helpers/callbacks";
 
@@ -259,7 +259,7 @@ describe("keyboardAction", () => {
 
     describe("announcements", () => {
         afterEach(() => {
-            setAriaStrings(null);
+            configure({ ariaStrings: null });
         });
 
         function alertText() {
@@ -304,10 +304,12 @@ describe("keyboardAction", () => {
 
         it("routes every announcement through the overridable strings", () => {
             const seen: (string | null)[] = [];
-            setAriaStrings({
-                dragStarted: (ctx) => `grab:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.canMoveBetweenZones}`,
-                movedToPosition: (ctx) => `move:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
-                dropped: (ctx) => `drop:${ctx.itemLabel}`,
+            configure({
+                ariaStrings: {
+                    dragStarted: (ctx) => `grab:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.canMoveBetweenZones}`,
+                    movedToPosition: (ctx) => `move:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                    dropped: (ctx) => `drop:${ctx.itemLabel}`,
+                },
             });
             const {
                 children: [item],
@@ -325,9 +327,11 @@ describe("keyboardAction", () => {
 
         it("gives the grab and the drop the item's seat and the zone's size", () => {
             const seen: (string | null)[] = [];
-            setAriaStrings({
-                dragStarted: (ctx) => `grab:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
-                dropped: (ctx) => `drop:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+            configure({
+                ariaStrings: {
+                    dragStarted: (ctx) => `grab:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                    dropped: (ctx) => `drop:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                },
             });
             const {
                 children: [, second],
@@ -344,7 +348,7 @@ describe("keyboardAction", () => {
         });
 
         it("reports canMoveBetweenZones when another zone can accept the item", () => {
-            setAriaStrings({ dragStarted: (ctx) => `${ctx.canMoveBetweenZones}` });
+            configure({ ariaStrings: { dragStarted: (ctx) => `${ctx.canMoveBetweenZones}` } });
             const {
                 children: [item],
             } = createLabelledZone([{ id: "a" }], "To do");
@@ -356,9 +360,11 @@ describe("keyboardAction", () => {
         });
 
         it("uses the cross-zone strings when focus moves to another zone", () => {
-            setAriaStrings({
-                movedToZoneEnd: (ctx) => `end:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
-                movedToZoneStart: (ctx) => `start:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+            configure({
+                ariaStrings: {
+                    movedToZoneEnd: (ctx) => `end:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                    movedToZoneStart: (ctx) => `start:${ctx.itemLabel}:${ctx.zoneLabel}:${ctx.position}:${ctx.count}`,
+                },
             });
             const { zone: zoneA, children: itemsA } = createLabelledZone([{ id: "a" }], "To do");
             const { zone: zoneB } = createLabelledZone([{ id: "b" }], "Done");
@@ -377,7 +383,7 @@ describe("keyboardAction", () => {
         });
 
         it("stays silent when autoAriaDisabled is set, even with overrides installed", () => {
-            setAriaStrings({ dragStarted: () => "SHOULD NOT BE SPOKEN" });
+            configure({ ariaStrings: { dragStarted: () => "SHOULD NOT BE SPOKEN" } });
             const {
                 children: [item],
             } = createLabelledZone([{ id: "a" }], "To do", { autoAriaDisabled: true });
@@ -389,9 +395,11 @@ describe("keyboardAction", () => {
         });
 
         it("does not get stuck dragging when a consumer formatter throws on drop, and announces the default instead", () => {
-            setAriaStrings({
-                dropped: () => {
-                    throw new Error("boom");
+            configure({
+                ariaStrings: {
+                    dropped: () => {
+                        throw new Error("boom");
+                    },
                 },
             });
             const triggers: TRIGGERS[] = [];
@@ -416,7 +424,7 @@ describe("keyboardAction", () => {
             expect(item.tabIndex, "the drop should have completed and restored the item's tab index").to.equal(0);
 
             // Starting another drag verifies that the formatter error did not leave drag state active.
-            setAriaStrings(null);
+            configure({ ariaStrings: null });
             grab(item);
             expect(alertText(), "a fresh grab afterwards should start a new drag rather than drop again").to.equal(
                 "Started dragging item Card 0. Use the arrow keys to move it within its list To do",
@@ -424,9 +432,11 @@ describe("keyboardAction", () => {
         });
 
         it("does not throw when a consumer formatter throws while a zone is destroyed mid-drag", () => {
-            setAriaStrings({
-                dropped: () => {
-                    throw new Error("boom");
+            configure({
+                ariaStrings: {
+                    dropped: () => {
+                        throw new Error("boom");
+                    },
                 },
             });
             const {

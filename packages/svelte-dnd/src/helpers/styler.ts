@@ -1,7 +1,6 @@
 import { SHADOW_ELEMENT_ATTRIBUTE_NAME, DRAGGED_ELEMENT_ID } from "../constants";
 import { findCenter, type Point } from "./intersection";
 import { svelteNodeClone } from "./svelteNodeClone";
-import { getFeatureFlag, FEATURE_FLAG_NAMES } from "../featureFlags";
 import { getWindowOf } from "./util";
 
 const TRANSITION_DURATION_SECONDS = 0.2;
@@ -36,11 +35,15 @@ function ensureMorphSizeTransitions(draggedEl: HTMLElement): void {
  * clones the given element and applies proper styles and transitions to the dragged element
  * @return the cloned, styled element
  */
-export function createDraggedElementFrom(originalElement: HTMLElement, positionCenterOnXY?: Point): HTMLElement {
+export function createDraggedElementFrom(
+    originalElement: HTMLElement,
+    positionCenterOnXY?: Point,
+    useComputedStyleForRects = false,
+): HTMLElement {
     const rect = originalElement.getBoundingClientRect();
     const win = getWindowOf(originalElement);
     const draggedEl = svelteNodeClone(originalElement);
-    copyStylesFromTo(originalElement, draggedEl);
+    copyStylesFromTo(originalElement, draggedEl, useComputedStyleForRects);
     draggedEl.id = DRAGGED_ELEMENT_ID;
     draggedEl.style.position = "fixed";
     let elTopPx = rect.top;
@@ -86,9 +89,10 @@ export function morphDraggedElementToBeLike(
     copyFromEl: HTMLElement,
     currentMouseX: number,
     currentMouseY: number,
+    useComputedStyleForRects = false,
 ): void {
     ensureMorphSizeTransitions(draggedEl);
-    copyStylesFromTo(copyFromEl, draggedEl);
+    copyStylesFromTo(copyFromEl, draggedEl, useComputedStyleForRects);
     const newRect = copyFromEl.getBoundingClientRect();
     const draggedElRect = draggedEl.getBoundingClientRect();
     const draggedElComputedStyle = getWindowOf(draggedEl).getComputedStyle(draggedEl);
@@ -101,7 +105,7 @@ export function morphDraggedElementToBeLike(
             left: draggedElRect.width ? (currentMouseX - draggedElRect.left) / draggedElRect.width : 0,
             top: draggedElRect.height ? (currentMouseY - draggedElRect.top) / draggedElRect.height : 0,
         };
-        if (!getFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT)) {
+        if (!useComputedStyleForRects) {
             draggedEl.style.height = `${newRect.height}px`;
             draggedEl.style.width = `${newRect.width}px`;
         }
@@ -110,7 +114,7 @@ export function morphDraggedElementToBeLike(
     }
 }
 
-function copyStylesFromTo(copyFromEl: HTMLElement, copyToEl: HTMLElement): void {
+function copyStylesFromTo(copyFromEl: HTMLElement, copyToEl: HTMLElement, useComputedStyleForRects: boolean): void {
     const computedStyle = getWindowOf(copyFromEl).getComputedStyle(copyFromEl);
     Array.from(computedStyle)
         .filter(
@@ -128,8 +132,7 @@ function copyStylesFromTo(copyFromEl: HTMLElement, copyToEl: HTMLElement): void 
                 s === "color" ||
                 s === "list-style-type" ||
                 // copying with and height to make up for rect update timing issues in some browsers
-                (getFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT) &&
-                    (s === "width" || s === "height")),
+                (useComputedStyleForRects && (s === "width" || s === "height")),
         )
         .forEach((s) =>
             copyToEl.style.setProperty(s, computedStyle.getPropertyValue(s), computedStyle.getPropertyPriority(s)),

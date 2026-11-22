@@ -9,7 +9,7 @@ let activeTrigger: KeyboardDragTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
 /**
  * Chooses which key(s) start and stop a keyboard drag on a focused item. Keys outside the trigger are left
  * completely untouched by the library, so the app can use them - ex: "space" keeps Enter free to activate the
- * focused item. This is global and applies to all dndzones. It can be called at any time.
+ * focused item. Set through configure({ keyboardDragTrigger }). This is global and applies to all dndzones. It can be called at any time.
  * Untouched means no preventDefault and no stopPropagation. This setting is global to the document.
  * Pass null or undefined (or call with no argument) to restore the default, "space_or_enter".
  * @throws {Error} if given anything other than the documented values, null, or undefined
@@ -22,7 +22,7 @@ export function setKeyboardDragTrigger(trigger?: KeyboardDragTrigger | null): vo
         !Object.prototype.hasOwnProperty.call(KEYBOARD_DRAG_TRIGGER_KEYS, trigger)
     ) {
         throw new Error(
-            `setKeyboardDragTrigger expects one of ${Object.keys(KEYBOARD_DRAG_TRIGGER_KEYS)
+            `configure({ keyboardDragTrigger }) expects one of ${Object.keys(KEYBOARD_DRAG_TRIGGER_KEYS)
                 .map((key) => `"${key}"`)
                 .join(", ")} or null but instead got a ${typeof trigger}, ${toString(trigger)}`,
         );

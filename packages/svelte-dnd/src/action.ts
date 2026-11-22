@@ -86,6 +86,7 @@ function validateOptions<T extends object>(options: Options<T>): void {
         useCursorForDetection,
         delayTouchStart,
         dropAnimationDisabled,
+        useComputedStyleForRects,
         onconsider,
         onfinalize,
         ...rest
@@ -124,6 +125,11 @@ function validateOptions<T extends object>(options: Options<T>): void {
     if (onfinalize !== undefined && typeof onfinalize !== "function") {
         throw new Error(
             `onfinalize should be a function but instead it is a ${typeof onfinalize}, ${toString(onfinalize)}`,
+        );
+    }
+    if (useComputedStyleForRects !== undefined && typeof useComputedStyleForRects !== "boolean") {
+        throw new Error(
+            `useComputedStyleForRects should be a boolean but instead it is a ${typeof useComputedStyleForRects}, ${toString(useComputedStyleForRects)}`,
         );
     }
     if (delayTouchStart !== undefined && delayTouchStart !== false) {

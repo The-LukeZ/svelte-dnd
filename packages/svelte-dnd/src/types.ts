@@ -35,10 +35,28 @@ export interface Options<T extends Item = Item> {
      * Use cursor position instead of dragged element center for drop zone detection
      */
     useCursorForDetection?: boolean;
+    /**
+     * Default false. Copies the computed width and height to the dragged clone, and does not set them from the shadow
+     * element's bounding rect while morphing. A workaround for issue 454 (a browser bug): these rect values take time to
+     * update in a grid layout. Setting it can cause strange behaviour in non-grid zones, see issue 470.
+     */
+    useComputedStyleForRects?: boolean;
     /** called while the user drags, with the items the zone should render now */
     onconsider?: (event: DndEvent<T>) => void;
     /** called when the drag ends, with the items the zone should keep */
     onfinalize?: (event: DndEvent<T>) => void;
+}
+
+/** The global settings, see `configure` */
+export interface DndConfig {
+    /** item id key, default "id". Throws if any zone is mounted. */
+    idKey?: string;
+    /** default "space_or_enter". null restores the default. */
+    keyboardDragTrigger?: "space" | "enter" | "space_or_enter" | null;
+    /** full locale over the English defaults. null restores English. */
+    ariaStrings?: AriaStrings | null;
+    /** console.debug output */
+    debug?: boolean;
 }
 
 export interface DndZoneAttributes<T> {

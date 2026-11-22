@@ -1,8 +1,5 @@
-import {
-    overrideItemIdKeyNameBeforeInitialisingDndZones,
-    SHADOW_ELEMENT_ATTRIBUTE_NAME,
-    SHADOW_ITEM_MARKER_PROPERTY_NAME,
-} from "../src/constants";
+import { SHADOW_ELEMENT_ATTRIBUTE_NAME, SHADOW_ITEM_MARKER_PROPERTY_NAME } from "../src/constants";
+import { configure } from "../src/configure";
 import { dragHandle, dragHandleZone } from "../src/wrappers/withDragHandles";
 import type { DndEvent, Item } from "../src/types";
 import { key } from "./helpers/otherWindow";
@@ -16,7 +13,7 @@ describe("dragHandleZone", () => {
         const action = dragHandleZone(zone, { items: [{ id: 1 }] });
         action.destroy!();
 
-        expect(() => overrideItemIdKeyNameBeforeInitialisingDndZones("id")).not.to.throw();
+        expect(() => configure({ idKey: "id" })).not.to.throw();
         zone.remove();
     });
 

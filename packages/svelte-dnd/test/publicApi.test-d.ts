@@ -3,23 +3,19 @@ import type { ActionReturn } from "svelte/action";
 import type { Attachment } from "svelte/attachments";
 import {
     DRAGGED_ELEMENT_ID,
-    FEATURE_FLAG_NAMES,
     SHADOW_ITEM_MARKER_PROPERTY_NAME,
     SHADOW_PLACEHOLDER_ITEM_ID,
     SOURCES,
     TRIGGERS,
     alertToScreenReader,
+    configure,
     dndzone,
     dragHandle,
     dragHandleZone,
-    overrideItemIdKeyNameBeforeInitialisingDndZones,
-    setAriaStrings,
-    setDebugMode,
-    setFeatureFlag,
-    setKeyboardDragTrigger,
 } from "@lukez/svelte-dnd";
 import type {
     AriaStrings,
+    DndConfig,
     DndEvent,
     DndEventInfo,
     DndZoneAttributes,
@@ -78,30 +74,25 @@ expectTypeOf<typeof SHADOW_ITEM_MARKER_PROPERTY_NAME>().toEqualTypeOf<"isDndShad
 expectTypeOf<typeof SHADOW_PLACEHOLDER_ITEM_ID>().toEqualTypeOf<"id:dnd-shadow-placeholder-0000">();
 expectTypeOf<typeof DRAGGED_ELEMENT_ID>().toEqualTypeOf<"dnd-action-dragged-el">();
 
-setKeyboardDragTrigger("space");
-setKeyboardDragTrigger("enter");
-setKeyboardDragTrigger("space_or_enter");
-setKeyboardDragTrigger(null);
-setKeyboardDragTrigger(undefined);
-setKeyboardDragTrigger();
+configure({ keyboardDragTrigger: "space" });
+configure({ keyboardDragTrigger: "enter" });
+configure({ keyboardDragTrigger: "space_or_enter" });
+configure({ keyboardDragTrigger: null });
 // @ts-expect-error not a trigger
-setKeyboardDragTrigger("tab");
+configure({ keyboardDragTrigger: "tab" });
 
-setAriaStrings(null);
-setAriaStrings({ dropped: ({ itemLabel, position }) => `${itemLabel} ${position}` });
-expectTypeOf(setAriaStrings).parameters.toEqualTypeOf<[overrides: AriaStrings | null]>();
+configure({ ariaStrings: null });
+configure({ ariaStrings: { dropped: ({ itemLabel, position }) => `${itemLabel} ${position}` } });
+configure({ idKey: "key", debug: true });
+// @ts-expect-error not a key of DndConfig
+configure({ idkey: "key" });
+expectTypeOf(configure).parameters.toEqualTypeOf<[config: DndConfig]>();
+expectTypeOf(configure).returns.toBeVoid();
 expectTypeOf<AriaStrings["dropped"]>().toEqualTypeOf<
     ((ctx: { itemLabel: string; zoneLabel: string; position: number; count: number }) => string) | undefined
 >();
 expectTypeOf<AriaStrings["zoneDragDisabledInstruction"]>().toEqualTypeOf<string | undefined>();
 expectTypeOf(alertToScreenReader).parameters.toEqualTypeOf<[txt: string, doc?: Document]>();
 
-// Review Focus 3
-setFeatureFlag(FEATURE_FLAG_NAMES.USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT, true);
-setFeatureFlag("USE_COMPUTED_STYLE_INSTEAD_OF_BOUNDING_RECT", false);
-// @ts-expect-error not a flag
-setFeatureFlag("BOGUS", true);
-expectTypeOf(setFeatureFlag).returns.toBeVoid();
-
-expectTypeOf(overrideItemIdKeyNameBeforeInitialisingDndZones).parameters.toEqualTypeOf<[newKeyName: string]>();
-expectTypeOf(setDebugMode).parameters.toEqualTypeOf<[isDebug: boolean]>();
+// the useComputedStyleForRects option replaces the feature flag
+expectTypeOf<Options["useComputedStyleForRects"]>().toEqualTypeOf<boolean | undefined>();

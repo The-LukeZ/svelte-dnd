@@ -170,7 +170,7 @@ export function setAriaStrings(overrides: AriaStrings | null): void {
     } else {
         if (typeof overrides !== "object" || Array.isArray(overrides)) {
             throw new Error(
-                `setAriaStrings expects an object or null but instead got a ${typeof overrides}, ${toString(overrides)}`,
+                `configure({ ariaStrings }) expects an object or null but instead got a ${typeof overrides}, ${toString(overrides)}`,
             );
         }
         Object.keys(overrides).forEach((key) => {
@@ -234,7 +234,7 @@ function refreshInstructions(): void {
 
 /**
  * Sets the context the static instruction formatters receive, and re-renders them. Internal - the
- * public entry point is setKeyboardDragTrigger.
+ * public entry point is configure({ keyboardDragTrigger }).
  */
 export function setInstructionContext(ctx: InstructionContext): void {
     instructionCtx = { ...ctx };
@@ -245,7 +245,7 @@ export function setInstructionContext(ctx: InstructionContext): void {
  * Formats and announces one configured ARIA message. If a consumer formatter throws, the built-in
  * English formatter is used and the error is reported through printDebug. Formatter errors must not
  * escape because this function runs during the drag lifecycle.
- * @param key - one of the keys accepted by setAriaStrings
+ * @param key - one of the keys accepted by configure({ ariaStrings })
  * @param ctx - the interpolation context for that key
  * @param doc - the document of the zone the message is about, defaults to the one that loaded this module
  */

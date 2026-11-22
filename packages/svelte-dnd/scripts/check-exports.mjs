@@ -6,17 +6,12 @@ const EXPECTED = [
     "dragHandleZone",
     "dragHandle",
     "alertToScreenReader",
-    "setAriaStrings",
-    "setKeyboardDragTrigger",
+    "configure",
     "TRIGGERS",
     "SOURCES",
     "SHADOW_ITEM_MARKER_PROPERTY_NAME",
     "SHADOW_PLACEHOLDER_ITEM_ID",
     "DRAGGED_ELEMENT_ID",
-    "overrideItemIdKeyNameBeforeInitialisingDndZones",
-    "setDebugMode",
-    "setFeatureFlag",
-    "FEATURE_FLAG_NAMES",
 ].sort();
 
 const require = createRequire(import.meta.url);

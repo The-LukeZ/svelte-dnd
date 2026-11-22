@@ -64,6 +64,7 @@ type Config = {
     dropAnimationDisabled: boolean;
     delayTouchStartMs: number;
     dropAnimationDurationMs: number;
+    useComputedStyleForRects: boolean;
 };
 // The internal drag events (see helpers/dispatcher), heard on the drop zone they were dispatched on
 type DropZoneEvent<Detail> = CustomEvent<Detail> & { currentTarget: HTMLElement };
@@ -701,6 +702,7 @@ export function dndzone<T extends Item>(
         draggedEl = createDraggedElementFrom(
             originalDragTarget,
             (centreDraggedOnCursor && currentMousePosition) as Point | undefined,
+            config.useComputedStyleForRects,
         );
         originDropZoneRoot.appendChild(draggedEl);
         // We will keep the original dom node in the dom because touch events keep firing on it, we want to re-add it after the framework removes it
@@ -772,6 +774,7 @@ export function dndzone<T extends Item>(
         centreDraggedOnCursor = false,
         useCursorForDetection = false,
         dropAnimationDisabled = false,
+        useComputedStyleForRects = false,
         delayTouchStart: delayTouchStartOpt = false,
         onconsider,
         onfinalize,
@@ -804,6 +807,7 @@ export function dndzone<T extends Item>(
         config.centreDraggedOnCursor = centreDraggedOnCursor;
         config.useCursorForDetection = useCursorForDetection;
         config.dropAnimationDisabled = dropAnimationDisabled;
+        config.useComputedStyleForRects = useComputedStyleForRects;
 
         // Realtime styling follows the same eligibility as drag start. Remove the previously applied styles and
         // classes before storing the new options, including when disabling incoming drops and changing styles together.
@@ -849,6 +853,7 @@ export function dndzone<T extends Item>(
                         draggableEl,
                         currentMousePosition!.x,
                         currentMousePosition!.y,
+                        config.useComputedStyleForRects,
                     );
                 }
                 config.transformDraggedElement(draggedEl, draggedElData, idx);
