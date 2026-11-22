@@ -2,6 +2,8 @@ import { dndzone as pointerDndZone } from "./pointerAction";
 import { dndzone as keyboardDndZone } from "./keyboardAction";
 import { ITEM_ID_KEY, SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME } from "./constants";
 import { toString } from "./helpers/util";
+import type { ActionReturn } from "svelte/action";
+import type { DndZoneAttributes, Item, Options } from "./types";
 
 /**
  * A custom action to turn any container to a dnd zone and all of its direct children to draggables
@@ -9,26 +11,12 @@ import { toString } from "./helpers/util";
  * Dispatches two events that the container is expected to react to by modifying its list of items,
  * which will then feed back in to this action via the update function
  *
- * @typedef {object} Options
- * @property {array} items - the list of items that was used to generate the children of the given node (the list used in the #each block
- * @property {string} [type] - the type of the dnd zone. children dragged from here can only be dropped in other zones of the same type, default to a base type
- * @property {number} [flipDurationMs] - if the list animated using flip (recommended), specifies the flip duration such that everything syncs with it without conflict, defaults to zero
- * @property {boolean} [dragDisabled]
- * @property {boolean} [morphDisabled] - whether dragged element should morph to zone dimensions
- * @property {boolean} [dropFromOthersDisabled]
- * @property {number} [zoneTabIndex] - set the tabindex of the list container when not dragging
- * @property {number} [zoneItemTabIndex] - set the tabindex of the list container items when not dragging
- * @property {object} [dropTargetStyle]
- * @property {string[]} [dropTargetClasses]
- * @property {boolean|number} [delayTouchStart] - On touch devices, wait this long before converting the gesture to a drag.
- * `true` uses the built-in default (80 ms).
- * @property {boolean} [dropAnimationDisabled] - cancels the drop animation to place
- * @property {function} [transformDraggedElement]
- * @param {HTMLElement} node - the element to enhance
- * @param {Options} options
- * @return {{update: function, destroy: function}}
+ * @param node - the element to enhance
  */
-export function dndzone(node, options) {
+export function dndzone<T extends Item>(
+    node: HTMLElement,
+    options: Options<T>,
+): ActionReturn<Options<T>, DndZoneAttributes<T>> {
     if (shouldIgnoreZone(node)) {
         return {
             update: () => {},
@@ -39,7 +27,7 @@ export function dndzone(node, options) {
     const pointerZone = pointerDndZone(node, options);
     const keyboardZone = keyboardDndZone(node, options);
     return {
-        update: (newOptions) => {
+        update: (newOptions: Options<T>) => {
             validateOptions(newOptions);
             pointerZone.update(newOptions);
             keyboardZone.update(newOptions);
@@ -54,14 +42,12 @@ export function dndzone(node, options) {
 /**
  * If the user marked something in the ancestry of our node as shadow element, we can ignore it
  * We need the user to mark it for us because svelte updates the action from deep to shallow (but renders top down)
- * @param {HTMLElement} node
- * @return {boolean}
  */
-function shouldIgnoreZone(node) {
+function shouldIgnoreZone(node: HTMLElement): boolean {
     return !!node.closest(`[${SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME}="true"]`);
 }
 
-function validateOptions(options) {
+function validateOptions<T extends Item>(options: Options<T>): void {
     /*eslint-disable*/
     const {
         items,
@@ -121,11 +107,12 @@ function validateOptions(options) {
     }
 }
 
-function isInt(value) {
+function isInt(value: number): boolean {
+    // parseFloat converts a number argument to a string at runtime; lib.es5 declares only a string parameter
     return (
         !isNaN(value) &&
         (function (x) {
             return (x | 0) === x;
-        })(parseFloat(value))
+        })(parseFloat(value as unknown as string))
     );
 }

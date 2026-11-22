@@ -4,11 +4,11 @@ import type { TRIGGERS, SOURCES } from "./constants";
 export type Item = Record<string, any>;
 
 export interface Options<T extends Item = Item> {
-    items: T[]; // the list of items that was used to generate the children of the given node
+    items: T[]; // the list of items that was used to generate the children of the given node (the list used in the #each block)
     type?: string; // the type of the dnd zone. children dragged from here can only be dropped in other zones of the same type, defaults to a base type
-    flipDurationMs?: number; // if the list animated using flip (recommended), specifies the flip duration such that everything syncs with it without conflict
+    flipDurationMs?: number; // if the list animated using flip (recommended), specifies the flip duration such that everything syncs with it without conflict, defaults to zero
     dragDisabled?: boolean;
-    morphDisabled?: boolean;
+    morphDisabled?: boolean; // whether dragged element should morph to zone dimensions
     dropFromOthersDisabled?: boolean;
     zoneTabIndex?: number; // set the tabindex of the list container when not dragging
     zoneItemTabIndex?: number; // set the tabindex of the list container items when not dragging
@@ -17,16 +17,25 @@ export interface Options<T extends Item = Item> {
     transformDraggedElement?: TransformDraggedElementFunction;
     autoAriaDisabled?: boolean;
     centreDraggedOnCursor?: boolean;
-    dropAnimationDisabled?: boolean;
+    dropAnimationDisabled?: boolean; // cancels the drop animation to place
     /**
      * Improve touch UX: true => default 80 ms delay, number => custom delay in ms.
      * false/undefined => drag starts instantly (legacy behaviour)
+     * On touch devices, wait this long before converting the gesture to a drag.
+     * `true` uses the built-in default (80 ms).
      */
     delayTouchStart?: boolean | number;
     /**
      * Use cursor position instead of dragged element center for drop zone detection
      */
     useCursorForDetection?: boolean;
+}
+
+export interface DndZoneAttributes<T> {
+    "on:consider"?: (e: CustomEvent<DndEvent<T>>) => void;
+    "on:finalize"?: (e: CustomEvent<DndEvent<T>>) => void;
+    onconsider?: (e: CustomEvent<DndEvent<T>>) => void;
+    onfinalize?: (e: CustomEvent<DndEvent<T>>) => void;
 }
 
 export interface DndEventInfo {
