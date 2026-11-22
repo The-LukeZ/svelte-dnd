@@ -1,21 +1,37 @@
 import { getWindowOf } from "./util";
 
+export type Rect = {
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+};
+
+export type Point = {
+    x: number;
+    y: number;
+};
+
+// what getBoundingRectNoTransforms returns, a Rect and, when it has them, the position and size
+export type BoundingRect = Rect & { x?: number; y?: number; width?: number; height?: number };
+
+// what getVisibleRectRecursive measures, a Rect plus its size
+type VisibleRect = Rect & { width: number; height: number };
+
 // This is based off https://stackoverflow.com/questions/27745438/how-to-compute-getboundingclientrect-without-considering-transforms/57876601#57876601
 // It removes the transforms that are potentially applied by the flip animations
 /**
  * Gets the bounding rect but removes transforms (ex: flip animation)
- * @param {HTMLElement} el
- * @param {boolean} [onlyVisible] - use the visible rect defaults to true
- * @return {{top: number, left: number, bottom: number, right: number}}
+ * @param onlyVisible - use the visible rect defaults to true
  */
-export function getBoundingRectNoTransforms(el, onlyVisible = true) {
-    let ta;
+export function getBoundingRectNoTransforms(el: HTMLElement, onlyVisible = true): BoundingRect {
+    let ta: string[];
     const rect = onlyVisible ? getVisibleRectRecursive(el) : el.getBoundingClientRect();
     const style = getWindowOf(el).getComputedStyle(el);
     const tx = style.transform;
 
     if (tx) {
-        let sx, sy, dx, dy;
+        let sx: number, sy: number, dx: number, dy: number;
         if (tx.startsWith("matrix3d(")) {
             ta = tx.slice(9, -1).split(/, /);
             sx = +ta[0];
@@ -54,10 +70,8 @@ export function getBoundingRectNoTransforms(el, onlyVisible = true) {
 
 /**
  * Gets the absolute bounding rect (accounts for the window's scroll position and removes transforms)
- * @param {HTMLElement} el
- * @return {{top: number, left: number, bottom: number, right: number}}
  */
-export function getAbsoluteRectNoTransforms(el) {
+export function getAbsoluteRectNoTransforms(el: HTMLElement): Rect {
     const rect = getBoundingRectNoTransforms(el);
     const win = getWindowOf(el);
     return {
@@ -70,10 +84,8 @@ export function getAbsoluteRectNoTransforms(el) {
 
 /**
  * Gets the absolute bounding rect (accounts for the window's scroll position)
- * @param {HTMLElement} el
- * @return {{top: number, left: number, bottom: number, right: number}}
  */
-export function getAbsoluteRect(el) {
+export function getAbsoluteRect(el: HTMLElement): Rect {
     const rect = el.getBoundingClientRect();
     const win = getWindowOf(el);
     return {
@@ -86,67 +98,43 @@ export function getAbsoluteRect(el) {
 
 /**
  * finds the center :)
- * @typedef {Object} Rect
- * @property {number} top
- * @property {number} bottom
- * @property {number} left
- * @property {number} right
- * @param {Rect} rect
- * @return {{x: number, y: number}}
  */
-export function findCenter(rect) {
+export function findCenter(rect: Rect): Point {
     return {
         x: (rect.left + rect.right) / 2,
         y: (rect.top + rect.bottom) / 2,
     };
 }
 
-/**
- * @typedef {Object} Point
- * @property {number} x
- * @property {number} y
- * @param {Point} pointA
- * @param {Point} pointB
- * @return {number}
- */
-function calcDistance(pointA, pointB) {
+function calcDistance(pointA: Point, pointB: Point): number {
     return Math.sqrt(Math.pow(pointA.x - pointB.x, 2) + Math.pow(pointA.y - pointB.y, 2));
 }
 
-/**
- * @param {Point} point
- * @param {Rect} rect
- * @return {boolean|boolean}
- */
-export function isPointInsideRect(point, rect) {
+export function isPointInsideRect(point: Point, rect: Rect): boolean {
     return point.y <= rect.bottom && point.y >= rect.top && point.x >= rect.left && point.x <= rect.right;
 }
 
 /**
  * find the absolute coordinates of the center of a dom element
- * @param el {HTMLElement}
- * @returns {{x: number, y: number}}
  */
-export function findCenterOfElement(el) {
+export function findCenterOfElement(el: HTMLElement): Point {
     return findCenter(getAbsoluteRect(el));
 }
 
 /**
  * Calculate distance from a point to the center of an element
- * @param {{x: number, y: number}} point
- * @param {HTMLElement|ChildNode} el
- * @return {number}
  */
-export function calcDistanceFromPointToCenter(point, el) {
-    const centerOfEl = findCenterOfElement(el);
+export function calcDistanceFromPointToCenter(point: Point, el: HTMLElement | ChildNode): number {
+    // callers pass the dnd zone's children and the phantom, which are HTMLElements
+    const centerOfEl = findCenterOfElement(el as HTMLElement);
     return calcDistance(point, centerOfEl);
 }
 
 /**
- * @param {HTMLElement} el - the element to check
- * @returns {boolean} - true if the element in its entirety is off-screen including the scrollable area (the normal dom events look at the mouse rather than the element)
+ * @param el - the element to check
+ * @returns true if the element in its entirety is off-screen including the scrollable area (the normal dom events look at the mouse rather than the element)
  */
-export function isElementOffDocument(el) {
+export function isElementOffDocument(el: HTMLElement): boolean {
     const rect = getAbsoluteRect(el);
     const { documentElement } = el.ownerDocument;
     return (
@@ -167,11 +155,10 @@ export function isElementOffDocument(el) {
  * This is useful for distinguishing "hidden because parent scrolls" from
  * "hidden because off-screen".
  *
- * @param {HTMLElement} element - The DOM element to measure.
- * @returns {{top: number, bottom: number, left: number, right: number, width: number, height: number}}
- * An object describing the visible rectangle in viewport coordinates.
+ * @param element - The DOM element to measure.
+ * @returns An object describing the visible rectangle in viewport coordinates.
  */
-function getVisibleRectRecursive(element) {
+function getVisibleRectRecursive(element: HTMLElement): VisibleRect {
     // original rect of the element (can be off-screen)
     const rect = element.getBoundingClientRect();
 
