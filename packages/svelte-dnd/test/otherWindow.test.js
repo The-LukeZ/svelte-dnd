@@ -490,8 +490,8 @@ describe("a drag in another window that goes away", () => {
         expectALoadingWindowDragToWork();
     });
 
-    it("finalizes a pointer drag whose popup is closed", async (ctx) => {
-        const popup = openPopup(ctx);
+    it("finalizes a pointer drag whose popup is closed", async () => {
+        const popup = openPopup();
         const list = createList(popup.doc, { label: "Popup", names: ["f1", "f2"], dropAnimationDisabled: true });
         try {
             startDrag({ list, win: popup.win });

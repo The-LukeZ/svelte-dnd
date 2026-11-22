@@ -41,8 +41,8 @@ describe("keyboard drags stay within their document", () => {
         cleanups.push(() => created.frame.remove());
         return created;
     }
-    function popup(test) {
-        const created = openPopup(test);
+    function popup() {
+        const created = openPopup();
         cleanups.push(() => created.win.close());
         return created;
     }
@@ -193,8 +193,8 @@ describe("keyboard drags stay within their document", () => {
         },
     );
 
-    it("moves an item between two lists inside a popup", (ctx) => {
-        const created = popup(ctx);
+    it("moves an item between two lists inside a popup", () => {
+        const created = popup();
         const first = list(created.doc, { label: "First", names: ["a1", "a2"] });
         const second = list(created.doc, { label: "Second", names: ["b1"] });
         grab(first, "a1");
@@ -207,8 +207,8 @@ describe("keyboard drags stay within their document", () => {
         expect(last(second)).to.equal(TRIGGERS.DRAG_STOPPED);
     });
 
-    it("does not offer a popup list as a destination for a drag in the parent, or the other way round", (ctx) => {
-        const created = popup(ctx);
+    it("does not offer a popup list as a destination for a drag in the parent, or the other way round", () => {
+        const created = popup();
         const parentList = list(document, { label: "Parent", names: ["p1", "p2"] });
         const popupList = list(created.doc, { label: "Popup", names: ["q1"] });
 

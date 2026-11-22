@@ -18,13 +18,10 @@ export function createFrame({ parent = document, style = {} } = {}) {
 
 /**
  * Opens a same-origin popup. A blocked popup fails the test: it never skips it.
- * @param {{skip: function(): void}} test - the test's context (Vitest) or `this` (Mocha)
  */
-export function openPopup(test) {
+export function openPopup() {
     const win = window.open("", "", "width=400,height=300");
     if (!win) {
-        // Electron, the default Cypress browser, blocks window.open. Removed with Cypress in stage 2 task 7.
-        if (globalThis.Cypress?.browser.name === "electron") test.skip();
         throw new Error("window.open did not open a popup");
     }
     win.document.write("<!DOCTYPE html><body style='margin:0'></body>");

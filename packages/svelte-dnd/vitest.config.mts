@@ -5,8 +5,8 @@ export default defineConfig({
     test: {
         include: ["test/**/*.test.js"],
         globals: true,
-        // Several tests patch window.setTimeout or open popups, so files run one at a time.
-        fileParallelism: false,
+        // Each file runs in its own iframe, so its patched globals (setTimeout, requestAnimationFrame) stay in that file.
+        fileParallelism: true,
         browser: {
             enabled: true,
             provider: playwright(),

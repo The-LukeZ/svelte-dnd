@@ -16,13 +16,6 @@ jobs:
         steps:
             - uses: actions/checkout@v7
 
-            # Restored before pnpm/setup, which runs the install (and Cypress's postinstall).
-            - name: Cache Cypress binary
-              uses: actions/cache@v6
-              with:
-                  path: ~/.cache/Cypress
-                  key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-
             # pnpm version comes from "packageManager" in the root package.json.
             # Installs Node, then runs `pnpm install --frozen-lockfile`.
             - uses: pnpm/setup@v3
@@ -46,10 +39,10 @@ jobs:
             - run: pnpm check:package
             - run: pnpm test:all
 
-            - name: Upload Cypress screenshots
+            - name: Upload Vitest failure screenshots
               if: failure()
               uses: actions/upload-artifact@v7
               with:
-                  name: cypress-screenshots
-                  path: packages/svelte-dnd/cypress/screenshots
+                  name: vitest-failure-screenshots
+                  path: packages/svelte-dnd/.vitest/attachments
                   if-no-files-found: ignore
