@@ -27,6 +27,6 @@ The delay applies only to touch. A mouse drag still starts as soon as the mouse 
 
 ## Drag handles on touch screens
 
-[Drag handles](/docs/guides/drag-handles) are another fix: only the handle starts a drag, so a swipe anywhere else on the item scrolls the page. The [drag handles demo](/docs/demos/drag-handles) works with touch. Try the [basic list](/docs/demos/basic) on a phone to compare.
+[Drag handles](/docs/guides/drag-handles) are another fix: only the handle starts a drag, so a swipe anywhere else on the item scrolls the page. The [drag handles demo](/demos/drag-handles) works with touch. Try the [basic list](/demos/basic) on a phone to compare.
 
 Scrolling during a drag works the same as with the mouse: hold the item near the edge of a scrolling list or of the screen. See [scrolling](/docs/guides/scrolling).

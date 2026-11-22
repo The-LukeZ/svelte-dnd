@@ -107,7 +107,7 @@ A palette of colors and a slot that holds one of them. Dropping a color into the
 </style>
 ```
 
-The copy gets a new id because ids must be unique across all zones of a type. The [copy on drag demo](/docs/demos/copy-on-drag) copies at the start of the drag instead: it puts a copy back into the palette as soon as the drag starts, so the palette has no gap while you drag.
+The copy gets a new id because ids must be unique across all zones of a type. The [copy on drag demo](/demos/copy-on-drag) copies at the start of the drag instead: it puts a copy back into the palette as soon as the drag starts, so the palette has no gap while you drag.
 
 ## A generic list component
 

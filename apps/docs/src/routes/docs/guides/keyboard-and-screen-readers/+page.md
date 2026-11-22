@@ -5,7 +5,7 @@ section: Guides
 order: 12
 ---
 
-Every zone works with the keyboard and talks to screen readers without setup. This page shows how to give the messages good names, change the keys, translate the messages, and handle the events a keyboard drag sends. The [keyboard and custom aria demo](/docs/demos/keyboard-aria) shows all of it.
+Every zone works with the keyboard and talks to screen readers without setup. This page shows how to give the messages good names, change the keys, translate the messages, and handle the events a keyboard drag sends. The [keyboard and custom aria demo](/demos/keyboard-aria) shows all of it.
 
 ## Label zones and items
 
@@ -135,4 +135,4 @@ function finalize(e: DndEvent<Task>) {
 }
 ```
 
-With several zones, a keyboard drag that moves an item from one zone to another ends with `DRAG_STOPPED` in the new zone only. Save both lists then, or save each zone's list when its `onfinalize` runs and accept a request per move. The [async save demo](/docs/demos/async-save) uses the pattern above, with a rollback when the save fails.
+With several zones, a keyboard drag that moves an item from one zone to another ends with `DRAG_STOPPED` in the new zone only. Save both lists then, or save each zone's list when its `onfinalize` runs and accept a request per move. The [async save demo](/demos/async-save) uses the pattern above, with a rollback when the save fails.

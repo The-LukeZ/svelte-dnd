@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { extractApi } from "../src/lib/api/extract.ts";
 
-const demosRoutes = new URL("../src/routes/docs/demos/", import.meta.url);
+const demosRoutes = new URL("../src/routes/demos/", import.meta.url);
 const demosLib = new URL("../src/lib/demos/", import.meta.url);
 
 type Page = { slug: string; text: string };

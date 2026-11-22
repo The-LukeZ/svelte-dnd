@@ -17,4 +17,4 @@ It writes with `console.debug`, so turn on the verbose or debug level in the bro
 
 `configure({ debug: false })` turns it off again. The value must be a boolean, and anything else throws.
 
-The setting is global, like every key of `configure`. Turn it on during development only: some messages are built from the whole options object of a zone on each drag. Any page with a zone works for trying it, for example the [basic list](/docs/demos/basic): call `configure({ debug: true })` in its script.
+The setting is global, like every key of `configure`. Turn it on during development only: some messages are built from the whole options object of a zone on each drag. Any page with a zone works for trying it, for example the [basic list](/demos/basic): call `configure({ debug: true })` in its script.

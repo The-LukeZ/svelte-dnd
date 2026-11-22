@@ -5,7 +5,7 @@ section: Guides
 order: 16
 ---
 
-A zone can live in another window than the one that loaded the library: a same-origin iframe, a popup opened with `window.open`, or another Electron window. Each zone uses its own window's events, timers and document, so drags keep working while the window that loaded the library is in the background. The [iframes and popup demo](/docs/demos/other-windows) shows a page, an iframe and a popup at once.
+A zone can live in another window than the one that loaded the library: a same-origin iframe, a popup opened with `window.open`, or another Electron window. Each zone uses its own window's events, timers and document, so drags keep working while the window that loaded the library is in the background. The [iframes and popup demo](/demos/other-windows) shows a page, an iframe and a popup at once.
 
 This is for an app that loads its code in one document and mounts components into others, for example a pop-out editor. An iframe that loads its own app and imports the library there needs nothing from this page: it is an ordinary page with its own copy of the library.
 

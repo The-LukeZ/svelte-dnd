@@ -5,7 +5,7 @@ section: Guides
 order: 13
 ---
 
-A pointer drag involves three elements you may want to style: the zones that can take the item, the dragged element that follows the pointer, and the placeholder in the list. Each has a demo: [drop target styling](/docs/demos/drop-target-styling), [custom dragged element](/docs/demos/custom-dragged) and [custom shadow placeholder](/docs/demos/shadow-placeholder).
+A pointer drag involves three elements you may want to style: the zones that can take the item, the dragged element that follows the pointer, and the placeholder in the list. Each has a demo: [drop target styling](/demos/drop-target-styling), [custom dragged element](/demos/custom-dragged) and [custom shadow placeholder](/demos/shadow-placeholder).
 
 ## Drop targets
 

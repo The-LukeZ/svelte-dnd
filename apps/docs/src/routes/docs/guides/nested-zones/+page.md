@@ -5,7 +5,7 @@ section: Guides
 order: 11
 ---
 
-A zone can sit inside an item of another zone. A board is the usual case: the board is a zone of columns, and each column holds a zone of cards. The [board demo](/docs/demos/board) is one.
+A zone can sit inside an item of another zone. A board is the usual case: the board is a zone of columns, and each column holds a zone of cards. The [board demo](/demos/board) is one.
 
 ```svelte
 <script lang="ts">

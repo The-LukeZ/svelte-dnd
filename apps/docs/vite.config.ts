@@ -1,12 +1,12 @@
+import libPkg from "@lukez/svelte-dnd/package.json" with { type: "json" };
 import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { docsmith } from "svelte-docsmith/vite";
 import { defineConfig } from "vite";
-import libPkg from "@lukez/svelte-dnd/package.json" with { type: "json" };
-import { SITE_URL } from "./src/site.ts";
 import { apiReference } from "./src/lib/api/vite-plugin.ts";
+import { SITE_URL } from "./src/site.ts";
 
 export default defineConfig({
     plugins: [
@@ -22,10 +22,13 @@ export default defineConfig({
                 ogImages: "/og",
                 nav: [
                     { label: "Docs", href: "/docs/getting-started" },
-                    { label: "Demos", href: "/docs/demos/basic" },
+                    { label: "Demos", href: "/demos/basic" },
                     { label: "Changelog", href: "/changelog" },
                 ],
             },
+            // Scan all routes, not only src/routes/docs, so the /demos pages are indexed too. Each section's
+            // +layout.svelte filters the index down to its own pages for the sidebar.
+            content: "src/routes",
             // The library's changesets CHANGELOG.md feeds the /changelog page and /changelog.xml feed.
             changelog: { file: "../../packages/svelte-dnd/CHANGELOG.md" },
         }),

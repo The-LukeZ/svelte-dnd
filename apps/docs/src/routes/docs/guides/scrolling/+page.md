@@ -5,7 +5,7 @@ section: Guides
 order: 15
 ---
 
-During a pointer drag, the library scrolls for the user: hold the dragged item near the edge of a scrolling container and the container scrolls in that direction. It scrolls faster the closer the pointer gets to the edge. The [board demo](/docs/demos/board) has a column that scrolls, a board that scrolls sideways, and a page that scrolls.
+During a pointer drag, the library scrolls for the user: hold the dragged item near the edge of a scrolling container and the container scrolls in that direction. It scrolls faster the closer the pointer gets to the edge. The [board demo](/demos/board) has a column that scrolls, a board that scrolls sideways, and a page that scrolls.
 
 ## What scrolls
 

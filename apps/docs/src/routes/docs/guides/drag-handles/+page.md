@@ -48,6 +48,6 @@ By default the whole item starts a drag. With drag handles, only an element you 
 
 ## Nested handle zones
 
-A handle belongs to the nearest handle zone around it. So a list of groups, where each group is a handle zone of tasks, works without extra setup: the grip of a group drags the group, and the grip of a task drags the task. The [drag handles demo](/docs/demos/drag-handles) is such a list. Give the two levels different `type`s, as with any [nested zones](/docs/guides/nested-zones), so a task cannot land between the groups.
+A handle belongs to the nearest handle zone around it. So a list of groups, where each group is a handle zone of tasks, works without extra setup: the grip of a group drags the group, and the grip of a task drags the task. The [drag handles demo](/demos/drag-handles) is such a list. Give the two levels different `type`s, as with any [nested zones](/docs/guides/nested-zones), so a task cannot land between the groups.
 
 See the [API reference](/docs/api/drag-handles) for both attachments.

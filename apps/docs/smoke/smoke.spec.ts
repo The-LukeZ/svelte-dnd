@@ -1,6 +1,6 @@
+import { expect, test } from "@playwright/test";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "@playwright/test";
 import { SITE_URL } from "../src/site.ts";
 
 const buildDir = fileURLToPath(new URL("../build/", import.meta.url));
@@ -57,7 +57,7 @@ for (const path of paths) {
 }
 
 test("keyboard drag reorders the basic demo", async ({ page }) => {
-    await page.goto("/docs/demos/basic");
+    await page.goto("/demos/basic");
     // Keys pressed before hydration do nothing, and toPass below only retries the assertion.
     await page.waitForLoadState("networkidle");
     const items = page.locator('ul[aria-label="Basic list"] li');

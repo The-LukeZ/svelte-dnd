@@ -42,7 +42,7 @@
 
     <div class="mx-auto flex max-w-xl flex-col items-center gap-3 px-4 pb-16 md:px-6">
         <Basic />
-        <a class="text-sm underline underline-offset-4" href="/docs/demos/basic">More demos</a>
+        <a class="text-sm underline underline-offset-4" href="/demos/basic">More demos</a>
     </div>
 
     <FeatureGrid title="What you get" columns={3}>
