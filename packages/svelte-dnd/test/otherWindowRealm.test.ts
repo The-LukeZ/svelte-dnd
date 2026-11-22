@@ -6,10 +6,12 @@ failOnListenerErrors();
 // A drag in another window runs on that window's timers and reads its computed styles, so it keeps going
 // when the loading window is hidden and the browser throttles or stops that window's timers and frames.
 describe("a drag in another window uses that window's timers and styles", () => {
-    const cleanups = [];
+    const cleanups: (() => void)[] = [];
     afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
 
-    function createListInFrame(options) {
+    function createListInFrame(options?: Partial<Parameters<typeof createList>[1]>): ReturnType<typeof createFrame> & {
+        list: ReturnType<typeof createList>;
+    } {
         const frame = createFrame();
         const list = createList(frame.doc, { label: "list", names: ["a", "b", "c"], ...options });
         cleanups.push(() => {
@@ -20,11 +22,11 @@ describe("a drag in another window uses that window's timers and styles", () => 
     }
 
     // Replaces some of the loading window's globals for the duration of run, which may be async.
-    function withLoadingWindowGlobals(replacements, run) {
-        const originals = {};
+    function withLoadingWindowGlobals(replacements: Record<string, unknown>, run: () => Promise<void>): Promise<void> {
+        const originals: Record<string, unknown> = {};
         Object.keys(replacements).forEach((name) => {
-            originals[name] = window[name];
-            window[name] = replacements[name];
+            originals[name] = (window as any)[name];
+            (window as any)[name] = replacements[name];
         });
         return Promise.resolve()
             .then(run)
@@ -71,7 +73,8 @@ describe("a drag in another window uses that window's timers and styles", () => 
             list.element("a").dispatchEvent(mouse(win, "mousedown", 50, 15));
             win.dispatchEvent(mouse(win, "mousemove", 50, 20));
             await sleepIn(win, 100);
-            const draggedEl = doc.getElementById(DRAGGED_ELEMENT_ID);
+            // the drag has started, so the dragged element is in the frame
+            const draggedEl = doc.getElementById(DRAGGED_ELEMENT_ID)!;
             // centred on the cursor, which is 5px below the item's centre
             observed = { top: draggedEl.style.top, sizeTransition: draggedEl.style.transition.includes("width") };
         }).finally(() => win.dispatchEvent(mouse(win, "mouseup", 50, 20)));
@@ -82,9 +85,10 @@ describe("a drag in another window uses that window's timers and styles", () => 
         "starts a touch drag after the hold delay while the loading window's timers never fire",
         { timeout: 10000 },
         async () => {
-            let observed;
+            // assigned in the callback below, which is awaited before the read
+            let observed!: TRIGGERS[];
             const { win, list } = createListInFrame({ delayTouchStart: 50, dropAnimationDisabled: true });
-            const touch = (type, touches) => {
+            const touch = (type: string, touches: { clientX: number; clientY: number }[]): Event => {
                 const event = new win.Event(type, { bubbles: true, cancelable: true });
                 Object.defineProperty(event, "touches", { value: touches });
                 return event;
@@ -168,9 +172,9 @@ describe("a drag in another window uses that window's timers and styles", () => 
             list.element("a").dispatchEvent(mouse(win, "mousedown", 50, 15));
             win.dispatchEvent(mouse(win, "mousemove", 50, 190));
             await sleepIn(win, 100);
-            const first = doc.scrollingElement.scrollTop;
+            const first = doc.scrollingElement!.scrollTop;
             await sleepIn(win, 300);
-            observed = { started: first > 0, kept: doc.scrollingElement.scrollTop > first };
+            observed = { started: first > 0, kept: doc.scrollingElement!.scrollTop > first };
         }).finally(() => win.dispatchEvent(mouse(win, "mouseup", 50, 190)));
         expect(observed).to.deep.equal({ started: true, kept: true });
     });
