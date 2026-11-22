@@ -73,4 +73,10 @@
     .api-type {
         white-space: pre-wrap;
     }
+
+    /* The typography plugin wraps inline code in literal backticks. Markdown code opts out with not-prose. */
+    .api-entry code::before,
+    .api-entry code::after {
+        content: none;
+    }
 </style>
