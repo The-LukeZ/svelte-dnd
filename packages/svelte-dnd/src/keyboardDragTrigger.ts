@@ -2,18 +2,18 @@ import { DEFAULT_KEYBOARD_DRAG_TRIGGER, KEYBOARD_DRAG_TRIGGER_KEYS } from "./con
 import { toString } from "./helpers/util";
 import { setInstructionContext } from "./helpers/aria";
 
-let activeTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
+type KeyboardDragTrigger = "space" | "enter" | "space_or_enter";
+
+let activeTrigger: KeyboardDragTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
 
 /**
- * Chooses which key(s) start and stop a keyboard drag on a focused item. Keys outside the trigger are
- * left completely untouched by the library (no preventDefault, no stopPropagation), so the app can use
- * them - ex: "space" keeps Enter free to activate the focused item.
- * This setting is global to the document and applies to every dndzone. It can be called at any time.
+ * Chooses which key(s) start and stop a keyboard drag on a focused item. Keys outside the trigger are left
+ * completely untouched by the library, so the app can use them - ex: "space" keeps Enter free to activate the
+ * focused item. This is global and applies to all dndzones. It can be called at any time.
  * Pass null or undefined (or call with no argument) to restore the default, "space_or_enter".
- * @param {"space"|"enter"|"space_or_enter"|null|undefined} [trigger]
  * @throws {Error} if given anything other than the documented values, null, or undefined
  */
-export function setKeyboardDragTrigger(trigger) {
+export function setKeyboardDragTrigger(trigger?: KeyboardDragTrigger | null): void {
     if (trigger === null || trigger === undefined) {
         activeTrigger = DEFAULT_KEYBOARD_DRAG_TRIGGER;
     } else if (
@@ -32,16 +32,16 @@ export function setKeyboardDragTrigger(trigger) {
 }
 
 /**
- * @return {"space"|"enter"|"space_or_enter"} the active trigger
+ * @return the active trigger
  */
-export function getKeyboardDragTrigger() {
+export function getKeyboardDragTrigger(): KeyboardDragTrigger {
     return activeTrigger;
 }
 
 /**
- * @param {string} key - a KeyboardEvent.key value
- * @return {boolean} whether this key starts/stops a drag under the active trigger
+ * @param key - a KeyboardEvent.key value
+ * @return whether this key starts/stops a drag under the active trigger
  */
-export function isKeyboardDragTriggerKey(key) {
+export function isKeyboardDragTriggerKey(key: string): boolean {
     return KEYBOARD_DRAG_TRIGGER_KEYS[activeTrigger].includes(key);
 }
