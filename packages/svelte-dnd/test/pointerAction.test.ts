@@ -1,7 +1,11 @@
 import { dndzone } from "../src/pointerAction";
 import { DRAGGED_ELEMENT_ID } from "../src/constants";
+import type { Options } from "../src/types";
 
-function createZone(options = {}) {
+// the frame callbacks are called without a timestamp
+type FrameCallback = (...args: any[]) => void;
+
+function createZone(options: Partial<Options> & { id?: string; label?: string } = {}) {
     const zone = document.createElement("div");
     zone.style.width = "100px";
     zone.style.height = "100px";
@@ -19,14 +23,14 @@ function createZone(options = {}) {
     return { action, actionOptions, item, items, zone };
 }
 
-function startMouseDrag(item) {
+function startMouseDrag(item: HTMLElement): void {
     item.dispatchEvent(
         new MouseEvent("mousedown", { button: 0, clientX: 5, clientY: 5, bubbles: true, cancelable: true }),
     );
     window.dispatchEvent(new MouseEvent("mousemove", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }));
 }
 
-function createTouchEvent(type, x = 5, y = 5) {
+function createTouchEvent(type: string, x = 5, y = 5): Event {
     const event = new Event(type, { bubbles: true, cancelable: true });
     Object.defineProperty(event, "touches", { value: type === "touchend" ? [] : [{ clientX: x, clientY: y }] });
     return event;
@@ -69,14 +73,14 @@ function stubTimeouts() {
 describe("pointerAction", () => {
     it("does not restart observation when the original element is removed while a drop is finalizing", () => {
         const timeouts = stubTimeouts();
-        const animationFrameCallbacks = [];
+        const animationFrameCallbacks: FrameCallback[] = [];
         const originalRequestAnimationFrame = window.requestAnimationFrame;
         window.requestAnimationFrame = (callback) => {
             animationFrameCallbacks.push(callback);
             return animationFrameCallbacks.length;
         };
 
-        let created;
+        let created: ReturnType<typeof createZone> | undefined;
         try {
             created = createZone({ flipDurationMs: 100 });
             startMouseDrag(created.item);
@@ -85,7 +89,7 @@ describe("pointerAction", () => {
             );
 
             created.item.remove();
-            animationFrameCallbacks.shift()();
+            animationFrameCallbacks.shift()!();
 
             // The pending keepOriginalElementInDom frame must stop rather than re-append the item
             // and restart observation during the asynchronous drop-settle window.
@@ -102,19 +106,19 @@ describe("pointerAction", () => {
 
     it("unwatches the exact zones when their type changes during an active drag", () => {
         const timeouts = stubTimeouts();
-        const animationFrameCallbacks = [];
+        const animationFrameCallbacks: FrameCallback[] = [];
         const originalRequestAnimationFrame = window.requestAnimationFrame;
         window.requestAnimationFrame = (callback) => {
             animationFrameCallbacks.push(callback);
             return animationFrameCallbacks.length;
         };
 
-        let created;
+        let created: ReturnType<typeof createZone> | undefined;
         try {
             created = createZone({ dropAnimationDisabled: true, type: "before" });
             startMouseDrag(created.item);
             created.item.remove();
-            animationFrameCallbacks.shift()();
+            animationFrameCallbacks.shift()!();
             created.action.update({ ...created.actionOptions, type: "after" });
             window.dispatchEvent(
                 new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
@@ -132,7 +136,7 @@ describe("pointerAction", () => {
 
     it("finishes an animated drop when zones change type during the settle window", () => {
         const timeouts = stubTimeouts();
-        let created;
+        let created: ReturnType<typeof createZone> | undefined;
         try {
             created = createZone({ flipDurationMs: 100, type: "before" });
             startMouseDrag(created.item);
@@ -195,16 +199,16 @@ describe("pointerAction", () => {
     });
 
     it("does not reattach a zone after its scheduled removal was completed during drop cleanup", () => {
-        let originalRequestAnimationFrame;
+        let originalRequestAnimationFrame: typeof window.requestAnimationFrame;
 
-        const animationFrameCallbacks = [];
+        const animationFrameCallbacks: FrameCallback[] = [];
         originalRequestAnimationFrame = window.requestAnimationFrame;
         window.requestAnimationFrame = (callback) => {
             animationFrameCallbacks.push(callback);
             return animationFrameCallbacks.length;
         };
 
-        let created;
+        let created: ReturnType<typeof createZone> | undefined;
         try {
             created = createZone({ dropAnimationDisabled: true });
             startMouseDrag(created.item);
