@@ -204,9 +204,11 @@ function createShadowElData(draggedElData: Item): Item {
 /* custom drag-events handlers */
 function handleDraggedEntered(e: DropZoneEvent<DraggedOverDetail>): void {
     printDebug(() => ["dragged entered", e.currentTarget, e.detail]);
+    const config = dzToConfig.get(e.currentTarget);
+    // a zone nested in the dragged item is destroyed at once, even mid-drag, and stays watched (#5)
+    if (!config) return;
     // the drag globals are set from handleMouseDown and handleDragStart for the whole drag
-    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
-    let { items, dropFromOthersDisabled } = dzToConfig.get(e.currentTarget)!;
+    let { items, dropFromOthersDisabled } = config;
     if (dropFromOthersDisabled && e.currentTarget !== originDropZone) {
         printDebug(() => "ignoring dragged entered because drop is currently disabled");
         return;
@@ -244,8 +246,10 @@ function handleDraggedLeft(e: DropZoneEvent<DraggedLeftDetail>): void {
     if (!isWorkingOnPreviousDrag) return;
     printDebug(() => ["dragged left", e.currentTarget, e.detail]);
     // the drag globals are set from handleMouseDown and handleDragStart for the whole drag
-    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
-    const { items: originalItems, dropFromOthersDisabled } = dzToConfig.get(e.currentTarget)!;
+    // a zone nested in the dragged item is destroyed at once, even mid-drag, and stays watched (#5).
+    // The shadow element still has to move on, so such a zone is handled like an empty one that gets no events.
+    const config = dzToConfig.get(e.currentTarget);
+    const { items: originalItems, dropFromOthersDisabled } = config ?? { items: [], dropFromOthersDisabled: false };
     if (dropFromOthersDisabled && e.currentTarget !== originDropZone && e.currentTarget !== shadowElDropZone) {
         printDebug(() => "drop is currently disabled");
         return;
@@ -262,9 +266,8 @@ function handleDraggedLeft(e: DropZoneEvent<DraggedLeftDetail>): void {
         type === DRAGGED_LEFT_TYPES.OUTSIDE_OF_ANY ||
         (type === DRAGGED_LEFT_TYPES.LEFT_FOR_ANOTHER &&
             theOtherDz !== originDropZone &&
-            // a LEFT_FOR_ANOTHER event carries theOtherDz, a watched zone
-            // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
-            dzToConfig.get(theOtherDz!)!.dropFromOthersDisabled)
+            // a LEFT_FOR_ANOTHER event carries theOtherDz, a watched zone. A destroyed one (#5) takes no drop.
+            (dzToConfig.get(theOtherDz!)?.dropFromOthersDisabled ?? true))
     ) {
         printDebug(() => "dragged left all, putting shadow element back in the origin dz");
         isDraggedOutsideOfAnyDz = true;
@@ -280,6 +283,7 @@ function handleDraggedLeft(e: DropZoneEvent<DraggedLeftDetail>): void {
         // the handler can end the drag, for example by removing its window
         if (!isWorkingOnPreviousDrag) return;
     }
+    if (!config) return;
     // for the origin dz, when the dragged is outside of any, this will be fired in addition to the previous. this is for simplicity
     dispatchConsiderEvent(e.currentTarget, items, {
         trigger: TRIGGERS.DRAGGED_LEFT,
@@ -289,9 +293,11 @@ function handleDraggedLeft(e: DropZoneEvent<DraggedLeftDetail>): void {
 }
 function handleDraggedIsOverIndex(e: DropZoneEvent<DraggedOverDetail>): void {
     printDebug(() => ["dragged is over index", e.currentTarget, e.detail]);
+    const config = dzToConfig.get(e.currentTarget);
+    // a zone nested in the dragged item is destroyed at once, even mid-drag, and stays watched (#5)
+    if (!config) return;
     // the drag globals are set from handleMouseDown and handleDragStart for the whole drag
-    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
-    const { items: originalItems, dropFromOthersDisabled } = dzToConfig.get(e.currentTarget)!;
+    const { items: originalItems, dropFromOthersDisabled } = config;
     if (dropFromOthersDisabled && e.currentTarget !== originDropZone) {
         printDebug(() => "drop is currently disabled");
         return;
@@ -339,9 +345,21 @@ function handleDrop(): void {
         printDebug(() => "element was dropped right after it left origin but before entering somewhere else");
         shadowElDropZone = originDropZone;
     }
+    // the shadow element was in a zone nested in the dragged item, which was destroyed mid-drag (#5):
+    // the item goes back to where it came from, like a drop outside of any zone
+    const isShadowElDropZoneDestroyed = !dzToConfig.has(shadowElDropZone!);
+    if (isShadowElDropZoneDestroyed) {
+        printDebug(() => "the zone the element was dropped in was destroyed, dropping it back into its origin");
+        shadowElDropZone = originDropZone;
+        isDraggedOutsideOfAnyDz = true;
+    }
     printDebug(() => ["dropped in dz", shadowElDropZone]);
-    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
+    // shadowElDropZone is a registered zone now
     let { items, type } = dzToConfig.get(shadowElDropZone!)!;
+    if (isShadowElDropZoneDestroyed && findShadowElementIdx(items) === -1) {
+        items = [...items];
+        items.splice(originIndex!, 0, shadowElData!);
+    }
     styleInactiveDropZones(
         getDropZonesInDragWindow(type),
         (dz) => dzToConfig.get(dz)!.dropTargetStyle,
@@ -383,7 +401,6 @@ function handleDrop(): void {
         if (domShadowEl) unDecorateShadowElement(domShadowEl as HTMLElement);
         cleanupPostDrop();
     }
-    // TODO(#5): undefined when a zone nested in the dragged item is destroyed mid-drag
     if (dzToConfig.get(shadowElDropZone!)!.dropAnimationDisabled) {
         finalizeWithinZone();
     } else {
