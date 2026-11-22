@@ -1,18 +1,21 @@
 import { makeScroller } from "./scroller";
 import { printDebug } from "../constants";
 import { getDepth, getWindowOf } from "./util";
-import { isPointInsideRect } from "./intersection";
+import { isPointInsideRect, type Point } from "./intersection";
+
+export type MultiScroller = {
+    /** call this on every "tick" to scroll containers if needed, returns true if anything was scrolled */
+    multiScrollIfNeeded: () => boolean;
+    destroy: () => void;
+};
 
 /**
- @typedef {Object} MultiScroller
- @property {function():boolean} multiScrollIfNeeded - call this on every "tick" to scroll containers if needed, returns true if anything was scrolled
-/**
  * Creates a scroller than can scroll any of the provided containers or any of their scrollable parents (including the document's scrolling element)
- * @param {HTMLElement[]} baseElementsForScrolling
- * @param {function():Point} getPointerPosition
- * @return {MultiScroller}
  */
-export function createMultiScroller(baseElementsForScrolling = [], getPointerPosition) {
+export function createMultiScroller(
+    baseElementsForScrolling: HTMLElement[] = [],
+    getPointerPosition: () => Point,
+): MultiScroller {
     printDebug(() => "creating multi-scroller");
     const scrollingContainersSet = findRelevantScrollContainers(baseElementsForScrolling);
     const scrollingContainersDeepToShallow = Array.from(scrollingContainersSet).sort(
@@ -21,9 +24,9 @@ export function createMultiScroller(baseElementsForScrolling = [], getPointerPos
     const { scrollIfNeeded, resetScrolling } = makeScroller();
 
     /**
-     * @return {boolean} - was any container scrolled
+     * @return was any container scrolled
      */
-    function tick() {
+    function tick(): boolean {
         const mousePosition = getPointerPosition();
         if (!mousePosition || !scrollingContainersDeepToShallow) {
             return false;
@@ -48,12 +51,12 @@ export function createMultiScroller(baseElementsForScrolling = [], getPointerPos
 }
 
 // internal utils
-function findScrollableParents(element) {
+function findScrollableParents(element: HTMLElement): HTMLElement[] {
     if (!element) {
         return [];
     }
-    const scrollableContainers = [];
-    let parent = element;
+    const scrollableContainers: HTMLElement[] = [];
+    let parent: HTMLElement | null = element;
     while (parent) {
         const { overflow } = getWindowOf(parent).getComputedStyle(parent);
         if (overflow.split(" ").some((o) => o.includes("auto") || o.includes("scroll"))) {
@@ -63,12 +66,13 @@ function findScrollableParents(element) {
     }
     return scrollableContainers;
 }
-function findRelevantScrollContainers(dropZones) {
-    const scrollingContainers = new Set();
+function findRelevantScrollContainers(dropZones: HTMLElement[]): Set<HTMLElement> {
+    const scrollingContainers = new Set<HTMLElement>();
     for (let dz of dropZones) {
         findScrollableParents(dz).forEach((container) => scrollingContainers.add(container));
         // The scrolling element might have overflow visible and still be scrollable
-        const { scrollingElement } = dz.ownerDocument;
+        // the drop zones live in HTML documents, whose scrollingElement is an element
+        const { scrollingElement } = dz.ownerDocument as Document & { scrollingElement: HTMLElement };
         if (
             scrollingElement.scrollHeight > scrollingElement.clientHeight ||
             scrollingElement.scrollWidth > scrollingElement.clientHeight
