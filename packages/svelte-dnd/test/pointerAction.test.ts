@@ -103,6 +103,24 @@ describe("pointerAction", () => {
         }
     });
 
+    // upstream isaacHagoel/svelte-dnd-action#648: a zone that never re-renders the dragged item away (items that are
+    // not reactive, an unkeyed #each) keeps its element, and the drop must not remove it from the zone
+    it("keeps the dragged element in its zone when the zone never re-rendered it away", () => {
+        let created: ReturnType<typeof createZone> | undefined;
+        try {
+            created = createZone({ dropAnimationDisabled: true });
+            startMouseDrag(created.item);
+            window.dispatchEvent(
+                new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+            );
+
+            expect(created.item.parentElement).to.equal(created.zone);
+        } finally {
+            created?.action.destroy();
+            created?.zone.remove();
+        }
+    });
+
     it("does not restart observation when the original element is removed while a drop is finalizing", () => {
         const timeouts = stubTimeouts();
         const animationFrameCallbacks: FrameCallback[] = [];

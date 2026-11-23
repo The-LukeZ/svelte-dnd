@@ -486,7 +486,9 @@ function cleanupPostDrop(): void {
     if (draggedEl && draggedEl.remove) {
         draggedEl.remove();
     }
-    if (originalDragTarget && originalDragTarget.remove) {
+    // Only remove the original element if keepOriginalElementInDom moved it out of the zone. A zone that never
+    // re-rendered it away (items that are not reactive, an unkeyed #each) still renders it as one of its items.
+    if (originalDragTarget && originalDragTarget.hasAttribute(ORIGINAL_DRAGGED_ITEM_MARKER_ATTRIBUTE)) {
         originalDragTarget.remove();
     }
 
