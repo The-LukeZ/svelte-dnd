@@ -223,8 +223,27 @@ function unWatchDraggedElement(): void {
 function findShadowElementIdx(items: Item[]): number {
     return items.findIndex((item) => !!item[SHADOW_ITEM_MARKER_PROPERTY_NAME]);
 }
+/**
+ * A copy of the dragged item with the shadow marker and the placeholder id. It keeps the item's prototype and its own
+ * property descriptors, so fields that the item inherits, such as getters on its class (RxDB documents), still render
+ * in the shadow item (isaacHagoel/svelte-dnd-action#471 upstream). Spreading the item would copy its own values only.
+ */
 function createShadowElData(draggedElData: Item): Item {
-    return { ...draggedElData, [SHADOW_ITEM_MARKER_PROPERTY_NAME]: true, [ITEM_ID_KEY]: SHADOW_PLACEHOLDER_ITEM_ID };
+    const descriptors: PropertyDescriptorMap = Object.getOwnPropertyDescriptors(draggedElData);
+    // plain data properties of their own, even where the item has a getter or a read-only (frozen) property of that name
+    descriptors[SHADOW_ITEM_MARKER_PROPERTY_NAME] = {
+        value: true,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    };
+    descriptors[ITEM_ID_KEY] = {
+        value: SHADOW_PLACEHOLDER_ITEM_ID,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    };
+    return Object.create(Object.getPrototypeOf(draggedElData), descriptors) as Item;
 }
 
 /* custom drag-events handlers */

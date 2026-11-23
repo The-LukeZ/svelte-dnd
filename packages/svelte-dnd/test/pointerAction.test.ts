@@ -698,6 +698,77 @@ describe("pointerAction", () => {
             });
         });
 
+        // isaacHagoel/svelte-dnd-action#471: items such as RxDB documents keep fields on their class
+        it("keeps the inherited fields of a class instance item on its shadow item", async () => {
+            class Doc {
+                _data: { id: string; title: string };
+                constructor(id: string, title: string) {
+                    this._data = { id, title };
+                }
+                get id(): string {
+                    return this._data.id;
+                }
+                get label(): string {
+                    return `doc ${this._data.title}`;
+                }
+            }
+            const zone = document.createElement("div");
+            zone.style.cssText = "position: fixed; top: 0; left: 0; width: 200px;";
+            document.body.appendChild(zone);
+            const render = (items: Doc[]) =>
+                zone.replaceChildren(
+                    ...items.map((item) => {
+                        const element = document.createElement("div");
+                        element.style.cssText = "height: 50px;";
+                        element.textContent = item.label;
+                        return element;
+                    }),
+                );
+            const rows = [new Doc("a", "first"), new Doc("b", "second")];
+            render(rows);
+            let current: Options;
+            const handle = (event: DndEvent): void => {
+                current = { ...current, items: event.items };
+                render(event.items as unknown as Doc[]);
+                action.update(current);
+            };
+            current = {
+                items: rows as unknown as Options["items"],
+                dropAnimationDisabled: true,
+                onconsider: handle,
+                onfinalize: handle,
+            };
+            const action = dndzone(zone, current);
+            try {
+                dragStart(zone.children[0] as HTMLElement);
+                const shadow = current.items.find((item) => item.isDndShadowItem) as unknown as Doc;
+                expect(shadow, "the drag started").to.not.equal(undefined);
+                expect(shadow).to.be.instanceOf(Doc);
+                expect(shadow.id, "the shadow item has the placeholder id").to.not.equal("a");
+                expect(Array.from(zone.children, (child) => child.textContent)).to.deep.equal([
+                    "doc first",
+                    "doc second",
+                ]);
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                action.destroy();
+                zone.remove();
+            }
+        });
+
+        it("drags a frozen item", async () => {
+            const created = createRenderedZone(0, [Object.freeze({ id: "a" }), Object.freeze({ id: "b" })]);
+            try {
+                dragStart(created.elementOf("a"));
+                const below = centreOf(created.elementOf("b"));
+                window.dispatchEvent(mouseEvent("mousemove", below.x, below.y + 20));
+                await vi.waitFor(() => expect(itemIds(created.zone)).to.deep.equal(["b", "SHADOW"]));
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                created.destroy();
+            }
+        });
+
         it("drags items with string ids", async () => {
             const created = createRenderedZone(0, [{ id: "a" }, { id: "b" }]);
             try {
