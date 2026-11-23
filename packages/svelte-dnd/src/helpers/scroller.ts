@@ -1,6 +1,38 @@
 import { isPointInsideRect, type Point, type Rect } from "./intersection";
-import { getWindowOf } from "./util";
-const SCROLL_ZONE_PX = 30;
+import { getWindowOf, toString } from "./util";
+const DEFAULT_AUTO_SCROLL_EDGE_PX = 30;
+const DEFAULT_AUTO_SCROLL_MAX_STEP_PX = 30;
+let autoScrollEdgePx = DEFAULT_AUTO_SCROLL_EDGE_PX;
+let autoScrollMaxStepPx = DEFAULT_AUTO_SCROLL_MAX_STEP_PX;
+
+/**
+ * Checks an auto-scroll setting without applying it. Internal - configure uses it.
+ * @throws {Error} if given anything other than a positive finite number, null, or undefined
+ */
+export function assertValidAutoScrollPx(key: string, value: unknown): void {
+    if (value === null || value === undefined) return;
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+        throw new Error(
+            `configure({ ${key} }) expects a positive number or null but instead got a ${typeof value}, ${toString(value)}`,
+        );
+    }
+}
+
+/**
+ * Sets how close to the edge of a scroll container, in pixels, the pointer starts auto-scrolling it.
+ * Set through configure({ autoScrollEdgePx }). null restores the default, 30.
+ */
+export function setAutoScrollEdgePx(px: number | null): void {
+    autoScrollEdgePx = px ?? DEFAULT_AUTO_SCROLL_EDGE_PX;
+}
+
+/**
+ * Sets how many pixels auto-scroll moves per frame when the pointer is at the edge.
+ * Set through configure({ autoScrollMaxStepPx }). null restores the default, 30.
+ */
+export function setAutoScrollMaxStepPx(px: number | null): void {
+    autoScrollMaxStepPx = px ?? DEFAULT_AUTO_SCROLL_MAX_STEP_PX;
+}
 
 export type Scroller = {
     scrollIfNeeded: (pointer: Point, elementToScroll: HTMLElement) => boolean;
@@ -27,7 +59,8 @@ export function makeScroller(): Scroller {
         }
     }
     function calcScrollStepPx(distancePx: number) {
-        return SCROLL_ZONE_PX - distancePx;
+        // grows from 0 where scrolling starts to the max step at the edge, 30 - distancePx with the defaults
+        return (autoScrollEdgePx - distancePx) * (autoScrollMaxStepPx / autoScrollEdgePx);
     }
 
     /**
@@ -50,11 +83,11 @@ export function makeScroller(): Scroller {
         let [scrollingVertically, scrollingHorizontally] = [false, false];
         // vertical
         if (elementToScroll.scrollHeight > elementToScroll.clientHeight) {
-            if (distances.bottom < SCROLL_ZONE_PX) {
+            if (distances.bottom < autoScrollEdgePx) {
                 scrollingVertically = true;
                 scrollingInfo.directionObj = { x: 0, y: 1 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.bottom);
-            } else if (distances.top < SCROLL_ZONE_PX) {
+            } else if (distances.top < autoScrollEdgePx) {
                 scrollingVertically = true;
                 scrollingInfo.directionObj = { x: 0, y: -1 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.top);
@@ -66,11 +99,11 @@ export function makeScroller(): Scroller {
         }
         // horizontal
         if (elementToScroll.scrollWidth > elementToScroll.clientWidth) {
-            if (distances.right < SCROLL_ZONE_PX) {
+            if (distances.right < autoScrollEdgePx) {
                 scrollingHorizontally = true;
                 scrollingInfo.directionObj = { x: 1, y: 0 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.right);
-            } else if (distances.left < SCROLL_ZONE_PX) {
+            } else if (distances.left < autoScrollEdgePx) {
                 scrollingHorizontally = true;
                 scrollingInfo.directionObj = { x: -1, y: 0 };
                 scrollingInfo.stepPx = calcScrollStepPx(distances.left);

@@ -1,5 +1,6 @@
 import {
     getAbsoluteRectNoTransforms,
+    getScrollClips,
     isPointInsideRect,
     calcDistanceFromPointToCenter,
     type Point,
@@ -65,16 +66,23 @@ export function findWouldBeIndex(referencePoint: Point, collectionBelowEl: HTMLE
     }
     const shadowElIndex = cacheShadowRect(collectionBelowEl);
 
+    // The children share their ancestors, so their scroll clips are measured once here and not again for each child.
+    // That keeps the cost per child to its own rect and style, which matters for long lists.
+    const childClips = getScrollClips(collectionBelowEl);
     // the search could be more efficient but keeping it simple for now
     // a possible improvement: pass in the lastIndex it was found in and check there first, then expand from there
     for (let i = 0; i < children.length; i++) {
-        const childRect = getAbsoluteRectNoTransforms(children[i] as HTMLElement); // the dz children are HTMLElements
+        const childRect = getAbsoluteRectNoTransforms(children[i] as HTMLElement, childClips); // the dz children are HTMLElements
         if (isPointInsideRect(referencePoint, childRect)) {
             const cachedShadowRect =
                 dzToShadowIndexToRect.has(collectionBelowEl) && dzToShadowIndexToRect.get(collectionBelowEl)!.get(i); // has() is checked first
             // the cached rect only matters while the shadow element is in this zone, otherwise the cache is stale (#4)
             if (cachedShadowRect && shadowElIndex !== undefined) {
                 if (!isPointInsideRect(referencePoint, cachedShadowRect)) {
+                    // The point is past every item between the shadow element and child i, so the shadow element
+                    // moves next to child i, without taking its place yet (isaacHagoel/svelte-dnd-action#310)
+                    if (i > shadowElIndex + 1) return { index: i - 1, isProximityBased: false };
+                    if (i < shadowElIndex - 1) return { index: i + 1, isProximityBased: false };
                     return { index: shadowElIndex, isProximityBased: false };
                 }
             }

@@ -51,6 +51,18 @@ The values are `"space"`, `"enter"` and `"space_or_enter"`, the default. `null` 
 
 The setting is global and applies to every zone, so different zones cannot use different keys at the same time. It can change at any time, also after zones have rendered, and the built-in instruction follows it.
 
+## Turning off keyboard dragging
+
+If your app handles the keys of a zone itself, for example with its own keyboard navigation or editable content in the items, set `keyboardDragDisabled` on that zone. Pointer dragging keeps working:
+
+```svelte
+<ul {@attach dndzone(() => ({ items, keyboardDragDisabled: true, onconsider, onfinalize }))}>
+```
+
+The zone then leaves Space, Enter, the arrow keys and clicks on its items to your app, and a keyboard drag from another zone cannot tab into it. Its screen reader instruction becomes the one of a zone with `dragDisabled`. In a `dragHandleZone`, the handles leave the tab order and ignore the trigger keys.
+
+This makes reordering unavailable to keyboard and screen reader users. Only set it when your app gives them another way to move the items, for example "move up" and "move down" buttons.
+
 ## Translating the screen reader messages
 
 To change the wording, for example to translate it, pass `ariaStrings` to `configure`:

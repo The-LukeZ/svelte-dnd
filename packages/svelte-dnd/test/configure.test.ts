@@ -34,7 +34,14 @@ describe("configure", () => {
 
     it("throws on unknown keys", () => {
         expect(() => configure({ idkey: "key" } as never)).to.throw("idkey");
-        for (const key of ["idKey", "keyboardDragTrigger", "ariaStrings", "debug"]) {
+        for (const key of [
+            "idKey",
+            "keyboardDragTrigger",
+            "ariaStrings",
+            "debug",
+            "autoScrollEdgePx",
+            "autoScrollMaxStepPx",
+        ]) {
             expect(() => configure({ idkey: "key" } as never)).to.throw(key);
         }
     });

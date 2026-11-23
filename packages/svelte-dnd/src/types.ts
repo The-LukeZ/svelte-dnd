@@ -33,6 +33,14 @@ export interface Options<T extends object = Item> {
      */
     dragDisabled?: boolean;
     /**
+     * Turns keyboard dragging off for this zone, and keeps pointer dragging. The zone leaves Space, Enter and the arrow
+     * keys to the app, does not take items that a keyboard drag tabs into it, and its screen reader instruction becomes
+     * the one of a zone with `dragDisabled`. With `dragHandleZone`, it takes this zone's handles out of the tab order.
+     * Keyboard and screen reader users cannot reorder the items then: give them another way, such as move buttons.
+     * @default false
+     */
+    keyboardDragDisabled?: boolean;
+    /**
      * Whether the dragged element keeps its own shape instead of taking the size and styles of the placeholder item in
      * the zone it hovers over.
      * @default false
@@ -83,6 +91,14 @@ export interface Options<T extends object = Item> {
      * @default false
      */
     centreDraggedOnCursor?: boolean;
+    /**
+     * Keeps a pointer drag of this zone's items on one axis: `"y"` moves the dragged element only up and down, `"x"`
+     * only left and right. The point that finds the zone and the index stays on that axis too, and
+     * `centreDraggedOnCursor` centres the element along the free axis only. Leave it out to drag freely. Keyboard drags
+     * are not affected.
+     * @default undefined
+     */
+    lockAxis?: "x" | "y";
     /**
      * Drops the item in place at the end of a pointer drag, without animating it to its new position.
      * @default false
@@ -135,6 +151,19 @@ export interface DndConfig {
      * @default false
      */
     debug?: boolean;
+    /**
+     * How close to the edge of a scrolling container or the page, in pixels, the pointer starts auto-scrolling it
+     * during a pointer drag. A positive number; `null` restores the default.
+     * @default 30
+     */
+    autoScrollEdgePx?: number | null;
+    /**
+     * How many pixels auto-scroll moves per frame with the pointer at the edge. The step grows from 0 where
+     * scrolling starts (`autoScrollEdgePx` away from the edge) to this value at the edge. A positive number; `null`
+     * restores the default.
+     * @default 30
+     */
+    autoScrollMaxStepPx?: number | null;
 }
 
 /**
@@ -156,6 +185,12 @@ export interface DndEventInfo<T = Item> {
     id: ItemId<T>;
     /** The kind of input that performed the drag, one of `SOURCES`. */
     source: SOURCES;
+    /**
+     * Where the pointer was when the item was dropped, in the viewport coordinates (`clientX` and `clientY`) of the
+     * window the drag ran in. Set on the `onfinalize` events of a pointer drag, and absent from the `onconsider` events
+     * and from every event of a keyboard drag.
+     */
+    pointerPosition?: { x: number; y: number };
 }
 
 /** The argument of `onconsider` and `onfinalize`. */

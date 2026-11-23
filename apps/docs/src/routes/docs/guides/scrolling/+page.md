@@ -14,7 +14,7 @@ When a drag starts, the library looks at every zone of the dragged item's `type`
 - each of those zones and their ancestors whose `overflow` is `auto` or `scroll`,
 - the page (the document's scrolling element), when it is taller than the window.
 
-Each of these scrolls when the pointer is inside it and within 30 pixels of one of its edges. Nested containers scroll from the innermost one out. There is no option to set up: give a list `overflow: auto` and a fixed height, and it scrolls during a drag.
+Each of these scrolls when the pointer is inside it and within 30 pixels of one of its edges. Nested containers scroll from the innermost one out. There is nothing to set up: give a list `overflow: auto` and a fixed height, and it scrolls during a drag.
 
 ```svelte
 <ul
@@ -26,6 +26,21 @@ Each of these scrolls when the pointer is inside it and within 30 pixels of one 
 ```
 
 Scrolling follows the pointer, not the dragged element, so an item grabbed at its edge scrolls when the pointer reaches the edge of the container.
+
+## Edge distance and speed
+
+The 30 pixels and the speed are global settings of [`configure`](/docs/api/configure). `autoScrollEdgePx` sets how close to an edge scrolling starts, and `autoScrollMaxStepPx` sets how many pixels it scrolls per frame with the pointer at the edge. The step grows from 0 where scrolling starts to that value at the edge. Both default to 30, and `null` restores the default.
+
+```ts
+import { configure } from "@lukez/svelte-dnd";
+
+// a wide board: start scrolling 120px from an edge, and scroll a bit faster
+configure({ autoScrollEdgePx: 120, autoScrollMaxStepPx: 40 });
+```
+
+## The mouse wheel
+
+The wheel scrolls during a pointer drag too. It scrolls the container under the dragged item, the same one it scrolls without a drag.
 
 ## Keyboard drags
 

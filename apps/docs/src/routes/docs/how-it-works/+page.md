@@ -36,6 +36,8 @@ The triggers are the values of the exported `TRIGGERS` object. Triggers marked p
 
 A drag within one zone sends `onfinalize` to that zone only. A drag from one zone to another sends it to both, so both lists must be updated. That is another reason to keep the handlers simple: assign what you get.
 
+The `onfinalize` events of a pointer drag also carry `e.info.pointerPosition`, the `{ x, y }` viewport coordinates of the pointer when the item was dropped. Use it to place the item where it was dropped, for example on a canvas outside of any zone (`DROPPED_OUTSIDE_OF_ANY`). Keyboard drags have no pointer, so their events do not have it.
+
 ## The shadow item
 
 During a pointer drag, the zone the item hovers over receives a temporary item in its `items`: the shadow item. It is a copy of the dragged item's data with two changes:
@@ -98,7 +100,7 @@ Every item needs a unique id, and the `#each` block uses it as its key. The id i
 
 It applies to every zone, and it throws while any zone is mounted, so call it before any zone renders: at the top of your root layout's `<script>` or at the start of your app. `configure` only sets module state, so it is safe during server-side rendering.
 
-`configure` takes `idKey`, `keyboardDragTrigger`, `ariaStrings` and `debug`. Keys you leave out are not touched.
+`configure` takes `idKey`, `keyboardDragTrigger`, `ariaStrings`, `debug`, and the auto scroll settings `autoScrollEdgePx` and `autoScrollMaxStepPx` (see [scrolling](/docs/guides/scrolling)). Keys you leave out are not touched. See [configure](/docs/api/configure) for each key.
 
 ## Flip animation
 
@@ -127,4 +129,4 @@ A zone relies on the following. Break one, and drags behave in ways that are har
 - Any data that should survive a drag and a drop belongs in the `items` array.
 - Update `items` in both `onconsider` and `onfinalize`. Do not leave out a handler.
 - The library adds a temporary item to the items of any zone while an element is dragged around. It must be fine to render it.
-- Svelte's built-in transitions (`in:`, `out:`, `transition:`) might not play nice with a zone. Use `animate:flip`, and test any transition you add.
+- An `out:` or `transition:` on the items breaks a drag: Svelte keeps a leaving element in the zone until its outro ends, so the zone has more children than items. Play the outro only for items the user removes, as in the [recipe](/docs/recipes#transitions-on-items). Use `animate:flip` for the moves.

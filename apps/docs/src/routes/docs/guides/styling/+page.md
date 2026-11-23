@@ -68,6 +68,22 @@ There are two ways to style it:
 
 `centreDraggedOnCursor: true` moves the clone's centre to the cursor when the drag starts, which helps with large items over small ones. `useCursorForDetection: true` uses the cursor instead of the clone's centre to find the zone and index, without moving the clone. `dropAnimationDisabled: true` drops the clone in place instead of animating it to its new position.
 
+`lockAxis` keeps the clone on one axis during a pointer drag: `"y"` moves it only up and down, as in a vertical list, and `"x"` only left and right. The zone and index are found on that axis too, and `centreDraggedOnCursor` centres the clone along the free axis only. The origin zone's setting applies for the whole drag.
+
+## The cursor
+
+The library sets the cursor as an inline style: `grab` on the items of a zone that can be dragged, `grabbing` on the dragged element, and `grab` or `grabbing` on the handles of a `dragHandleZone`. To show another cursor, for example `pointer` on items whose main action is a click, use a rule with `!important`, which wins over the inline style. The dragged element is a copy of the item with the same classes, so exclude it by its id to keep `grabbing` during the drag:
+
+```svelte
+<style>
+    li:not(#dnd-action-dragged-el) {
+        cursor: pointer !important;
+    }
+</style>
+```
+
+To change the cursor of the dragged element, style it through its id, as above: `:global(#dnd-action-dragged-el) { cursor: move !important; }`.
+
 ## The shadow placeholder
 
 During a pointer drag, the zone the item hovers renders a [shadow item](/docs/how-it-works#the-shadow-item), marked with `isDndShadowItem: true`. The library sets `visibility: hidden` on its element, so it shows as a gap of the item's size. To draw something in the gap, render the shadow item differently and make your content visible again:

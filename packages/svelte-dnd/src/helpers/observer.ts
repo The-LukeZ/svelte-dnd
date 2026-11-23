@@ -17,6 +17,10 @@ let next: ReturnType<typeof setTimeoutIn> | undefined;
 // The observation in progress. A consider handler can end the drag in the middle of an observation tick, for example by
 // removing the drag's window, and the tick must not carry on with a drag that has ended.
 let currentObservation: object | undefined;
+// Adds a zone to the observation in progress, for a zone created mid-drag
+let addToCurrentObservation: ((dz: HTMLElement, intervalMs: number) => void) | undefined;
+// Tells the observation in progress that something other than its multiScroller scrolled, such as the wheel
+let markCurrentObservationScrolled: (() => void) | undefined;
 
 /**
  * Tracks the dragged elements and performs the side effects when it is dragged over a drop zone (basically dispatching custom-events scrolling)
@@ -34,18 +38,33 @@ export function observe(
     let lastIndexFound: number | undefined;
     let lastIsDraggedInADropZone = false;
     let lastCentrePositionOfDragged: Point | undefined;
+    let isScrolledElsewhere = false;
     const win = getWindowOf(draggedEl);
     const observation = {};
     currentObservation = observation;
     // We are sorting to make sure that in case of nested zones of the same type the one "on top" is considered first
     const dropZonesFromDeepToShallow = Array.from(dropZones).sort((dz1, dz2) => getDepth(dz2) - getDepth(dz1));
+    addToCurrentObservation = (dz, newIntervalMs) => {
+        if (dropZonesFromDeepToShallow.includes(dz)) return;
+        // the ticks from the next one on use it
+        intervalMs = newIntervalMs;
+        dropZonesFromDeepToShallow.push(dz);
+        dropZonesFromDeepToShallow.sort((dz1, dz2) => getDepth(dz2) - getDepth(dz1));
+        // the next tick decides again even if the dragged element has not moved: the zone may be under it already
+        lastCentrePositionOfDragged = undefined;
+    };
+    markCurrentObservationScrolled = () => {
+        isScrolledElsewhere = true;
+    };
 
     /**
      * The main function in this module. Tracks where everything is/ should be a take the actions
      */
     function andNow(): void {
         const referencePoint = getReferencePoint();
-        const scrolled = multiScroller.multiScrollIfNeeded();
+        // a scroll moves the items under a pointer that stays still, so it is decided like an auto scroll
+        const scrolled = multiScroller.multiScrollIfNeeded() || isScrolledElsewhere;
+        isScrolledElsewhere = false;
         // we only want to make a new decision after the element was moved a bit to prevent flickering
         if (
             !scrolled &&
@@ -106,7 +125,27 @@ export function observe(
 export function unobserve(): void {
     printDebug(() => "unobserving");
     currentObservation = undefined;
+    addToCurrentObservation = undefined;
+    markCurrentObservationScrolled = undefined;
     clearTimeoutIn(next);
     next = undefined;
     resetIndexesCache();
+}
+
+/**
+ * Adds a drop zone to the observation in progress, keeping what the observation knows about where the dragged element
+ * is. Does nothing when there is none.
+ * @param intervalMs - the observation interval for the zones watched now, the new one included
+ */
+export function observeDropZone(dz: HTMLElement, intervalMs: number): void {
+    addToCurrentObservation?.(dz, intervalMs);
+}
+
+/**
+ * Tells the observation in progress that a container scrolled outside of its auto scrolling, such as by the wheel
+ * (isaacHagoel/svelte-dnd-action#583 upstream). Its next tick decides again with fresh item positions, even if the
+ * dragged element has not moved. Does nothing when there is none.
+ */
+export function observeScroll(): void {
+    markCurrentObservationScrolled?.();
 }

@@ -78,8 +78,18 @@ expectTypeOf<TransformDraggedElementFunction>().toEqualTypeOf<
 expectTypeOf<DndEvent>().toEqualTypeOf<{ items: Item[]; info: DndEventInfo }>();
 expectTypeOf<DndEvent<Row>["items"]>().toEqualTypeOf<Row[]>();
 // info.id is inferred from the item's id field, and unknown without one (a custom idKey) or for the default Item
-expectTypeOf<DndEventInfo>().toEqualTypeOf<{ trigger: TRIGGERS; id: unknown; source: SOURCES }>();
-expectTypeOf<DndEventInfo<Row>>().toEqualTypeOf<{ trigger: TRIGGERS; id: number; source: SOURCES }>();
+expectTypeOf<DndEventInfo>().toEqualTypeOf<{
+    trigger: TRIGGERS;
+    id: unknown;
+    source: SOURCES;
+    pointerPosition?: { x: number; y: number };
+}>();
+expectTypeOf<DndEventInfo<Row>>().toEqualTypeOf<{
+    trigger: TRIGGERS;
+    id: number;
+    source: SOURCES;
+    pointerPosition?: { x: number; y: number };
+}>();
 expectTypeOf<DndEvent<Row>["info"]>().toEqualTypeOf<DndEventInfo<Row>>();
 expectTypeOf<DndEvent<Row>["info"]["id"]>().toEqualTypeOf<number>();
 expectTypeOf<DndEvent<{ key: number }>["info"]["id"]>().toEqualTypeOf<unknown>();
@@ -130,6 +140,10 @@ configure({ keyboardDragTrigger: "space" });
 configure({ keyboardDragTrigger: "enter" });
 configure({ keyboardDragTrigger: "space_or_enter" });
 configure({ ariaStrings: { dropped: ({ itemLabel, position }) => `${itemLabel} ${position}` } });
+configure({ autoScrollEdgePx: 100, autoScrollMaxStepPx: 40 });
+configure({ autoScrollEdgePx: null, autoScrollMaxStepPx: null });
+// @ts-expect-error not a number
+configure({ autoScrollEdgePx: "100" });
 // @ts-expect-error not a trigger
 configure({ keyboardDragTrigger: "tab" });
 // @ts-expect-error not a key of DndConfig

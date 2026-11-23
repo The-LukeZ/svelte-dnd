@@ -103,6 +103,24 @@ describe("pointerAction", () => {
         }
     });
 
+    // upstream isaacHagoel/svelte-dnd-action#648: a zone that never re-renders the dragged item away (items that are
+    // not reactive, an unkeyed #each) keeps its element, and the drop must not remove it from the zone
+    it("keeps the dragged element in its zone when the zone never re-rendered it away", () => {
+        let created: ReturnType<typeof createZone> | undefined;
+        try {
+            created = createZone({ dropAnimationDisabled: true });
+            startMouseDrag(created.item);
+            window.dispatchEvent(
+                new MouseEvent("mouseup", { clientX: 10, clientY: 10, bubbles: true, cancelable: true }),
+            );
+
+            expect(created.item.parentElement).to.equal(created.zone);
+        } finally {
+            created?.action.destroy();
+            created?.zone.remove();
+        }
+    });
+
     it("does not restart observation when the original element is removed while a drop is finalizing", () => {
         const timeouts = stubTimeouts();
         const animationFrameCallbacks: FrameCallback[] = [];
@@ -539,6 +557,215 @@ describe("pointerAction", () => {
                 window.dispatchEvent(mouseEvent("mouseup", 0, 0));
                 origin.destroy();
                 target.destroy();
+            }
+        });
+
+        // Upstream issue isaacHagoel/svelte-dnd-action#579: drag motion forced onto one axis
+        describe("lockAxis", () => {
+            const translation = () => {
+                const match = /translate3d\((-?[\d.]+)px, (-?[\d.]+)px/.exec(draggedElement().style.transform);
+                return match && { x: Number(match[1]), y: Number(match[2]) };
+            };
+
+            function dragBy(from: HTMLElement, dx: number, dy: number): void {
+                const start = centreOf(from);
+                from.dispatchEvent(mouseEvent("mousedown", start.x, start.y));
+                window.dispatchEvent(mouseEvent("mousemove", start.x + 5, start.y + 5));
+                window.dispatchEvent(mouseEvent("mousemove", start.x + dx, start.y + dy));
+            }
+
+            it("moves the dragged element on both axes by default", () => {
+                const created = createRenderedZone(0, [{ id: 1 }]);
+                try {
+                    dragBy(created.elementOf(1), 40, 30);
+                    expect(translation()).to.deep.equal({ x: 40, y: 30 });
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("'y' moves the dragged element only up and down", () => {
+                const created = createRenderedZone(0, [{ id: 1 }], { lockAxis: "y" });
+                try {
+                    dragBy(created.elementOf(1), 40, 30);
+                    expect(translation()).to.deep.equal({ x: 0, y: 30 });
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("'x' moves the dragged element only left and right", () => {
+                const created = createRenderedZone(0, [{ id: 1 }], { lockAxis: "x" });
+                try {
+                    dragBy(created.elementOf(1), 40, 30);
+                    expect(translation()).to.deep.equal({ x: 40, y: 0 });
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("still reorders along the free axis", async () => {
+                const created = createRenderedZone(0, [{ id: "a" }, { id: "b" }], { lockAxis: "y" });
+                try {
+                    dragBy(created.elementOf("a"), 120, 70);
+                    await vi.waitFor(() => expect(itemIds(created.zone)).to.deep.equal(["b", "SHADOW"]));
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("keeps the cursor detection point on the axis, so a zone beside it is not entered", async () => {
+                const origin = createRenderedZone(0, [{ id: 1 }], { lockAxis: "y", useCursorForDetection: true });
+                const beside = createRenderedZone(300, [{ id: 2 }]);
+                try {
+                    const over = centreOf(beside.elementOf(2));
+                    dragBy(origin.elementOf(1), over.x - centreOf(origin.elementOf(1)).x, 0);
+                    await new Promise((resolve) => setTimeout(resolve, 200));
+                    expect(beside.zone.querySelector(`[${SHADOW_ELEMENT_ATTRIBUTE_NAME}]`)).to.equal(null);
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    origin.destroy();
+                    beside.destroy();
+                }
+            });
+
+            it("centres the dragged element on the cursor along the free axis only", async () => {
+                const created = createRenderedZone(0, [{ id: 1 }], { lockAxis: "y", centreDraggedOnCursor: true });
+                try {
+                    const item = created.elementOf(1);
+                    const rect = item.getBoundingClientRect();
+                    // grabbed near the top left corner, the drag starts at the first move
+                    item.dispatchEvent(mouseEvent("mousedown", rect.left + 2, rect.top + 2));
+                    window.dispatchEvent(mouseEvent("mousemove", rect.left + 8, rect.top + 8));
+                    await new Promise((resolve) => setTimeout(resolve, 20));
+                    expect(draggedElement().style.left, "the item stays in its column").to.equal(`${rect.left}px`);
+                    expect(draggedElement().style.top, "centred on the cursor vertically").to.equal(
+                        `${rect.top + 8 - rect.height / 2}px`,
+                    );
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("keeps the dragged element on the axis when it morphs into a wider item", async () => {
+                const origin = createRenderedZone(
+                    300,
+                    [{ id: "a" }, { id: "b" }],
+                    {
+                        lockAxis: "y",
+                        useCursorForDetection: true,
+                    },
+                    "width: 100px;",
+                );
+                const wide = createRenderedZone(300, [{ id: "w" }], {}, "width: 300px;");
+                wide.zone.style.top = "300px";
+                try {
+                    const start = centreOf(origin.elementOf("a"));
+                    origin.elementOf("a").dispatchEvent(mouseEvent("mousedown", start.x, start.y));
+                    window.dispatchEvent(mouseEvent("mousemove", start.x, start.y + 6));
+                    // the pointer drifts 400px to the side while it moves down into the wider zone
+                    window.dispatchEvent(mouseEvent("mousemove", start.x + 400, 320));
+                    await vi.waitFor(() =>
+                        expect(wide.zone.querySelector(`[${SHADOW_ELEMENT_ATTRIBUTE_NAME}]`)).to.not.equal(null),
+                    );
+                    await vi.waitFor(() => expect(draggedElement().getBoundingClientRect().width).to.equal(300));
+                    const rect = draggedElement().getBoundingClientRect();
+                    expect(
+                        rect.left <= start.x && rect.right >= start.x,
+                        `the dragged element spans the locked x ${start.x}: ${rect.left}..${rect.right}`,
+                    ).to.equal(true);
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    origin.destroy();
+                    wide.destroy();
+                }
+            });
+
+            it("throws on a value other than 'x' or 'y'", async () => {
+                const { createZone: fullDndzone } = await import("../src/action");
+                const zone = document.createElement("div");
+                document.body.appendChild(zone);
+                try {
+                    expect(() => fullDndzone(zone, { items: [], lockAxis: "z" as "x" })).to.throw(/lockAxis/);
+                } finally {
+                    zone.remove();
+                }
+            });
+        });
+
+        // isaacHagoel/svelte-dnd-action#471: items such as RxDB documents keep fields on their class
+        it("keeps the inherited fields of a class instance item on its shadow item", async () => {
+            class Doc {
+                _data: { id: string; title: string };
+                constructor(id: string, title: string) {
+                    this._data = { id, title };
+                }
+                get id(): string {
+                    return this._data.id;
+                }
+                get label(): string {
+                    return `doc ${this._data.title}`;
+                }
+            }
+            const zone = document.createElement("div");
+            zone.style.cssText = "position: fixed; top: 0; left: 0; width: 200px;";
+            document.body.appendChild(zone);
+            const render = (items: Doc[]) =>
+                zone.replaceChildren(
+                    ...items.map((item) => {
+                        const element = document.createElement("div");
+                        element.style.cssText = "height: 50px;";
+                        element.textContent = item.label;
+                        return element;
+                    }),
+                );
+            const rows = [new Doc("a", "first"), new Doc("b", "second")];
+            render(rows);
+            let current: Options;
+            const handle = (event: DndEvent): void => {
+                current = { ...current, items: event.items };
+                render(event.items as unknown as Doc[]);
+                action.update(current);
+            };
+            current = {
+                items: rows as unknown as Options["items"],
+                dropAnimationDisabled: true,
+                onconsider: handle,
+                onfinalize: handle,
+            };
+            const action = dndzone(zone, current);
+            try {
+                dragStart(zone.children[0] as HTMLElement);
+                const shadow = current.items.find((item) => item.isDndShadowItem) as unknown as Doc;
+                expect(shadow, "the drag started").to.not.equal(undefined);
+                expect(shadow).to.be.instanceOf(Doc);
+                expect(shadow.id, "the shadow item has the placeholder id").to.not.equal("a");
+                expect(Array.from(zone.children, (child) => child.textContent)).to.deep.equal([
+                    "doc first",
+                    "doc second",
+                ]);
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                action.destroy();
+                zone.remove();
+            }
+        });
+
+        it("drags a frozen item", async () => {
+            const created = createRenderedZone(0, [Object.freeze({ id: "a" }), Object.freeze({ id: "b" })]);
+            try {
+                dragStart(created.elementOf("a"));
+                const below = centreOf(created.elementOf("b"));
+                window.dispatchEvent(mouseEvent("mousemove", below.x, below.y + 20));
+                await vi.waitFor(() => expect(itemIds(created.zone)).to.deep.equal(["b", "SHADOW"]));
+            } finally {
+                window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                created.destroy();
             }
         });
 

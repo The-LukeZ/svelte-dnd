@@ -38,6 +38,12 @@ yarn add @lukez/svelte-dnd
 
 The peer range is `svelte ^5.32.0`, because the library uses attachments. It has no other dependencies.
 
+## Browser support
+
+The library supports current versions of Chrome, Edge, Firefox and Safari, on desktop and on mobile. Every test runs in Chromium, Firefox and WebKit on each change. The oldest versions it works in are Chrome and Edge 95, Firefox 93 and Safari 15.4 (iOS 15.4), because it calls `window.reportError` to report errors thrown by your callbacks. Svelte 5 itself also needs a modern browser. Internet Explorer is not supported, and no polyfills are needed for the browsers above.
+
+The published files are compiled to ES2020. Your bundler can compile them further down if your app targets older syntax.
+
 ## A first list
 
 ```svelte

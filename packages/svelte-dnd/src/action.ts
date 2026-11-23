@@ -21,7 +21,55 @@ import type { Options } from "./types";
  * ```
  */
 export function dndzone<T extends object>(getOptions: () => Options<T>): Attachment<HTMLElement> {
-    return fromAction(createZone<T>, () => readOptions(getOptions));
+    return fromAction(updateOnceRendered(createZone<T>), () => readOptions(getOptions));
+}
+
+/**
+ * Wraps a zone factory for an attachment, so each update reaches the zone once Svelte has rendered the new items.
+ * The engine styles the zone's children by their index in the items, so the children must show those items already.
+ * On a regular element the attachment's update runs after the element's children update, but on a <svelte:element>
+ * Svelte runs it before them, and the shadow item's styling lands on the wrong child and stays there
+ * (upstream isaacHagoel/svelte-dnd-action#640). A microtask runs once the current flush, children included, is done.
+ * Every update waits, as the DOM cannot tell whether the children show the items yet: when a drag starts, the shadow
+ * item takes the dragged item's place, and the number of children stays the same.
+ * The options are still validated right away, so a bad option throws where it is given. The zone then applies them
+ * without validating them again. An error the zone throws while it applies them has no caller in the microtask, and
+ * goes to the window's error event (reportError).
+ */
+export function updateOnceRendered<T extends object>(
+    create: (node: HTMLElement, options: Options<T>) => Zone<T>,
+): (node: HTMLElement, options: Options<T>) => Zone<T> {
+    return (node, options) => deferUpdates(node, create(node, options));
+}
+
+function deferUpdates<T extends object>(node: HTMLElement, zone: Zone<T>): Zone<T> {
+    const updateValidated = zone[UPDATE_VALIDATED] ?? zone.update;
+    let pendingOptions: Options<T> | undefined;
+    let destroyed = false;
+    const applyPending = (): void => {
+        const next = pendingOptions;
+        pendingOptions = undefined;
+        if (destroyed || !next) return;
+        try {
+            updateValidated(next);
+        } catch (err) {
+            // the microtask has no caller to throw to
+            getWindowOf(node).reportError(err);
+        }
+    };
+    return {
+        update: (newOptions: Options<T>) => {
+            untrack(() => validateOptions(newOptions));
+            const isScheduled = pendingOptions !== undefined;
+            pendingOptions = newOptions;
+            if (!isScheduled) queueMicrotask(applyPending);
+        },
+        destroy: () => {
+            destroyed = true;
+            pendingOptions = undefined;
+            zone.destroy();
+        },
+    };
 }
 
 /**
@@ -35,7 +83,18 @@ export function readOptions<T extends object>(getOptions: () => Options<T>): Opt
     return { ...getOptions() };
 }
 
-type Zone<T extends object> = { update(o: Options<T>): void; destroy(): void };
+/**
+ * The zone's update for options that were validated already. updateOnceRendered validates them when they are given,
+ * and applies them with this later, so they are validated once.
+ */
+export const UPDATE_VALIDATED: unique symbol = Symbol("updateValidated");
+
+export type Zone<T extends object> = {
+    update(o: Options<T>): void;
+    destroy(): void;
+    [UPDATE_VALIDATED]?: (o: Options<T>) => void;
+};
+type ValidatingZone<T extends object> = Zone<T> & { [UPDATE_VALIDATED]: (o: Options<T>) => void };
 
 /**
  * Sets up the pointer and keyboard zones on a node. `dndzone` calls it once per element, then calls `update` with the
@@ -46,8 +105,8 @@ type Zone<T extends object> = { update(o: Options<T>): void; destroy(): void };
  *
  * @param node - the element to enhance
  */
-export function createZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
-    let zone: Zone<T> | undefined;
+export function createZone<T extends object>(node: HTMLElement, options: Options<T>): ValidatingZone<T> {
+    let zone: ValidatingZone<T> | undefined;
     let observer: MutationObserver | undefined;
 
     const hinted = closestHintedAncestor(node);
@@ -86,19 +145,23 @@ export function createZone<T extends object>(node: HTMLElement, options: Options
     });
     observer.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
 
+    const updateValidated = (newOptions: Options<T>): void => {
+        if (zone) {
+            zone[UPDATE_VALIDATED](newOptions);
+            return;
+        }
+        latestOptions = newOptions;
+        // the hint is gone but setting up failed: try again with the new options
+        if (!observer) {
+            untrack(setUp);
+        }
+    };
     return {
         update: (newOptions: Options<T>) => {
-            if (zone) {
-                zone.update(newOptions);
-                return;
-            }
             untrack(() => validateOptions(newOptions));
-            latestOptions = newOptions;
-            // the hint is gone but setting up failed: try again with the new options
-            if (!observer) {
-                untrack(setUp);
-            }
+            updateValidated(newOptions);
         },
+        [UPDATE_VALIDATED]: updateValidated,
         destroy: () => {
             observer?.disconnect();
             observer = undefined;
@@ -108,20 +171,23 @@ export function createZone<T extends object>(node: HTMLElement, options: Options
     };
 }
 
-function createLiveZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
+function createLiveZone<T extends object>(node: HTMLElement, options: Options<T>): ValidatingZone<T> {
     validateOptions(options);
     const pointerZone = pointerDndZone(node, toEngineOptions(options));
     const keyboardZone = keyboardDndZone(node, toEngineOptions(options));
+    // fromAction calls the update inside an effect. Untracked, so the engine's reads of the options (copying items,
+    // the id check) add no dependencies: the zone updates only when what the getter reads changes.
+    const updateValidated = (newOptions: Options<T>): void =>
+        untrack(() => {
+            pointerZone.update(toEngineOptions(newOptions));
+            keyboardZone.update(toEngineOptions(newOptions));
+        });
     return {
         update: (newOptions: Options<T>) => {
-            // fromAction calls this inside an effect. Untracked, so the engine's reads of the options (copying items,
-            // the id check) add no dependencies: the zone updates only when what the getter reads changes.
-            untrack(() => {
-                validateOptions(newOptions);
-                pointerZone.update(toEngineOptions(newOptions));
-                keyboardZone.update(toEngineOptions(newOptions));
-            });
+            untrack(() => validateOptions(newOptions));
+            updateValidated(newOptions);
         },
+        [UPDATE_VALIDATED]: updateValidated,
         destroy: () => {
             pointerZone.destroy();
             keyboardZone.destroy();
@@ -156,6 +222,7 @@ function validateOptions<T extends object>(options: Options<T>): void {
         flipDurationMs,
         type,
         dragDisabled,
+        keyboardDragDisabled,
         morphDisabled,
         dropFromOthersDisabled,
         zoneTabIndex,
@@ -165,6 +232,7 @@ function validateOptions<T extends object>(options: Options<T>): void {
         transformDraggedElement,
         autoAriaDisabled,
         centreDraggedOnCursor,
+        lockAxis,
         useCursorForDetection,
         delayTouchStart,
         dropAnimationDisabled,
@@ -180,9 +248,19 @@ function validateOptions<T extends object>(options: Options<T>): void {
     if (!items) {
         throw new Error("no 'items' key provided to dndzone");
     }
-    const itemWithMissingId = items.find((item) => !{}.hasOwnProperty.call(item, ITEM_ID_KEY));
-    if (itemWithMissingId) {
-        throw new Error(`missing '${ITEM_ID_KEY}' property for item ${toString(itemWithMissingId)}`);
+    if (!Array.isArray(items)) {
+        throw new Error(
+            `dndzone expects 'items' to be an array but instead it is a ${typeof items}, ${toString(items)}`,
+        );
+    }
+    // an item that is not an object (null, a number) has no id either, and would make `in` throw a TypeError
+    // `in` and not hasOwnProperty: an id the item inherits, like a getter on its class (RxDB documents), counts too
+    const missingIdIdx = items.findIndex((item) => typeof item !== "object" || item === null || !(ITEM_ID_KEY in item));
+    if (missingIdIdx !== -1) {
+        throw new Error(
+            `missing '${ITEM_ID_KEY}' property for item ${toString(items[missingIdIdx])} at index ${missingIdIdx}. ` +
+                `Every item needs a unique '${ITEM_ID_KEY}', or set the name of the id property with configure({ idKey }).`,
+        );
     }
     if (dropTargetClasses && !Array.isArray(dropTargetClasses)) {
         throw new Error(
@@ -207,6 +285,14 @@ function validateOptions<T extends object>(options: Options<T>): void {
     if (onfinalize !== undefined && typeof onfinalize !== "function") {
         throw new Error(
             `onfinalize should be a function but instead it is a ${typeof onfinalize}, ${toString(onfinalize)}`,
+        );
+    }
+    if (lockAxis !== undefined && lockAxis !== "x" && lockAxis !== "y") {
+        throw new Error(`lockAxis should be "x" or "y" but instead it is a ${typeof lockAxis}, ${toString(lockAxis)}`);
+    }
+    if (keyboardDragDisabled !== undefined && typeof keyboardDragDisabled !== "boolean") {
+        throw new Error(
+            `keyboardDragDisabled should be a boolean but instead it is a ${typeof keyboardDragDisabled}, ${toString(keyboardDragDisabled)}`,
         );
     }
     if (useComputedStyleForRects !== undefined && typeof useComputedStyleForRects !== "boolean") {

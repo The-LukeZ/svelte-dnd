@@ -1,6 +1,6 @@
 import { SOURCES, TRIGGERS, printDebug } from "../constants";
 import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
-import { createZone, readOptions } from "../action";
+import { createZone, readOptions, updateOnceRendered, UPDATE_VALIDATED, type Zone } from "../action";
 import { createStore } from "./simpleStore";
 import { getWindowOf } from "../helpers/util";
 import { registerZoneInternalHooks } from "../helpers/dispatcher";
@@ -16,6 +16,8 @@ const HANDLE_ZONE_ATTRIBUTE = "data-dnd-handle-zone";
 interface HandleZoneState {
     /** the zone's dragDisabled option */
     userDragDisabled: Store<boolean>;
+    /** the zone's keyboardDragDisabled option */
+    keyboardDragDisabled: Store<boolean>;
     /** the handles bound to this zone, so a nested zone created later can take over its own */
     handles: Set<HandleBinding>;
 }
@@ -75,12 +77,10 @@ function adoptHandles(node: HTMLElement, state: HandleZoneState): void {
  *
  * @param node - the element to enhance
  */
-export function createHandleZone<T extends object>(
-    node: HTMLElement,
-    options: Options<T>,
-): { update(o: Options<T>): void; destroy(): void } {
+export function createHandleZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
     const state: HandleZoneState = {
         userDragDisabled: createStore(options?.dragDisabled ?? false),
+        keyboardDragDisabled: createStore(options?.keyboardDragDisabled ?? false),
         handles: new Set(),
     };
     let currentOptions = options;
@@ -99,6 +99,18 @@ export function createHandleZone<T extends object>(
 
     function updateZone(): void {
         zone.update({
+            ...currentOptions,
+            ...getAddedOptions(),
+        });
+    }
+
+    // The added options are valid by construction, so options that were validated stay valid with them
+    function applyOptions(newOptions: Options<T>, update: (o: Options<T>) => void): void {
+        currentOptions = newOptions;
+        // keep store in sync with external prop
+        state.userDragDisabled.set(currentOptions?.dragDisabled ?? false);
+        state.keyboardDragDisabled.set(currentOptions?.keyboardDragDisabled ?? false);
+        update({
             ...currentOptions,
             ...getAddedOptions(),
         });
@@ -136,12 +148,8 @@ export function createHandleZone<T extends object>(
     adoptHandles(node, state);
 
     return {
-        update: (newOptions: Options<T>) => {
-            currentOptions = newOptions;
-            // keep store in sync with external prop
-            state.userDragDisabled.set(currentOptions?.dragDisabled ?? false);
-            updateZone();
-        },
+        update: (newOptions: Options<T>) => applyOptions(newOptions, zone.update),
+        [UPDATE_VALIDATED]: (newOptions: Options<T>) => applyOptions(newOptions, zone[UPDATE_VALIDATED]),
         destroy: () => {
             zone.destroy();
             isItemsDragDisabled.unsubscribe(updateZone);
@@ -186,7 +194,7 @@ export function attachHandle(handle: HTMLElement): () => void {
     }
 
     function handleKeyDown(e: KeyboardEvent): void {
-        if (!boundState || boundState.userDragDisabled.get()) return;
+        if (!boundState || boundState.userDragDisabled.get() || boundState.keyboardDragDisabled.get()) return;
         if (isKeyboardDragTriggerKey(e.key)) isItemsDragDisabled.set(false);
     }
 
@@ -206,7 +214,8 @@ export function attachHandle(handle: HTMLElement): () => void {
             handle.tabIndex = -1;
             handle.style.cursor = ""; // default cursor
         } else {
-            handle.tabIndex = internalDisabled ? 0 : -1;
+            // a handle that the keyboard cannot drag is no tab stop
+            handle.tabIndex = internalDisabled && !boundState!.keyboardDragDisabled.get() ? 0 : -1;
             handle.style.cursor = internalDisabled ? "grab" : "grabbing";
         }
     };
@@ -218,6 +227,7 @@ export function attachHandle(handle: HTMLElement): () => void {
         handle.removeEventListener("keydown", handleKeyDown);
         isItemsDragDisabled.unsubscribe(recomputeHandleState);
         boundState.userDragDisabled.unsubscribe(recomputeHandleState);
+        boundState.keyboardDragDisabled.unsubscribe(recomputeHandleState);
         boundState.handles.delete(binding);
         boundState = undefined;
     }
@@ -231,6 +241,7 @@ export function attachHandle(handle: HTMLElement): () => void {
                 // a nested zone created after the zone the handle was bound to takes the handle over
                 previous.handles.delete(binding);
                 previous.userDragDisabled.unsubscribe(recomputeHandleState);
+                previous.keyboardDragDisabled.unsubscribe(recomputeHandleState);
             } else {
                 handle.setAttribute("role", "button");
                 handle.addEventListener("mousedown", startDrag);
@@ -241,6 +252,7 @@ export function attachHandle(handle: HTMLElement): () => void {
             state.handles.add(binding);
             // subscribe runs recomputeHandleState, so the handle shows its new zone's state at once
             state.userDragDisabled.subscribe(recomputeHandleState);
+            state.keyboardDragDisabled.subscribe(recomputeHandleState);
         },
         unbind,
     };
@@ -284,7 +296,7 @@ export function _pendingHandleCount(): number {
  * ```
  */
 export function dragHandleZone<T extends object>(getOptions: () => Options<T>): Attachment<HTMLElement> {
-    return fromAction(createHandleZone<T>, () => readOptions(getOptions));
+    return fromAction(updateOnceRendered(createHandleZone<T>), () => readOptions(getOptions));
 }
 
 /**

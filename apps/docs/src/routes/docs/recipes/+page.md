@@ -1,6 +1,6 @@
 ---
 title: Recipes
-description: "Code for a single-slot drop area that copies, a reusable list component, and items that keep their own scroll position."
+description: "Code for a single-slot drop area that copies, a reusable list component, items that keep their own scroll position, web components in a draggable, and transitions on items."
 section: Guides
 order: 18
 ---
@@ -223,3 +223,85 @@ An item that scrolls on its own loses its scroll position in a drag: the dragged
 ```
 
 See [scrolling](/docs/guides/scrolling) for how a drag scrolls the containers around the zones.
+
+## Web components in a draggable
+
+The dragged element is a copy made with `cloneNode`, which copies attributes but not JavaScript properties. A web component that keeps its state in properties, as Lit components do, starts over with its defaults in the copy, and its shadow root shows them. Set the properties again in `transformDraggedElement`, from the item's data:
+
+```svelte
+<script lang="ts">
+    import { dndzone, type DndEvent } from "@lukez/svelte-dnd";
+    import "./my-badge.js"; // defines <my-badge> with a `label` property
+
+    type Badge = { id: number; label: string };
+
+    let badges = $state<Badge[]>([
+        { id: 1, label: "First" },
+        { id: 2, label: "Second" },
+    ]);
+
+    function update(e: DndEvent<Badge>) {
+        badges = e.items;
+    }
+
+    // The dragged element is a copy without the component's properties, so give them back.
+    function transformDraggedElement(element?: HTMLElement, badge?: Badge) {
+        const copy = element?.querySelector<HTMLElement & { label: string }>("my-badge");
+        if (copy && badge) copy.label = badge.label;
+    }
+</script>
+
+<ul {@attach dndzone(() => ({ items: badges, transformDraggedElement, onconsider: update, onfinalize: update }))}>
+    {#each badges as badge (badge.id)}
+        <li><my-badge label={badge.label}></my-badge></li>
+    {/each}
+</ul>
+```
+
+`transformDraggedElement` runs each time the zone renders the placeholder, starting right after the drag starts, so it should set the same values for the same item. The items in the zone are the elements your `#each` block renders, so they keep their properties.
+
+## Transitions on items
+
+A drag takes the dragged item out of the zone's items and puts a placeholder in, and moves the placeholder from zone to zone. With an `out:` transition on the items, Svelte keeps each element that leaves in the zone until its outro ends. The zone then has more children than items, and the drag shows the wrong items or leaves one hidden.
+
+Svelte reads a transition's parameters when the transition starts, so the duration can depend on why the item leaves. Give it a duration only when the user removes the item:
+
+```svelte
+<script lang="ts">
+    import { tick } from "svelte";
+    import { fade } from "svelte/transition";
+    import { flip } from "svelte/animate";
+    import { dndzone, type DndEvent } from "@lukez/svelte-dnd";
+
+    type Task = { id: number; name: string };
+
+    let tasks = $state<Task[]>([
+        { id: 1, name: "Write" },
+        { id: 2, name: "Review" },
+    ]);
+    let removing = $state(false);
+
+    function update(e: DndEvent<Task>) {
+        tasks = e.items;
+    }
+
+    async function remove(id: number) {
+        removing = true;
+        tasks = tasks.filter((task) => task.id !== id);
+        // the outro has started with the duration below, so later removals by a drag get none
+        await tick();
+        removing = false;
+    }
+</script>
+
+<ul {@attach dndzone(() => ({ items: tasks, flipDurationMs: 200, onconsider: update, onfinalize: update }))}>
+    {#each tasks as task (task.id)}
+        <li animate:flip={{ duration: 200 }} out:fade={{ duration: removing ? 300 : 0 }}>
+            {task.name}
+            <button onclick={() => remove(task.id)}>Remove</button>
+        </li>
+    {/each}
+</ul>
+```
+
+Do not start a drag while a removed item is still fading out: until its outro ends, the zone has the extra child again.
