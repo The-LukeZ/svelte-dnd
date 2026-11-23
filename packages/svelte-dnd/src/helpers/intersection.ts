@@ -18,15 +18,25 @@ export type BoundingRect = Rect & { x?: number; y?: number; width?: number; heig
 // what getVisibleRectRecursive measures, a Rect plus its size
 type VisibleRect = Rect & { width: number; height: number };
 
+/** A scrollable ancestor that can clip an element, with its rect and the axes it scrolls on */
+export type ScrollClip = { rect: DOMRect; clipsY: boolean; clipsX: boolean };
+
 // This is based off https://stackoverflow.com/questions/27745438/how-to-compute-getboundingclientrect-without-considering-transforms/57876601#57876601
 // It removes the transforms that are potentially applied by the flip animations
 /**
  * Gets the bounding rect but removes transforms (ex: flip animation)
  * @param onlyVisible - use the visible rect defaults to true
+ * @param clips - the scroll clips of the element's ancestors, as getScrollClips(el.parentElement) returns them. They
+ * are measured when left out. Siblings share their ancestors, so a caller that measures many siblings measures the
+ * clips once and passes them to each call.
  */
-export function getBoundingRectNoTransforms(el: HTMLElement, onlyVisible = true): BoundingRect {
+export function getBoundingRectNoTransforms(
+    el: HTMLElement,
+    onlyVisible = true,
+    clips?: readonly ScrollClip[],
+): BoundingRect {
     let ta: string[];
-    const rect = onlyVisible ? getVisibleRectRecursive(el) : el.getBoundingClientRect();
+    const rect = onlyVisible ? getVisibleRectRecursive(el, clips) : el.getBoundingClientRect();
     const style = getWindowOf(el).getComputedStyle(el);
     const tx = style.transform;
 
@@ -70,9 +80,10 @@ export function getBoundingRectNoTransforms(el: HTMLElement, onlyVisible = true)
 
 /**
  * Gets the absolute bounding rect (accounts for the window's scroll position and removes transforms)
+ * @param clips - the scroll clips of the element's ancestors, see getBoundingRectNoTransforms
  */
-export function getAbsoluteRectNoTransforms(el: HTMLElement): Rect {
-    const rect = getBoundingRectNoTransforms(el);
+export function getAbsoluteRectNoTransforms(el: HTMLElement, clips?: readonly ScrollClip[]): Rect {
+    const rect = getBoundingRectNoTransforms(el, true, clips);
     const win = getWindowOf(el);
     return {
         top: rect.top + win.scrollY,
@@ -146,6 +157,28 @@ export function isElementOffDocument(el: HTMLElement): boolean {
 }
 
 /**
+ * The scrollable elements (overflow: auto|scroll) from the given element up to the body, the given element included and
+ * the body excluded, closest first, with their current rects. getVisibleRectRecursive clips an element by the clips of
+ * its parent.
+ */
+export function getScrollClips(from: Element | null): ScrollClip[] {
+    const clips: ScrollClip[] = [];
+    let parent = from;
+    while (parent && parent !== parent.ownerDocument.body) {
+        const style = getWindowOf(parent).getComputedStyle(parent);
+        const overflowY = style.overflowY;
+        const overflowX = style.overflowX;
+        const clipsY = overflowY === "scroll" || overflowY === "auto";
+        const clipsX = overflowX === "scroll" || overflowX === "auto";
+        if (clipsY || clipsX) {
+            clips.push({ rect: parent.getBoundingClientRect(), clipsY, clipsX });
+        }
+        parent = parent.parentElement;
+    }
+    return clips;
+}
+
+/**
  * Computes the portion of an element that is actually visible inside its scrollable
  * ancestor containers. If the element is clipped by any scrollable ancestor (overflow: auto|scroll),
  * the returned rect is the clipped one. If it is not clipped by any scrollable ancestor but is
@@ -156,9 +189,13 @@ export function isElementOffDocument(el: HTMLElement): boolean {
  * "hidden because off-screen".
  *
  * @param element - The DOM element to measure.
+ * @param clips - the scroll clips of the element's ancestors, measured when left out
  * @returns An object describing the visible rectangle in viewport coordinates.
  */
-function getVisibleRectRecursive(element: HTMLElement): VisibleRect {
+function getVisibleRectRecursive(
+    element: HTMLElement,
+    clips: readonly ScrollClip[] = getScrollClips(element.parentElement),
+): VisibleRect {
     // original rect of the element (can be off-screen)
     const rect = element.getBoundingClientRect();
 
@@ -173,41 +210,28 @@ function getVisibleRectRecursive(element: HTMLElement): VisibleRect {
     let wasClippedByScrollY = false;
     let wasClippedByScrollX = false;
 
-    // walk up and clip ONLY by scrollable ancestors
-    let parent = element.parentElement;
-    while (parent && parent !== element.ownerDocument.body) {
-        const style = getWindowOf(parent).getComputedStyle(parent);
-        const overflowY = style.overflowY;
-        const overflowX = style.overflowX;
-        const isScrollableY = overflowY === "scroll" || overflowY === "auto";
-        const isScrollableX = overflowX === "scroll" || overflowX === "auto";
-
-        if (isScrollableY || isScrollableX) {
-            const parentRect = parent.getBoundingClientRect();
-
-            if (isScrollableY) {
-                // if we actually shrink, mark it
-                const newTop = Math.max(visibleRect.top, parentRect.top);
-                const newBottom = Math.min(visibleRect.bottom, parentRect.bottom);
-                if (newTop !== visibleRect.top || newBottom !== visibleRect.bottom) {
-                    wasClippedByScrollY = true;
-                }
-                visibleRect.top = newTop;
-                visibleRect.bottom = newBottom;
+    // clip ONLY by scrollable ancestors, from the closest one up
+    for (const { rect: parentRect, clipsY, clipsX } of clips) {
+        if (clipsY) {
+            // if we actually shrink, mark it
+            const newTop = Math.max(visibleRect.top, parentRect.top);
+            const newBottom = Math.min(visibleRect.bottom, parentRect.bottom);
+            if (newTop !== visibleRect.top || newBottom !== visibleRect.bottom) {
+                wasClippedByScrollY = true;
             }
-
-            if (isScrollableX) {
-                const newLeft = Math.max(visibleRect.left, parentRect.left);
-                const newRight = Math.min(visibleRect.right, parentRect.right);
-                if (newLeft !== visibleRect.left || newRight !== visibleRect.right) {
-                    wasClippedByScrollX = true;
-                }
-                visibleRect.left = newLeft;
-                visibleRect.right = newRight;
-            }
+            visibleRect.top = newTop;
+            visibleRect.bottom = newBottom;
         }
 
-        parent = parent.parentElement;
+        if (clipsX) {
+            const newLeft = Math.max(visibleRect.left, parentRect.left);
+            const newRight = Math.min(visibleRect.right, parentRect.right);
+            if (newLeft !== visibleRect.left || newRight !== visibleRect.right) {
+                wasClippedByScrollX = true;
+            }
+            visibleRect.left = newLeft;
+            visibleRect.right = newRight;
+        }
     }
 
     // CASE 1: element was clipped by a scrollable container
