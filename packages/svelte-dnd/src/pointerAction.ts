@@ -171,7 +171,7 @@ function watchDraggedElement(): void {
     );
     const observationIntervalMs =
         setIntervalMs === 0 ? DISABLED_OBSERVATION_INTERVAL_MS : Math.max(setIntervalMs, MIN_OBSERVATION_INTERVAL_MS); // if setIntervalMs is 0 it goes to 20, otherwise it is max between it and min observation.
-    multiScroller = createMultiScroller(watchedDropZones, () => currentMousePosition && getLockedMousePosition());
+    multiScroller = createMultiScroller(watchedDropZones, getScrollPointerPosition);
     // Returns reference point in document coordinates - either cursor position or element center
     // currentMousePosition is set from the mousedown on for the whole drag
     const getReferencePoint = useCursorForDetectionActive
@@ -198,7 +198,7 @@ function watchDropZoneAddedMidDrag(dz: HTMLElement): void {
     dz.addEventListener(DRAGGED_OVER_INDEX_EVENT_NAME, handleDraggedIsOverIndex as EventListener);
     // the new zone's scroll containers can scroll too
     multiScroller?.destroy();
-    multiScroller = createMultiScroller(watchedDropZones, () => currentMousePosition);
+    multiScroller = createMultiScroller(watchedDropZones, getScrollPointerPosition);
     observeDropZone(dz);
 }
 function unWatchDraggedElement(): void {
@@ -353,6 +353,11 @@ function getLockedMousePosition(): Point {
         x: lockAxisActive === "y" ? dragStartMousePosition!.x : currentMousePosition!.x,
         y: lockAxisActive === "x" ? dragStartMousePosition!.y : currentMousePosition!.y,
     };
+}
+
+// The pointer position the auto scrolling follows: the locked one, so it stays on the axis too (#579 upstream)
+function getScrollPointerPosition(): Point | undefined {
+    return currentMousePosition && getLockedMousePosition();
 }
 
 // Global mouse/touch-events handlers

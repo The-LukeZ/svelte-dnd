@@ -55,7 +55,7 @@ describe("a zone created mid-drag", () => {
         document.body.innerHTML = "";
     });
 
-    function startDragInOrigin() {
+    function startDragInOrigin(options: Partial<Options> = {}) {
         const originZone = zoneAt(200);
         const dragged = item();
         originZone.append(dragged, item());
@@ -63,6 +63,7 @@ describe("a zone created mid-drag", () => {
             items: [{ id: "dragged" }, { id: "other" }],
             dropAnimationDisabled: true,
             useCursorForDetection: true,
+            ...options,
             onconsider: ({ items, info }) => {
                 // model the framework: it removes the dragged item's DOM node once its data entry became the shadow item
                 if (info.trigger === TRIGGERS.DRAG_STARTED) dragged.remove();
@@ -130,6 +131,30 @@ describe("a zone created mid-drag", () => {
 
         const late = createLateZone({ dropTargetClasses: ["active-target"] });
         expect(late.lateZone.classList.contains("active-target")).to.equal(true);
+    });
+
+    // isaacHagoel/svelte-dnd-action#579: lockAxis keeps the auto scrolling on the axis, also once a zone joined the drag
+    it("keeps the auto scrolling of a lockAxis drag on the axis", async () => {
+        // a scroll container beside the origin zone, off the locked axis, with a zone of the same type in it
+        const scroller = document.createElement("div");
+        scroller.style.cssText = "position: fixed; top: 0; left: 600px; width: 100px; height: 200px; overflow: auto";
+        const scrolledZone = document.createElement("div");
+        const rows = Array.from({ length: 20 }, (_, i) => ({ id: `s${i}` }));
+        for (const _ of rows) scrolledZone.appendChild(item());
+        scroller.appendChild(scrolledZone);
+        document.body.appendChild(scroller);
+        const scrolled = dndzone(scrolledZone, { items: rows, dropAnimationDisabled: true });
+        cleanUps.push(() => scrolled.destroy());
+        const { dragged } = startDragInOrigin({ lockAxis: "y" });
+        await waitFor(() => dragged.isConnected && dragged.style.display === "none", "original element hidden");
+        // the pointer is at the scroll container's bottom edge, the locked point is in the origin zone's column
+        moveTo(650, 195);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        expect(scroller.scrollTop, "no scrolling before a zone was added").to.equal(0);
+
+        createLateZone();
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        expect(scroller.scrollTop, "no scrolling after a zone was added").to.equal(0);
     });
 
     it("is not watched when its type differs from the dragged item's", async () => {
