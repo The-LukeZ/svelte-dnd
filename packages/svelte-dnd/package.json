@@ -12,7 +12,7 @@
     "bugs": {
         "url": "https://github.com/The-LukeZ/svelte-dnd/issues"
     },
-    "homepage": "https://svelte-dnd.thelukez.com",
+    "homepage": "https://svelte-dnd.js.org",
     "main": "./dist/index.cjs",
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.cts",

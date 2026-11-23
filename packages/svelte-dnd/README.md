@@ -2,7 +2,7 @@
 
 Drag and drop for Svelte 5: rich animations, nested containers, touch, keyboard and screen reader support.
 
-**Docs:** https://svelte-dnd.thelukez.com
+**Docs:** https://svelte-dnd.js.org
 
 ## Install
 
@@ -41,12 +41,12 @@ Requires `svelte ^5.32.0`.
 </section>
 ```
 
-The [getting started guide](https://svelte-dnd.thelukez.com/docs/getting-started) explains how this works.
+The [getting started guide](https://svelte-dnd.js.org/docs/getting-started) explains how this works.
 
 ## Links
 
-- [Documentation](https://svelte-dnd.thelukez.com)
-- [Migrating from `svelte-dnd-action`](https://svelte-dnd.thelukez.com/docs/migrating)
+- [Documentation](https://svelte-dnd.js.org)
+- [Migrating from `svelte-dnd-action`](https://svelte-dnd.js.org/docs/migrating)
 - [Changelog](https://github.com/The-LukeZ/svelte-dnd/blob/master/packages/svelte-dnd/CHANGELOG.md)
 
 ## Credits and license

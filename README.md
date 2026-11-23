@@ -1,6 +1,6 @@
 # svelte-dnd
 
-Monorepo for [`@lukez/svelte-dnd`](packages/svelte-dnd/README.md), a Svelte 5 drag and drop library forked from [`svelte-dnd-action`](https://github.com/isaacHagoel/svelte-dnd-action), and its docs site ([`apps/docs`](apps/docs), live at https://svelte-dnd.thelukez.com).
+Monorepo for [`@lukez/svelte-dnd`](packages/svelte-dnd/README.md), a Svelte 5 drag and drop library forked from [`svelte-dnd-action`](https://github.com/isaacHagoel/svelte-dnd-action), and its docs site ([`apps/docs`](apps/docs), live at https://svelte-dnd.js.org).
 
 ## Development
 
