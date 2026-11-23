@@ -11,6 +11,7 @@ import {
 } from "./constants";
 import { observe, observeDropZone, unobserve } from "./helpers/observer";
 import { createMultiScroller, type MultiScroller } from "./helpers/multiScroller";
+import { forwardWheelToScrollContainersBelow } from "./helpers/wheel";
 import {
     createDraggedElementFrom,
     decorateShadowEl,
@@ -741,6 +742,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
             config.useComputedStyleForRects,
         );
         originDropZoneRoot.appendChild(draggedEl);
+        forwardWheelToScrollContainersBelow(draggedEl);
         // We will keep the original dom node in the dom because touch events keep firing on it, we want to re-add it after the framework removes it
         function keepOriginalElementInDom(): void {
             // Once the drop starts finalizing, handleDrop has stopped observation and this loop

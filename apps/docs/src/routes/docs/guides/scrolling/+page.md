@@ -27,6 +27,10 @@ Each of these scrolls when the pointer is inside it and within 30 pixels of one 
 
 Scrolling follows the pointer, not the dragged element, so an item grabbed at its edge scrolls when the pointer reaches the edge of the container.
 
+## The mouse wheel
+
+The wheel scrolls during a pointer drag too. It scrolls the container under the dragged item, the same one it scrolls without a drag.
+
 ## Keyboard drags
 
 Auto-scroll is for pointer drags. During a keyboard drag the moved item keeps the focus, and the browser scrolls a focused element into view.
