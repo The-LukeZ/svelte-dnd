@@ -156,6 +156,7 @@ function validateOptions<T extends object>(options: Options<T>): void {
         flipDurationMs,
         type,
         dragDisabled,
+        keyboardDragDisabled,
         morphDisabled,
         dropFromOthersDisabled,
         zoneTabIndex,
@@ -219,6 +220,11 @@ function validateOptions<T extends object>(options: Options<T>): void {
     if (onfinalize !== undefined && typeof onfinalize !== "function") {
         throw new Error(
             `onfinalize should be a function but instead it is a ${typeof onfinalize}, ${toString(onfinalize)}`,
+        );
+    }
+    if (keyboardDragDisabled !== undefined && typeof keyboardDragDisabled !== "boolean") {
+        throw new Error(
+            `keyboardDragDisabled should be a boolean but instead it is a ${typeof keyboardDragDisabled}, ${toString(keyboardDragDisabled)}`,
         );
     }
     if (useComputedStyleForRects !== undefined && typeof useComputedStyleForRects !== "boolean") {

@@ -23,6 +23,7 @@ type Config = {
     items: Item[];
     type: string;
     dragDisabled: boolean;
+    keyboardDragDisabled: boolean;
     zoneTabIndex: number;
     zoneItemTabIndex: number;
     dropFromOthersDisabled: boolean;
@@ -212,6 +213,7 @@ function isKeyboardDropTarget(dropZoneEl: HTMLElement): boolean {
     return (
         config.type === draggedItemType &&
         !config.dropFromOthersDisabled &&
+        !config.keyboardDragDisabled &&
         !focusedItem!.contains(dropZoneEl) &&
         isInDragDocument(dropZoneEl)
     );
@@ -378,6 +380,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         items: undefined,
         type: undefined,
         dragDisabled: false,
+        keyboardDragDisabled: false,
         zoneTabIndex: 0,
         zoneItemTabIndex: 0,
         dropFromOthersDisabled: false,
@@ -556,7 +559,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         handleDrop();
         // The drag-stopped handler can tear this zone down, disable dragging in it or remove the clicked item
         const clickedEl = e.currentTarget as HTMLElement;
-        if (destroyed || config.dragDisabled || clickedEl.parentElement !== node) return;
+        if (destroyed || config.dragDisabled || config.keyboardDragDisabled || clickedEl.parentElement !== node) return;
         handleDragStart(e);
     }
     function setCurrentFocusedItem(draggableEl: HTMLElement): void {
@@ -574,6 +577,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         items = [],
         type: newType = DEFAULT_DROP_ZONE_TYPE,
         dragDisabled = false,
+        keyboardDragDisabled = false,
         zoneTabIndex = 0,
         zoneItemTabIndex = 0,
         dropFromOthersDisabled = false,
@@ -589,6 +593,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         if (!destroyed) registerZoneCallbacks(node, { onconsider, onfinalize });
         config.items = [...items];
         config.dragDisabled = dragDisabled;
+        config.keyboardDragDisabled = keyboardDragDisabled;
         config.dropFromOthersDisabled = dropFromOthersDisabled;
         config.zoneTabIndex = zoneTabIndex;
         config.zoneItemTabIndex = zoneItemTabIndex;
@@ -606,7 +611,9 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
             // actions do not run.
             node.setAttribute(
                 "aria-describedby",
-                dragDisabled ? INSTRUCTION_IDs!.DND_ZONE_DRAG_DISABLED : INSTRUCTION_IDs!.DND_ZONE_ACTIVE,
+                dragDisabled || keyboardDragDisabled
+                    ? INSTRUCTION_IDs!.DND_ZONE_DRAG_DISABLED
+                    : INSTRUCTION_IDs!.DND_ZONE_ACTIVE,
             );
         }
         dzToConfig.set(node, config);
@@ -640,7 +647,8 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
             // removeEventListener ignores undefined, which it gets for a child without a listener yet
             draggableEl.removeEventListener("keydown", elToKeyDownListeners.get(draggableEl) as EventListener);
             draggableEl.removeEventListener("click", elToFocusListeners.get(draggableEl) as EventListener);
-            if (!dragDisabled) {
+            // a zone without keyboard dragging leaves the keys and clicks of its items to the app
+            if (!dragDisabled && !keyboardDragDisabled) {
                 draggableEl.addEventListener("keydown", handleKeyDown);
                 elToKeyDownListeners.set(draggableEl, handleKeyDown);
                 draggableEl.addEventListener("click", handleClick);

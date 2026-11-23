@@ -33,6 +33,14 @@ export interface Options<T extends object = Item> {
      */
     dragDisabled?: boolean;
     /**
+     * Turns keyboard dragging off for this zone, and keeps pointer dragging. The zone leaves Space, Enter and the arrow
+     * keys to the app, does not take items that a keyboard drag tabs into it, and its screen reader instruction becomes
+     * the one of a zone with `dragDisabled`. With `dragHandleZone`, it takes this zone's handles out of the tab order.
+     * Keyboard and screen reader users cannot reorder the items then: give them another way, such as move buttons.
+     * @default false
+     */
+    keyboardDragDisabled?: boolean;
+    /**
      * Whether the dragged element keeps its own shape instead of taking the size and styles of the placeholder item in
      * the zone it hovers over.
      * @default false
