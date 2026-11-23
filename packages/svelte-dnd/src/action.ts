@@ -180,9 +180,20 @@ function validateOptions<T extends object>(options: Options<T>): void {
     if (!items) {
         throw new Error("no 'items' key provided to dndzone");
     }
-    const itemWithMissingId = items.find((item) => !{}.hasOwnProperty.call(item, ITEM_ID_KEY));
-    if (itemWithMissingId) {
-        throw new Error(`missing '${ITEM_ID_KEY}' property for item ${toString(itemWithMissingId)}`);
+    if (!Array.isArray(items)) {
+        throw new Error(
+            `dndzone expects 'items' to be an array but instead it is a ${typeof items}, ${toString(items)}`,
+        );
+    }
+    // an item that is not an object (null, a number) has no id either, and would make hasOwnProperty throw a TypeError
+    const missingIdIdx = items.findIndex(
+        (item) => typeof item !== "object" || item === null || !{}.hasOwnProperty.call(item, ITEM_ID_KEY),
+    );
+    if (missingIdIdx !== -1) {
+        throw new Error(
+            `missing '${ITEM_ID_KEY}' property for item ${toString(items[missingIdIdx])} at index ${missingIdIdx}. ` +
+                `Every item needs a unique '${ITEM_ID_KEY}', or set the name of the id property with configure({ idKey }).`,
+        );
     }
     if (dropTargetClasses && !Array.isArray(dropTargetClasses)) {
         throw new Error(
