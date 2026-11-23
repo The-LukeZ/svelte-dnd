@@ -560,6 +560,110 @@ describe("pointerAction", () => {
             }
         });
 
+        // Upstream issue isaacHagoel/svelte-dnd-action#579: drag motion forced onto one axis
+        describe("lockAxis", () => {
+            const translation = () => {
+                const match = /translate3d\((-?[\d.]+)px, (-?[\d.]+)px/.exec(draggedElement().style.transform);
+                return match && { x: Number(match[1]), y: Number(match[2]) };
+            };
+
+            function dragBy(from: HTMLElement, dx: number, dy: number): void {
+                const start = centreOf(from);
+                from.dispatchEvent(mouseEvent("mousedown", start.x, start.y));
+                window.dispatchEvent(mouseEvent("mousemove", start.x + 5, start.y + 5));
+                window.dispatchEvent(mouseEvent("mousemove", start.x + dx, start.y + dy));
+            }
+
+            it("moves the dragged element on both axes by default", () => {
+                const created = createRenderedZone(0, [{ id: 1 }]);
+                try {
+                    dragBy(created.elementOf(1), 40, 30);
+                    expect(translation()).to.deep.equal({ x: 40, y: 30 });
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("'y' moves the dragged element only up and down", () => {
+                const created = createRenderedZone(0, [{ id: 1 }], { lockAxis: "y" });
+                try {
+                    dragBy(created.elementOf(1), 40, 30);
+                    expect(translation()).to.deep.equal({ x: 0, y: 30 });
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("'x' moves the dragged element only left and right", () => {
+                const created = createRenderedZone(0, [{ id: 1 }], { lockAxis: "x" });
+                try {
+                    dragBy(created.elementOf(1), 40, 30);
+                    expect(translation()).to.deep.equal({ x: 40, y: 0 });
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("still reorders along the free axis", async () => {
+                const created = createRenderedZone(0, [{ id: "a" }, { id: "b" }], { lockAxis: "y" });
+                try {
+                    dragBy(created.elementOf("a"), 120, 70);
+                    await vi.waitFor(() => expect(itemIds(created.zone)).to.deep.equal(["b", "SHADOW"]));
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("keeps the cursor detection point on the axis, so a zone beside it is not entered", async () => {
+                const origin = createRenderedZone(0, [{ id: 1 }], { lockAxis: "y", useCursorForDetection: true });
+                const beside = createRenderedZone(300, [{ id: 2 }]);
+                try {
+                    const over = centreOf(beside.elementOf(2));
+                    dragBy(origin.elementOf(1), over.x - centreOf(origin.elementOf(1)).x, 0);
+                    await new Promise((resolve) => setTimeout(resolve, 200));
+                    expect(beside.zone.querySelector(`[${SHADOW_ELEMENT_ATTRIBUTE_NAME}]`)).to.equal(null);
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    origin.destroy();
+                    beside.destroy();
+                }
+            });
+
+            it("centres the dragged element on the cursor along the free axis only", async () => {
+                const created = createRenderedZone(0, [{ id: 1 }], { lockAxis: "y", centreDraggedOnCursor: true });
+                try {
+                    const item = created.elementOf(1);
+                    const rect = item.getBoundingClientRect();
+                    // grabbed near the top left corner, the drag starts at the first move
+                    item.dispatchEvent(mouseEvent("mousedown", rect.left + 2, rect.top + 2));
+                    window.dispatchEvent(mouseEvent("mousemove", rect.left + 8, rect.top + 8));
+                    await new Promise((resolve) => setTimeout(resolve, 20));
+                    expect(draggedElement().style.left, "the item stays in its column").to.equal(`${rect.left}px`);
+                    expect(draggedElement().style.top, "centred on the cursor vertically").to.equal(
+                        `${rect.top + 8 - rect.height / 2}px`,
+                    );
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    created.destroy();
+                }
+            });
+
+            it("throws on a value other than 'x' or 'y'", async () => {
+                const { createZone: fullDndzone } = await import("../src/action");
+                const zone = document.createElement("div");
+                document.body.appendChild(zone);
+                try {
+                    expect(() => fullDndzone(zone, { items: [], lockAxis: "z" as "x" })).to.throw(/lockAxis/);
+                } finally {
+                    zone.remove();
+                }
+            });
+        });
+
         it("drags items with string ids", async () => {
             const created = createRenderedZone(0, [{ id: "a" }, { id: "b" }]);
             try {

@@ -166,6 +166,7 @@ function validateOptions<T extends object>(options: Options<T>): void {
         transformDraggedElement,
         autoAriaDisabled,
         centreDraggedOnCursor,
+        lockAxis,
         useCursorForDetection,
         delayTouchStart,
         dropAnimationDisabled,
@@ -221,6 +222,9 @@ function validateOptions<T extends object>(options: Options<T>): void {
         throw new Error(
             `onfinalize should be a function but instead it is a ${typeof onfinalize}, ${toString(onfinalize)}`,
         );
+    }
+    if (lockAxis !== undefined && lockAxis !== "x" && lockAxis !== "y") {
+        throw new Error(`lockAxis should be "x" or "y" but instead it is a ${typeof lockAxis}, ${toString(lockAxis)}`);
     }
     if (keyboardDragDisabled !== undefined && typeof keyboardDragDisabled !== "boolean") {
         throw new Error(

@@ -44,7 +44,7 @@ import {
     toString,
     type WindowWithGlobals,
 } from "./helpers/util";
-import { getBoundingRectNoTransforms, findCenterOfElement, type Point } from "./helpers/intersection";
+import { getBoundingRectNoTransforms, findCenter, findCenterOfElement, type Point } from "./helpers/intersection";
 import type { Index } from "./helpers/listUtil";
 import type { Item, Options, TransformDraggedElementFunction } from "./types";
 
@@ -60,6 +60,7 @@ type Config = {
     dropTargetClasses: string[];
     transformDraggedElement: TransformDraggedElementFunction;
     centreDraggedOnCursor: boolean;
+    lockAxis: "x" | "y" | undefined;
     useCursorForDetection: boolean;
     dropAnimationDisabled: boolean;
     delayTouchStartMs: number;
@@ -103,6 +104,8 @@ let multiScroller: MultiScroller | undefined;
 let touchDragHoldTimer: Timeout | undefined;
 let touchHoldElapsed = false;
 let useCursorForDetectionActive = false;
+// the origin zone's lockAxis, for the drag in progress
+let lockAxisActive: "x" | "y" | undefined;
 let pendingDragOwner: HTMLElement | undefined;
 let watchedDropZones = new Set<HTMLElement>();
 // The window of the drag in progress: the dragged item's own window, which is not the one that
@@ -168,14 +171,14 @@ function watchDraggedElement(): void {
     );
     const observationIntervalMs =
         setIntervalMs === 0 ? DISABLED_OBSERVATION_INTERVAL_MS : Math.max(setIntervalMs, MIN_OBSERVATION_INTERVAL_MS); // if setIntervalMs is 0 it goes to 20, otherwise it is max between it and min observation.
-    multiScroller = createMultiScroller(watchedDropZones, () => currentMousePosition);
+    multiScroller = createMultiScroller(watchedDropZones, () => currentMousePosition && getLockedMousePosition());
     // Returns reference point in document coordinates - either cursor position or element center
     // currentMousePosition is set from the mousedown on for the whole drag
     const getReferencePoint = useCursorForDetectionActive
-        ? () => ({
-              x: currentMousePosition!.x + dragWindow!.scrollX,
-              y: currentMousePosition!.y + dragWindow!.scrollY,
-          })
+        ? () => {
+              const position = getLockedMousePosition();
+              return { x: position.x + dragWindow!.scrollX, y: position.y + dragWindow!.scrollY };
+          }
         : () => findCenterOfElement(draggedEl!);
     // the observation goes through the current multiScroller, which watchDropZoneAddedMidDrag replaces
     const currentMultiScroller: MultiScroller = {
@@ -341,15 +344,27 @@ function handleDraggedIsOverIndex(e: DropZoneEvent<DraggedOverDetail>): void {
     });
 }
 
+/**
+ * The cursor position with the locked axis kept where the drag started, so the dragged element, the detection point and
+ * the scrolling all stay on the free axis. Only called during a drag, while both positions are set.
+ */
+function getLockedMousePosition(): Point {
+    return {
+        x: lockAxisActive === "y" ? dragStartMousePosition!.x : currentMousePosition!.x,
+        y: lockAxisActive === "x" ? dragStartMousePosition!.y : currentMousePosition!.y,
+    };
+}
+
 // Global mouse/touch-events handlers
 function handleMouseMove(e: MouseOrTouchEvent): void {
     e.preventDefault();
     // only a touch event has touches
     const c = (e as TouchEvent).touches ? (e as TouchEvent).touches[0] : (e as MouseEvent);
     currentMousePosition = { x: c.clientX, y: c.clientY };
+    const position = getLockedMousePosition();
     // draggedEl and dragStartMousePosition are set before this listener is added, for the whole drag
-    draggedEl!.style.transform = `translate3d(${currentMousePosition.x - dragStartMousePosition!.x}px, ${
-        currentMousePosition.y - dragStartMousePosition!.y
+    draggedEl!.style.transform = `translate3d(${position.x - dragStartMousePosition!.x}px, ${
+        position.y - dragStartMousePosition!.y
     }px, 0)`;
 }
 
@@ -565,6 +580,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         dropTargetClasses: [],
         transformDraggedElement: () => {},
         centreDraggedOnCursor: false,
+        lockAxis: undefined,
         useCursorForDetection: false,
         dropAnimationDisabled: false,
         delayTouchStartMs: 0,
@@ -727,20 +743,24 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
             originDropZone.closest("[popover]") ||
             originDropZone.getRootNode()) as (ShadowRoot | Document | Element) & { body?: HTMLElement };
         const originDropZoneRoot = rootNode.body || rootNode;
-        const { items: originalItems, type, centreDraggedOnCursor, useCursorForDetection } = config;
+        const { items: originalItems, type, centreDraggedOnCursor, useCursorForDetection, lockAxis } = config;
         const items = [...originalItems];
         draggedElData = items[currentIdx];
         draggedElType = type;
         shadowElData = createShadowElData(draggedElData);
         useCursorForDetectionActive = useCursorForDetection;
+        lockAxisActive = lockAxis;
 
-        // creating the draggable element
-        // false when not centring, which createDraggedElementFrom treats like undefined
-        draggedEl = createDraggedElementFrom(
-            originalDragTarget,
-            (centreDraggedOnCursor && currentMousePosition) as Point | undefined,
-            config.useComputedStyleForRects,
-        );
+        // creating the draggable element. Centring on a locked axis uses the item's own centre, so it does not move.
+        let centreOn: Point | undefined;
+        if (centreDraggedOnCursor && currentMousePosition) {
+            const itemCentre = findCenter(originalDragTarget.getBoundingClientRect());
+            centreOn = {
+                x: lockAxis === "y" ? itemCentre.x : currentMousePosition.x,
+                y: lockAxis === "x" ? itemCentre.y : currentMousePosition.y,
+            };
+        }
+        draggedEl = createDraggedElementFrom(originalDragTarget, centreOn, config.useComputedStyleForRects);
         originDropZoneRoot.appendChild(draggedEl);
         forwardWheelToScrollContainersBelow(draggedEl);
         // We will keep the original dom node in the dom because touch events keep firing on it, we want to re-add it after the framework removes it
@@ -810,6 +830,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         dropTargetClasses = [],
         transformDraggedElement = () => {},
         centreDraggedOnCursor = false,
+        lockAxis,
         useCursorForDetection = false,
         dropAnimationDisabled = false,
         useComputedStyleForRects = false,
@@ -842,6 +863,7 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
         config.morphDisabled = morphDisabled;
         config.transformDraggedElement = transformDraggedElement;
         config.centreDraggedOnCursor = centreDraggedOnCursor;
+        config.lockAxis = lockAxis;
         config.useCursorForDetection = useCursorForDetection;
         config.dropAnimationDisabled = dropAnimationDisabled;
         config.useComputedStyleForRects = useComputedStyleForRects;

@@ -92,6 +92,14 @@ export interface Options<T extends object = Item> {
      */
     centreDraggedOnCursor?: boolean;
     /**
+     * Keeps a pointer drag of this zone's items on one axis: `"y"` moves the dragged element only up and down, `"x"`
+     * only left and right. The point that finds the zone and the index stays on that axis too, and
+     * `centreDraggedOnCursor` centres the element along the free axis only. Leave it out to drag freely. Keyboard drags
+     * are not affected.
+     * @default undefined
+     */
+    lockAxis?: "x" | "y";
+    /**
      * Drops the item in place at the end of a pointer drag, without animating it to its new position.
      * @default false
      */

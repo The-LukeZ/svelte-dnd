@@ -68,6 +68,8 @@ There are two ways to style it:
 
 `centreDraggedOnCursor: true` moves the clone's centre to the cursor when the drag starts, which helps with large items over small ones. `useCursorForDetection: true` uses the cursor instead of the clone's centre to find the zone and index, without moving the clone. `dropAnimationDisabled: true` drops the clone in place instead of animating it to its new position.
 
+`lockAxis` keeps the clone on one axis during a pointer drag: `"y"` moves it only up and down, as in a vertical list, and `"x"` only left and right. The zone and index are found on that axis too, and `centreDraggedOnCursor` centres the clone along the free axis only. The origin zone's setting applies for the whole drag.
+
 ## The shadow placeholder
 
 During a pointer drag, the zone the item hovers renders a [shadow item](/docs/how-it-works#the-shadow-item), marked with `isDndShadowItem: true`. The library sets `visibility: hidden` on its element, so it shows as a gap of the item's size. To draw something in the gap, render the shadow item differently and make your content visible again:
