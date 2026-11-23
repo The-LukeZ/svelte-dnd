@@ -129,4 +129,4 @@ A zone relies on the following. Break one, and drags behave in ways that are har
 - Any data that should survive a drag and a drop belongs in the `items` array.
 - Update `items` in both `onconsider` and `onfinalize`. Do not leave out a handler.
 - The library adds a temporary item to the items of any zone while an element is dragged around. It must be fine to render it.
-- Svelte's built-in transitions (`in:`, `out:`, `transition:`) might not play nice with a zone. Use `animate:flip`, and test any transition you add.
+- An `out:` or `transition:` on the items breaks a drag: Svelte keeps a leaving element in the zone until its outro ends, so the zone has more children than items. Play the outro only for items the user removes, as in the [recipe](/docs/recipes#transitions-on-items). Use `animate:flip` for the moves.
