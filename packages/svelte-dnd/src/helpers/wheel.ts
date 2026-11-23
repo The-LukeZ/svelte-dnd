@@ -7,6 +7,7 @@ const LINE_HEIGHT_PX = 16;
  * The dragged element sits under the pointer, so the browser targets wheel events at it. It is fixed and lives
  * outside the zone's scroll containers, so its scroll chain only reaches the page and the containers under it never
  * scroll. This passes the wheel on to the nearest container under the dragged element that can scroll that way.
+ * When none can, the page is left to the browser.
  * The listener goes away with the dragged element.
  * @param onScrolled - called after the wheel scrolled a container
  */
@@ -23,6 +24,8 @@ export function forwardWheelToScrollContainersBelow(draggedEl: HTMLElement, onSc
                 .elementsFromPoint(e.clientX, e.clientY)
                 .find((el) => el !== draggedEl && !draggedEl.contains(el));
             for (let el = below as HTMLElement | null | undefined; el; el = parentOf(el)) {
+                // the page is in the dragged element's own scroll chain: the browser scrolls it, smoothly
+                if (el === el.ownerDocument.scrollingElement) return;
                 const dx = scale === null ? Math.sign(e.deltaX) * el.clientWidth : e.deltaX * scale;
                 const dy = scale === null ? Math.sign(e.deltaY) * el.clientHeight : e.deltaY * scale;
                 if (canScroll(el, dx, dy)) {
@@ -42,9 +45,8 @@ function parentOf(el: Element): HTMLElement | null {
 }
 
 function canScroll(el: HTMLElement, dx: number, dy: number): boolean {
-    const isPage = el === el.ownerDocument.scrollingElement;
     const { overflowX, overflowY } = getWindowOf(el).getComputedStyle(el);
-    const scrollable = (overflow: string) => isPage || overflow === "auto" || overflow === "scroll";
+    const scrollable = (overflow: string) => overflow === "auto" || overflow === "scroll";
     const canScrollY =
         dy !== 0 &&
         scrollable(overflowY) &&

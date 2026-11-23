@@ -75,6 +75,39 @@ describe("wheel scrolling while dragging", () => {
         }
     });
 
+    // isaacHagoel/svelte-dnd-action#583: the browser scrolls the page on its own, with its smooth scrolling
+    it("leaves the wheel to the browser when only the page can scroll", async () => {
+        document.body.style.margin = "0";
+        await vi.waitFor(() => expect(document.getElementById(DRAGGED_ELEMENT_ID)).to.equal(null));
+        // the page overflows, the zone has no scroll container of its own
+        const spacer = document.createElement("div");
+        spacer.style.cssText = "height: 3000px";
+        document.body.appendChild(spacer);
+        const list = renderedZoneIn(
+            spacer,
+            Array.from({ length: 3 }, (_, i) => ({ id: i })),
+        );
+        try {
+            const one = list.elementOf(1);
+            one.dispatchEvent(mouse("mousedown", 50, 75));
+            window.dispatchEvent(mouse("mousemove", 50, 81));
+            const wheel = new WheelEvent("wheel", {
+                deltaY: 100,
+                clientX: 50,
+                clientY: 81,
+                bubbles: true,
+                cancelable: true,
+            });
+            document.getElementById(DRAGGED_ELEMENT_ID)!.dispatchEvent(wheel);
+            expect(wheel.defaultPrevented, "the browser scrolls the page").to.equal(false);
+            expect(window.scrollY, "the library did not scroll the page itself").to.equal(0);
+        } finally {
+            window.dispatchEvent(mouse("mouseup", 0, 0));
+            list.destroy();
+            spacer.remove();
+        }
+    });
+
     // isaacHagoel/svelte-dnd-action#583: the wheel scrolls the items under a pointer that does not move
     it("moves the shadow item to the item that a wheel scroll brings under the pointer", async () => {
         document.body.style.margin = "0";
