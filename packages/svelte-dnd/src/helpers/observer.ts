@@ -19,6 +19,8 @@ let next: ReturnType<typeof setTimeoutIn> | undefined;
 let currentObservation: object | undefined;
 // Adds a zone to the observation in progress, for a zone created mid-drag
 let addToCurrentObservation: ((dz: HTMLElement) => void) | undefined;
+// Tells the observation in progress that something other than its multiScroller scrolled, such as the wheel
+let markCurrentObservationScrolled: (() => void) | undefined;
 
 /**
  * Tracks the dragged elements and performs the side effects when it is dragged over a drop zone (basically dispatching custom-events scrolling)
@@ -36,6 +38,7 @@ export function observe(
     let lastIndexFound: number | undefined;
     let lastIsDraggedInADropZone = false;
     let lastCentrePositionOfDragged: Point | undefined;
+    let isScrolledElsewhere = false;
     const win = getWindowOf(draggedEl);
     const observation = {};
     currentObservation = observation;
@@ -48,13 +51,18 @@ export function observe(
         // the next tick decides again even if the dragged element has not moved: the zone may be under it already
         lastCentrePositionOfDragged = undefined;
     };
+    markCurrentObservationScrolled = () => {
+        isScrolledElsewhere = true;
+    };
 
     /**
      * The main function in this module. Tracks where everything is/ should be a take the actions
      */
     function andNow(): void {
         const referencePoint = getReferencePoint();
-        const scrolled = multiScroller.multiScrollIfNeeded();
+        // a scroll moves the items under a pointer that stays still, so it is decided like an auto scroll
+        const scrolled = multiScroller.multiScrollIfNeeded() || isScrolledElsewhere;
+        isScrolledElsewhere = false;
         // we only want to make a new decision after the element was moved a bit to prevent flickering
         if (
             !scrolled &&
@@ -116,6 +124,7 @@ export function unobserve(): void {
     printDebug(() => "unobserving");
     currentObservation = undefined;
     addToCurrentObservation = undefined;
+    markCurrentObservationScrolled = undefined;
     clearTimeoutIn(next);
     next = undefined;
     resetIndexesCache();
@@ -127,4 +136,13 @@ export function unobserve(): void {
  */
 export function observeDropZone(dz: HTMLElement): void {
     addToCurrentObservation?.(dz);
+}
+
+/**
+ * Tells the observation in progress that a container scrolled outside of its auto scrolling, such as by the wheel
+ * (isaacHagoel/svelte-dnd-action#583 upstream). Its next tick decides again with fresh item positions, even if the
+ * dragged element has not moved. Does nothing when there is none.
+ */
+export function observeScroll(): void {
+    markCurrentObservationScrolled?.();
 }

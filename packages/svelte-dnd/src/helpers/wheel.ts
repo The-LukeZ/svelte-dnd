@@ -8,8 +8,9 @@ const LINE_HEIGHT_PX = 16;
  * outside the zone's scroll containers, so its scroll chain only reaches the page and the containers under it never
  * scroll. This passes the wheel on to the nearest container under the dragged element that can scroll that way.
  * The listener goes away with the dragged element.
+ * @param onScrolled - called after the wheel scrolled a container
  */
-export function forwardWheelToScrollContainersBelow(draggedEl: HTMLElement): void {
+export function forwardWheelToScrollContainersBelow(draggedEl: HTMLElement, onScrolled: () => void): void {
     draggedEl.addEventListener(
         "wheel",
         (e: WheelEvent) => {
@@ -27,6 +28,7 @@ export function forwardWheelToScrollContainersBelow(draggedEl: HTMLElement): voi
                 if (canScroll(el, dx, dy)) {
                     e.preventDefault();
                     el.scrollBy(dx, dy);
+                    onScrolled();
                     return;
                 }
             }
