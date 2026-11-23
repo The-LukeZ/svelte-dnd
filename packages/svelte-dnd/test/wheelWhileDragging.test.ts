@@ -5,7 +5,6 @@ import type { DndEvent, Options } from "../src/types";
 
 const mouse = (type: string, x: number, y: number) =>
     new MouseEvent(type, { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true });
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 // a zone in a scroll container that renders its items from the events, as a framework does
@@ -41,40 +40,6 @@ function renderedZoneIn(scroller: HTMLElement, rows: { id: number }[], options: 
 }
 
 describe("wheel scrolling while dragging", () => {
-    it("scrolls the zone's scroll container when the wheel turns over the dragged element", async () => {
-        document.body.style.margin = "0";
-        // the scroll container is the only thing that can scroll, the page does not overflow
-        const scroller = document.createElement("div");
-        scroller.style.cssText = "position: absolute; top: 0; left: 0; width: 200px; height: 200px; overflow: auto";
-        const zone = document.createElement("div");
-        const items = Array.from({ length: 20 }, (_, i) => ({ id: i }));
-        for (const { id } of items) {
-            const el = document.createElement("div");
-            el.style.cssText = "height: 50px";
-            el.textContent = `item ${id}`;
-            zone.appendChild(el);
-        }
-        scroller.appendChild(zone);
-        document.body.appendChild(scroller);
-        const action = dndzone(zone, { items, flipDurationMs: 0 });
-        try {
-            const item = zone.children[1] as HTMLElement;
-            item.dispatchEvent(
-                new MouseEvent("mousedown", { button: 0, clientX: 100, clientY: 75, bubbles: true, cancelable: true }),
-            );
-            window.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 80, bubbles: true }));
-            const draggedEl = document.getElementById(DRAGGED_ELEMENT_ID)!;
-            expect(draggedEl, "the drag should have started").toBeTruthy();
-            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-            await userEvent.wheel(draggedEl, { delta: { y: 100 } });
-            await expect.poll(() => scroller.scrollTop, { timeout: 1000 }).to.be.greaterThan(0);
-        } finally {
-            window.dispatchEvent(new MouseEvent("mouseup", { clientX: 100, clientY: 80, bubbles: true }));
-            action.destroy();
-            scroller.remove();
-        }
-    });
-
     // isaacHagoel/svelte-dnd-action#583: the browser scrolls the page on its own, with its smooth scrolling
     it("leaves the wheel to the browser when only the page can scroll", async () => {
         document.body.style.margin = "0";
@@ -134,8 +99,10 @@ describe("wheel scrolling while dragging", () => {
             window.dispatchEvent(mouse("mousemove", 50, 81));
             for (let i = 0; i < 30 && !(one.isConnected && one.style.display === "none"); i++) await nextFrame();
             window.dispatchEvent(mouse("mousemove", 50, 175));
-            await sleep(300);
-            expect(shadowIndex(), "the shadow item is under the pointer before the wheel").to.equal(3);
+            await vi.waitFor(
+                () => expect(shadowIndex(), "the shadow item is under the pointer before the wheel").to.equal(3),
+                { timeout: 2000 },
+            );
 
             document
                 .getElementById(DRAGGED_ELEMENT_ID)!
@@ -143,17 +110,57 @@ describe("wheel scrolling while dragging", () => {
                     new WheelEvent("wheel", { deltaY: 50, clientX: 50, clientY: 175, bubbles: true, cancelable: true }),
                 );
             expect(scroller.scrollTop, "the wheel scrolled the container").to.equal(50);
-            await sleep(400);
-            expect(shadowIndex(), "the shadow item follows the items under the still pointer").to.equal(
-                indexUnder(175),
+            await vi.waitFor(
+                () =>
+                    expect(shadowIndex(), "the shadow item follows the items under the still pointer").to.equal(
+                        indexUnder(175),
+                    ),
+                { timeout: 2000 },
             );
             // a small move after the scroll decides with the item positions after it
             window.dispatchEvent(mouse("mousemove", 50, 60));
-            await sleep(400);
-            expect(shadowIndex(), "the shadow item is under the pointer").to.equal(indexUnder(60));
+            await vi.waitFor(
+                () => expect(shadowIndex(), "the shadow item is under the pointer").to.equal(indexUnder(60)),
+                { timeout: 2000 },
+            );
         } finally {
             window.dispatchEvent(mouse("mouseup", 0, 0));
             list.destroy();
+            scroller.remove();
+        }
+    });
+
+    // last: userEvent moves the real cursor, and WebKit sends mousemove events at its position when the layout changes
+    it("scrolls the zone's scroll container when the wheel turns over the dragged element", async () => {
+        document.body.style.margin = "0";
+        // the scroll container is the only thing that can scroll, the page does not overflow
+        const scroller = document.createElement("div");
+        scroller.style.cssText = "position: absolute; top: 0; left: 0; width: 200px; height: 200px; overflow: auto";
+        const zone = document.createElement("div");
+        const items = Array.from({ length: 20 }, (_, i) => ({ id: i }));
+        for (const { id } of items) {
+            const el = document.createElement("div");
+            el.style.cssText = "height: 50px";
+            el.textContent = `item ${id}`;
+            zone.appendChild(el);
+        }
+        scroller.appendChild(zone);
+        document.body.appendChild(scroller);
+        const action = dndzone(zone, { items, flipDurationMs: 0 });
+        try {
+            const item = zone.children[1] as HTMLElement;
+            item.dispatchEvent(
+                new MouseEvent("mousedown", { button: 0, clientX: 100, clientY: 75, bubbles: true, cancelable: true }),
+            );
+            window.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 80, bubbles: true }));
+            const draggedEl = document.getElementById(DRAGGED_ELEMENT_ID)!;
+            expect(draggedEl, "the drag should have started").toBeTruthy();
+            await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+            await userEvent.wheel(draggedEl, { delta: { y: 100 } });
+            await expect.poll(() => scroller.scrollTop, { timeout: 1000 }).to.be.greaterThan(0);
+        } finally {
+            window.dispatchEvent(new MouseEvent("mouseup", { clientX: 100, clientY: 80, bubbles: true }));
+            action.destroy();
             scroller.remove();
         }
     });
