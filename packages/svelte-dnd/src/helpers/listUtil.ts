@@ -79,6 +79,10 @@ export function findWouldBeIndex(referencePoint: Point, collectionBelowEl: HTMLE
             // the cached rect only matters while the shadow element is in this zone, otherwise the cache is stale (#4)
             if (cachedShadowRect && shadowElIndex !== undefined) {
                 if (!isPointInsideRect(referencePoint, cachedShadowRect)) {
+                    // The point is past every item between the shadow element and child i, so the shadow element
+                    // moves next to child i, without taking its place yet (isaacHagoel/svelte-dnd-action#310)
+                    if (i > shadowElIndex + 1) return { index: i - 1, isProximityBased: false };
+                    if (i < shadowElIndex - 1) return { index: i + 1, isProximityBased: false };
                     return { index: shadowElIndex, isProximityBased: false };
                 }
             }

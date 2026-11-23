@@ -83,5 +83,25 @@ describe("listUtil", () => {
                 isProximityBased: false,
             });
         });
+        // regression for upstream isaacHagoel/svelte-dnd-action#310: a small shadow element among tall items stayed
+        // where it was while the point moved past a whole item, because the point missed the shadow rect cached for
+        // the index under it
+        it("moves the shadow element next to the item under the point when the point is past the items between", () => {
+            const [a, b, shadow] = Array.from(containerEl.children) as HTMLElement[];
+            a.style.height = "200px";
+            b.style.height = "200px";
+            shadow.style.height = "50px";
+            shadow.setAttribute(SHADOW_ELEMENT_ATTRIBUTE_NAME, "true");
+            const at = (y: number) => findWouldBeIndex({ x: 5, y }, containerEl);
+            // the shadow element at index 2 (400px to 450px): its rect there is cached
+            expect(at(425)).to.deep.equal({ index: 2, isProximityBased: false });
+            // the point moves up, and the shadow element is now at index 0 (0 to 50px), above a (50px to 250px) and
+            // b (250px to 450px)
+            containerEl.prepend(shadow);
+            expect(at(25)).to.deep.equal({ index: 0, isProximityBased: false });
+            // the point moves down past a, into b. It misses the rect cached for index 2, so the shadow element does
+            // not move below b, but it moves below a, next to b.
+            expect(at(300)).to.deep.equal({ index: 1, isProximityBased: false });
+        });
     });
 });
