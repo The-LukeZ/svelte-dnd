@@ -140,6 +140,10 @@ configure({ keyboardDragTrigger: "space" });
 configure({ keyboardDragTrigger: "enter" });
 configure({ keyboardDragTrigger: "space_or_enter" });
 configure({ ariaStrings: { dropped: ({ itemLabel, position }) => `${itemLabel} ${position}` } });
+configure({ autoScrollEdgePx: 100, autoScrollMaxStepPx: 40 });
+configure({ autoScrollEdgePx: null, autoScrollMaxStepPx: null });
+// @ts-expect-error not a number
+configure({ autoScrollEdgePx: "100" });
 // @ts-expect-error not a trigger
 configure({ keyboardDragTrigger: "tab" });
 // @ts-expect-error not a key of DndConfig

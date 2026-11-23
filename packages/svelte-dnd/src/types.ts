@@ -135,6 +135,19 @@ export interface DndConfig {
      * @default false
      */
     debug?: boolean;
+    /**
+     * How close to the edge of a scrolling container or the page, in pixels, the pointer starts auto-scrolling it
+     * during a pointer drag. A positive number; `null` restores the default.
+     * @default 30
+     */
+    autoScrollEdgePx?: number | null;
+    /**
+     * How many pixels auto-scroll moves per frame with the pointer at the edge. The step grows from 0 where
+     * scrolling starts (`autoScrollEdgePx` away from the edge) to this value at the edge. A positive number; `null`
+     * restores the default.
+     * @default 30
+     */
+    autoScrollMaxStepPx?: number | null;
 }
 
 /**
