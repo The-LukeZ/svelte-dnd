@@ -1,7 +1,7 @@
 {
     "name": "@lukez/svelte-dnd",
     "description": "Drag and drop for Svelte: rich animations, nested containers, touch, keyboard and screen reader support. Fork of svelte-dnd-action.",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/The-LukeZ/svelte-dnd.git",
