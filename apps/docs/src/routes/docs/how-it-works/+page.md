@@ -100,7 +100,7 @@ Every item needs a unique id, and the `#each` block uses it as its key. The id i
 
 It applies to every zone, and it throws while any zone is mounted, so call it before any zone renders: at the top of your root layout's `<script>` or at the start of your app. `configure` only sets module state, so it is safe during server-side rendering.
 
-`configure` takes `idKey`, `keyboardDragTrigger`, `ariaStrings` and `debug`. Keys you leave out are not touched.
+`configure` takes `idKey`, `keyboardDragTrigger`, `ariaStrings`, `debug`, and the auto scroll settings `autoScrollEdgePx` and `autoScrollMaxStepPx` (see [scrolling](/docs/guides/scrolling)). Keys you leave out are not touched. See [configure](/docs/api/configure) for each key.
 
 ## Flip animation
 
