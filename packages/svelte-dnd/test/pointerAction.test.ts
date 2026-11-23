@@ -652,6 +652,40 @@ describe("pointerAction", () => {
                 }
             });
 
+            it("keeps the dragged element on the axis when it morphs into a wider item", async () => {
+                const origin = createRenderedZone(
+                    300,
+                    [{ id: "a" }, { id: "b" }],
+                    {
+                        lockAxis: "y",
+                        useCursorForDetection: true,
+                    },
+                    "width: 100px;",
+                );
+                const wide = createRenderedZone(300, [{ id: "w" }], {}, "width: 300px;");
+                wide.zone.style.top = "300px";
+                try {
+                    const start = centreOf(origin.elementOf("a"));
+                    origin.elementOf("a").dispatchEvent(mouseEvent("mousedown", start.x, start.y));
+                    window.dispatchEvent(mouseEvent("mousemove", start.x, start.y + 6));
+                    // the pointer drifts 400px to the side while it moves down into the wider zone
+                    window.dispatchEvent(mouseEvent("mousemove", start.x + 400, 320));
+                    await vi.waitFor(() =>
+                        expect(wide.zone.querySelector(`[${SHADOW_ELEMENT_ATTRIBUTE_NAME}]`)).to.not.equal(null),
+                    );
+                    await vi.waitFor(() => expect(draggedElement().getBoundingClientRect().width).to.equal(300));
+                    const rect = draggedElement().getBoundingClientRect();
+                    expect(
+                        rect.left <= start.x && rect.right >= start.x,
+                        `the dragged element spans the locked x ${start.x}: ${rect.left}..${rect.right}`,
+                    ).to.equal(true);
+                } finally {
+                    window.dispatchEvent(mouseEvent("mouseup", 0, 0));
+                    origin.destroy();
+                    wide.destroy();
+                }
+            });
+
             it("throws on a value other than 'x' or 'y'", async () => {
                 const { createZone: fullDndzone } = await import("../src/action");
                 const zone = document.createElement("div");

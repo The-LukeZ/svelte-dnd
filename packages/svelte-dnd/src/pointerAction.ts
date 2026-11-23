@@ -918,11 +918,13 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
             if (idx === shadowElIdx) {
                 // a shadow item is only in the items during a drag, while draggedEl and currentMousePosition are set
                 if (!morphDisabled) {
+                    // the locked position: the dragged element does not follow the pointer off the locked axis (#579 upstream)
+                    const position = getLockedMousePosition();
                     morphDraggedElementToBeLike(
                         draggedEl!,
                         draggableEl,
-                        currentMousePosition!.x,
-                        currentMousePosition!.y,
+                        position.x,
+                        position.y,
                         config.useComputedStyleForRects,
                     );
                 }
