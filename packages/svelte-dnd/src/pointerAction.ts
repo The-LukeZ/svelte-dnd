@@ -9,7 +9,7 @@ import {
     SOURCES,
     TRIGGERS,
 } from "./constants";
-import { observe, unobserve } from "./helpers/observer";
+import { observe, observeDropZone, unobserve } from "./helpers/observer";
 import { createMultiScroller, type MultiScroller } from "./helpers/multiScroller";
 import {
     createDraggedElementFrom,
@@ -176,7 +176,26 @@ function watchDraggedElement(): void {
               y: currentMousePosition!.y + dragWindow!.scrollY,
           })
         : () => findCenterOfElement(draggedEl!);
-    observe(draggedEl!, watchedDropZones, observationIntervalMs * 1.07, multiScroller, getReferencePoint);
+    // the observation goes through the current multiScroller, which watchDropZoneAddedMidDrag replaces
+    const currentMultiScroller: MultiScroller = {
+        multiScrollIfNeeded: () => multiScroller?.multiScrollIfNeeded() ?? false,
+        destroy: () => multiScroller?.destroy(),
+    };
+    observe(draggedEl!, watchedDropZones, observationIntervalMs * 1.07, currentMultiScroller, getReferencePoint);
+}
+// A zone of the dragged item's type created mid-drag (#479 upstream) joins the watched zones. Before the watching starts
+// there is nothing to do: watchDraggedElement picks up every registered zone.
+function watchDropZoneAddedMidDrag(dz: HTMLElement): void {
+    if (watchedDropZones.size === 0 || watchedDropZones.has(dz)) return;
+    printDebug(() => ["watching a drop zone created mid-drag", dz]);
+    watchedDropZones.add(dz);
+    dz.addEventListener(DRAGGED_ENTERED_EVENT_NAME, handleDraggedEntered as EventListener);
+    dz.addEventListener(DRAGGED_LEFT_EVENT_NAME, handleDraggedLeft as EventListener);
+    dz.addEventListener(DRAGGED_OVER_INDEX_EVENT_NAME, handleDraggedIsOverIndex as EventListener);
+    // the new zone's scroll containers can scroll too
+    multiScroller?.destroy();
+    multiScroller = createMultiScroller(watchedDropZones, () => currentMousePosition);
+    observeDropZone(dz);
 }
 function unWatchDraggedElement(): void {
     printDebug(() => "unwatching dragged element");
@@ -851,6 +870,17 @@ export function dndzone(node: HTMLElement, options: Options): { update(newOption
 
         dzToConfig.set(node, config);
         registerDropZone(node, newType);
+        if (isInDragWindow && !finalizingPreviousDrag && newType === draggedElType) {
+            // a zone created mid-drag gets the active-target styling the zones present at drag start got
+            if (!initialized && isDropTarget) {
+                styleActiveDropZones(
+                    [node],
+                    () => config.dropTargetStyle,
+                    () => config.dropTargetClasses,
+                );
+            }
+            watchDropZoneAddedMidDrag(node);
+        }
         const shadowElIdx = isWorkingOnPreviousDrag ? findShadowElementIdx(config.items) : -1;
         for (let idx = 0; idx < node.children.length; idx++) {
             // the zone's children are the rendered items, HTML elements

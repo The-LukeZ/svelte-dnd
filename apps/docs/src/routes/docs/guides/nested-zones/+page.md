@@ -79,6 +79,10 @@ Mark the item element with the hint attribute, so the library skips the zones in
 
 A zone inside a hinted element waits: it gets no zone while the hint is `true`, and its real zone once the hint goes away. After a drop, the placeholder's element stays as the dropped column's element, so its card zone comes to life then. The key of the `#each` block can stay the item's id. Unlike `svelte-dnd-action`, the hint does not have to be part of the key.
 
+## Zones that appear during a drag
+
+A zone can be rendered while a pointer drag is running, for example the children of a tree node that expands when the dragged item hovers over it. A zone of the dragged item's type that is created mid-drag takes the item like the zones that were there when the drag started: it gets the drop target styling, its `onconsider` runs when the item moves over it, and the item can be dropped into it.
+
 ## Filtering the shadow item
 
 The shadow item is in your `items` during a pointer drag, so code that counts or filters items sees it. When you pass a column's items to a component that does not expect it, filter it out by its marker:

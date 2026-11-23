@@ -17,6 +17,8 @@ let next: ReturnType<typeof setTimeoutIn> | undefined;
 // The observation in progress. A consider handler can end the drag in the middle of an observation tick, for example by
 // removing the drag's window, and the tick must not carry on with a drag that has ended.
 let currentObservation: object | undefined;
+// Adds a zone to the observation in progress, for a zone created mid-drag
+let addToCurrentObservation: ((dz: HTMLElement) => void) | undefined;
 
 /**
  * Tracks the dragged elements and performs the side effects when it is dragged over a drop zone (basically dispatching custom-events scrolling)
@@ -39,6 +41,13 @@ export function observe(
     currentObservation = observation;
     // We are sorting to make sure that in case of nested zones of the same type the one "on top" is considered first
     const dropZonesFromDeepToShallow = Array.from(dropZones).sort((dz1, dz2) => getDepth(dz2) - getDepth(dz1));
+    addToCurrentObservation = (dz) => {
+        if (dropZonesFromDeepToShallow.includes(dz)) return;
+        dropZonesFromDeepToShallow.push(dz);
+        dropZonesFromDeepToShallow.sort((dz1, dz2) => getDepth(dz2) - getDepth(dz1));
+        // the next tick decides again even if the dragged element has not moved: the zone may be under it already
+        lastCentrePositionOfDragged = undefined;
+    };
 
     /**
      * The main function in this module. Tracks where everything is/ should be a take the actions
@@ -106,7 +115,16 @@ export function observe(
 export function unobserve(): void {
     printDebug(() => "unobserving");
     currentObservation = undefined;
+    addToCurrentObservation = undefined;
     clearTimeoutIn(next);
     next = undefined;
     resetIndexesCache();
+}
+
+/**
+ * Adds a drop zone to the observation in progress, keeping what the observation knows about where the dragged element
+ * is. Does nothing when there is none.
+ */
+export function observeDropZone(dz: HTMLElement): void {
+    addToCurrentObservation?.(dz);
 }
