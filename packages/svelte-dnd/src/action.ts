@@ -21,7 +21,50 @@ import type { Options } from "./types";
  * ```
  */
 export function dndzone<T extends object>(getOptions: () => Options<T>): Attachment<HTMLElement> {
-    return fromAction(createZone<T>, () => readOptions(getOptions));
+    return fromAction(updateOnceRendered(createZone<T>), () => readOptions(getOptions));
+}
+
+/**
+ * Wraps a zone factory for an attachment, so each update reaches the zone once Svelte has rendered the new items.
+ * The engine styles the zone's children by their index in the items, so the children must show those items already.
+ * On a regular element the attachment's update runs after the element's children update, but on a <svelte:element>
+ * Svelte runs it before them, and the shadow item's styling lands on the wrong child and stays there
+ * (upstream isaacHagoel/svelte-dnd-action#640). A microtask runs once the current flush, children included, is done.
+ * The options are still validated right away, so a bad option throws where it is given.
+ */
+export function updateOnceRendered<T extends object>(
+    create: (node: HTMLElement, options: Options<T>) => Zone<T>,
+): (node: HTMLElement, options: Options<T>) => Zone<T> {
+    return (node, options) => deferUpdates(node, create(node, options));
+}
+
+function deferUpdates<T extends object>(node: HTMLElement, zone: Zone<T>): Zone<T> {
+    let pendingOptions: Options<T> | undefined;
+    let destroyed = false;
+    const applyPending = (): void => {
+        const next = pendingOptions;
+        pendingOptions = undefined;
+        if (destroyed || !next) return;
+        try {
+            zone.update(next);
+        } catch (err) {
+            // the microtask has no caller to throw to
+            getWindowOf(node).reportError(err);
+        }
+    };
+    return {
+        update: (newOptions: Options<T>) => {
+            untrack(() => validateOptions(newOptions));
+            const isScheduled = pendingOptions !== undefined;
+            pendingOptions = newOptions;
+            if (!isScheduled) queueMicrotask(applyPending);
+        },
+        destroy: () => {
+            destroyed = true;
+            pendingOptions = undefined;
+            zone.destroy();
+        },
+    };
 }
 
 /**
@@ -35,7 +78,7 @@ export function readOptions<T extends object>(getOptions: () => Options<T>): Opt
     return { ...getOptions() };
 }
 
-type Zone<T extends object> = { update(o: Options<T>): void; destroy(): void };
+export type Zone<T extends object> = { update(o: Options<T>): void; destroy(): void };
 
 /**
  * Sets up the pointer and keyboard zones on a node. `dndzone` calls it once per element, then calls `update` with the
