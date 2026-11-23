@@ -1,4 +1,5 @@
 import { render } from "vitest-browser-svelte";
+import { tick } from "svelte";
 import { SOURCES, TRIGGERS, setDebugMode } from "../../src/constants";
 import type { DndEvent } from "../../src/types";
 import List from "./fixtures/List.svelte";
@@ -184,6 +185,38 @@ describe("dndzone attachment", () => {
         // every consider reassigned items, so the getter ran again after the last one, before the drop
         expect(finalize.run).to.equal(lastOf(considers).run + 1);
         expect(finalize.run).not.to.equal(0);
+    });
+
+    // upstream isaacHagoel/svelte-dnd-action#661: a drop that lands before the first animation frame of the drag let
+    // that frame restart the observation during the flip animation. Its consider events then put the shadow item back
+    // after the finalize, first with the placeholder id and then as a duplicate of the dropped item's id.
+    it("sends no consider after a drop that lands before the drag's first frame", { timeout: 10000 }, async () => {
+        const calls: Call[] = [];
+        const screen = await render(List, {
+            initial: INITIAL(),
+            extra: { flipDurationMs: 300 },
+            onCall: (kind: Call["kind"], detail: DndEvent<Row>, run: number) => calls.push({ kind, detail, run }),
+        });
+        const zone = screen.getByTestId("zone").element() as HTMLElement;
+        for (let round = 0; round < 3; round++) {
+            calls.length = 0;
+            const li = zone.querySelector("li")!;
+            const rect = li.getBoundingClientRect();
+            const x = rect.left + 5;
+            const y = rect.top + rect.height / 2;
+            li.dispatchEvent(mouse("mousedown", x, y));
+            window.dispatchEvent(mouse("mousemove", x, y + 5));
+            // Svelte renders the drag start, removing the original element, before the drag's first frame
+            await tick();
+            window.dispatchEvent(mouse("mouseup", x, y + 5));
+            await vi.waitFor(() => expect(calls.map((call) => call.kind)).to.include("finalize"));
+            // longer than the flip animation and a few observation intervals
+            await sleep(1000);
+            expect(lastOf(calls).kind, "no event after the finalize").to.equal("finalize");
+            const ids = lastOf(calls).detail.items.map((item) => item.id);
+            expect(ids).to.deep.equal([1, 2, 3]);
+            expect(names(zone)).to.deep.equal(["a", "b", "c"]);
+        }
     });
 });
 
