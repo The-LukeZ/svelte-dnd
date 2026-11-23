@@ -31,7 +31,13 @@ export function clearTimeoutIn(timeout?: { win: Window; id: number }): void {
 /**
  */
 export function toString(object: unknown): string {
-    return JSON.stringify(object, null, 2);
+    // It builds error and debug messages, so it must not throw itself: a circular object (an RxDB document, for one)
+    // makes JSON.stringify throw
+    try {
+        return JSON.stringify(object, null, 2);
+    } catch {
+        return String(object);
+    }
 }
 
 /**

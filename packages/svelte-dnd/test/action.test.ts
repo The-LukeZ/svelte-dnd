@@ -44,4 +44,21 @@ describe("createZone option validation", () => {
         const zone = createZone(node, { items: [{ id: 1 }], useComputedStyleForRects: true });
         zone.destroy();
     });
+
+    it("accepts an item whose id is inherited (a prototype getter, as RxDB documents have)", () => {
+        class Doc {
+            constructor(private readonly data: { id: string }) {}
+            get id(): string {
+                return this.data.id;
+            }
+        }
+        const zone = createZone(node, { items: [new Doc({ id: "a" })] });
+        zone.destroy();
+    });
+
+    it("names the missing id even when the item cannot be serialised", () => {
+        const item: Record<string, unknown> = { name: "no id" };
+        item.self = item;
+        expect(() => createZone(node, { items: [item] } as unknown as Options)).to.throw("missing 'id'");
+    });
 });

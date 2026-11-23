@@ -185,9 +185,10 @@ function validateOptions<T extends object>(options: Options<T>): void {
             `dndzone expects 'items' to be an array but instead it is a ${typeof items}, ${toString(items)}`,
         );
     }
-    // an item that is not an object (null, a number) has no id either, and would make hasOwnProperty throw a TypeError
+    // an item that is not an object (null, a number) has no id either, and would make `in` throw a TypeError
+    // `in` and not hasOwnProperty: an id the item inherits, like a getter on its class (RxDB documents), counts too
     const missingIdIdx = items.findIndex(
-        (item) => typeof item !== "object" || item === null || !{}.hasOwnProperty.call(item, ITEM_ID_KEY),
+        (item) => typeof item !== "object" || item === null || !(ITEM_ID_KEY in item),
     );
     if (missingIdIdx !== -1) {
         throw new Error(
