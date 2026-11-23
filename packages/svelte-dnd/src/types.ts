@@ -156,6 +156,12 @@ export interface DndEventInfo<T = Item> {
     id: ItemId<T>;
     /** The kind of input that performed the drag, one of `SOURCES`. */
     source: SOURCES;
+    /**
+     * Where the pointer was when the item was dropped, in the viewport coordinates (`clientX` and `clientY`) of the
+     * window the drag ran in. Set on the `onfinalize` events of a pointer drag, and absent from the `onconsider` events
+     * and from every event of a keyboard drag.
+     */
+    pointerPosition?: { x: number; y: number };
 }
 
 /** The argument of `onconsider` and `onfinalize`. */

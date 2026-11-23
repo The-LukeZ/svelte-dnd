@@ -36,6 +36,8 @@ The triggers are the values of the exported `TRIGGERS` object. Triggers marked p
 
 A drag within one zone sends `onfinalize` to that zone only. A drag from one zone to another sends it to both, so both lists must be updated. That is another reason to keep the handlers simple: assign what you get.
 
+The `onfinalize` events of a pointer drag also carry `e.info.pointerPosition`, the `{ x, y }` viewport coordinates of the pointer when the item was dropped. Use it to place the item where it was dropped, for example on a canvas outside of any zone (`DROPPED_OUTSIDE_OF_ANY`). Keyboard drags have no pointer, so their events do not have it.
+
 ## The shadow item
 
 During a pointer drag, the zone the item hovers over receives a temporary item in its `items`: the shadow item. It is a copy of the dragged item's data with two changes:

@@ -78,8 +78,18 @@ expectTypeOf<TransformDraggedElementFunction>().toEqualTypeOf<
 expectTypeOf<DndEvent>().toEqualTypeOf<{ items: Item[]; info: DndEventInfo }>();
 expectTypeOf<DndEvent<Row>["items"]>().toEqualTypeOf<Row[]>();
 // info.id is inferred from the item's id field, and unknown without one (a custom idKey) or for the default Item
-expectTypeOf<DndEventInfo>().toEqualTypeOf<{ trigger: TRIGGERS; id: unknown; source: SOURCES }>();
-expectTypeOf<DndEventInfo<Row>>().toEqualTypeOf<{ trigger: TRIGGERS; id: number; source: SOURCES }>();
+expectTypeOf<DndEventInfo>().toEqualTypeOf<{
+    trigger: TRIGGERS;
+    id: unknown;
+    source: SOURCES;
+    pointerPosition?: { x: number; y: number };
+}>();
+expectTypeOf<DndEventInfo<Row>>().toEqualTypeOf<{
+    trigger: TRIGGERS;
+    id: number;
+    source: SOURCES;
+    pointerPosition?: { x: number; y: number };
+}>();
 expectTypeOf<DndEvent<Row>["info"]>().toEqualTypeOf<DndEventInfo<Row>>();
 expectTypeOf<DndEvent<Row>["info"]["id"]>().toEqualTypeOf<number>();
 expectTypeOf<DndEvent<{ key: number }>["info"]["id"]>().toEqualTypeOf<unknown>();

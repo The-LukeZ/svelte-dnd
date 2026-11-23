@@ -389,6 +389,9 @@ function handleDrop(): void {
         (dz) => dzToConfig.get(dz)!.dropTargetClasses,
     );
     let shadowElIdx = findShadowElementIdx(items);
+    // the drop animation runs before the finalize events, and the pointer can move meanwhile.
+    // currentMousePosition is set from the mousedown on for the whole drag.
+    const pointerPosition = { ...currentMousePosition! };
     // the handler might remove the shadow element, ex: dragula like copy on drag
     if (shadowElIdx === -1) {
         if (shadowElDropZone === originDropZone) {
@@ -413,6 +416,7 @@ function handleDrop(): void {
                 trigger: isDraggedOutsideOfAnyDz ? TRIGGERS.DROPPED_OUTSIDE_OF_ANY : TRIGGERS.DROPPED_INTO_ZONE,
                 id: draggedElData![ITEM_ID_KEY],
                 source: SOURCES.POINTER,
+                pointerPosition,
             },
             dzToConfig.get(shadowElDropZone!) === dropZoneConfig,
         );
@@ -425,6 +429,7 @@ function handleDrop(): void {
                     trigger: TRIGGERS.DROPPED_INTO_ANOTHER,
                     id: draggedElData![ITEM_ID_KEY],
                     source: SOURCES.POINTER,
+                    pointerPosition,
                 },
                 dzToConfig.get(originDropZone!) === originZoneConfig,
             );
