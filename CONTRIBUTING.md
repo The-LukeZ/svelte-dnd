@@ -21,7 +21,7 @@ Open an issue with the [bug report](https://github.com/The-LukeZ/svelte-dnd/issu
 
 ## Setup
 
-You need Node 24 or newer and pnpm (the version is pinned in `packageManager` in the root `package.json`; `corepack enable` picks it up).
+You need Node 24 or newer and [pnpm](https://pnpm.io/installation). The pnpm version is pinned in `packageManager` in the root `package.json`.
 
 ```bash
 pnpm install
