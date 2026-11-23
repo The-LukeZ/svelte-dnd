@@ -1,4 +1,4 @@
-import { createZone } from "../src/action";
+import { createZone, updateOnceRendered } from "../src/action";
 import type { Options } from "../src/types";
 
 describe("createZone option validation", () => {
@@ -60,5 +60,44 @@ describe("createZone option validation", () => {
         const item: Record<string, unknown> = { name: "no id" };
         item.self = item;
         expect(() => createZone(node, { items: [item] } as unknown as Options)).to.throw("missing 'id'");
+    });
+});
+
+// upstream isaacHagoel/svelte-dnd-action#640: the attachments hand each update to the zone once Svelte rendered the items
+describe("updateOnceRendered", () => {
+    let node: HTMLElement;
+    beforeEach(() => {
+        node = document.createElement("ul");
+        document.body.appendChild(node);
+    });
+    afterEach(() => node.remove());
+
+    it("validates each update once, right away", async () => {
+        const zone = updateOnceRendered(createZone)(node, { items: [] } as Options);
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            zone.update({ items: [], unknownOption: true } as Options);
+            expect(warn, "validated before the zone is updated").toHaveBeenCalledTimes(1);
+            await Promise.resolve();
+            expect(warn, "not validated again when the zone is updated").toHaveBeenCalledTimes(1);
+        } finally {
+            warn.mockRestore();
+            zone.destroy();
+        }
+    });
+
+    it("throws an invalid option where it is given, and applies the update in a microtask", async () => {
+        const item = document.createElement("li");
+        node.appendChild(item);
+        const zone = updateOnceRendered(createZone)(node, { items: [{ id: 1 }] } as Options);
+        try {
+            expect(() => zone.update({ items: [{ name: "no id" }] } as unknown as Options)).to.throw("missing 'id'");
+            zone.update({ items: [{ id: 1 }], dragDisabled: true });
+            expect(item.style.cursor, "not applied yet").to.equal("grab");
+            await Promise.resolve();
+            expect(item.style.cursor, "applied once the current flush is done").to.equal("");
+        } finally {
+            zone.destroy();
+        }
     });
 });

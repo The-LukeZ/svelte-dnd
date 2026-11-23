@@ -30,7 +30,11 @@ export function dndzone<T extends object>(getOptions: () => Options<T>): Attachm
  * On a regular element the attachment's update runs after the element's children update, but on a <svelte:element>
  * Svelte runs it before them, and the shadow item's styling lands on the wrong child and stays there
  * (upstream isaacHagoel/svelte-dnd-action#640). A microtask runs once the current flush, children included, is done.
- * The options are still validated right away, so a bad option throws where it is given.
+ * Every update waits, as the DOM cannot tell whether the children show the items yet: when a drag starts, the shadow
+ * item takes the dragged item's place, and the number of children stays the same.
+ * The options are still validated right away, so a bad option throws where it is given. The zone then applies them
+ * without validating them again. An error the zone throws while it applies them has no caller in the microtask, and
+ * goes to the window's error event (reportError).
  */
 export function updateOnceRendered<T extends object>(
     create: (node: HTMLElement, options: Options<T>) => Zone<T>,
@@ -39,6 +43,7 @@ export function updateOnceRendered<T extends object>(
 }
 
 function deferUpdates<T extends object>(node: HTMLElement, zone: Zone<T>): Zone<T> {
+    const updateValidated = zone[UPDATE_VALIDATED] ?? zone.update;
     let pendingOptions: Options<T> | undefined;
     let destroyed = false;
     const applyPending = (): void => {
@@ -46,7 +51,7 @@ function deferUpdates<T extends object>(node: HTMLElement, zone: Zone<T>): Zone<
         pendingOptions = undefined;
         if (destroyed || !next) return;
         try {
-            zone.update(next);
+            updateValidated(next);
         } catch (err) {
             // the microtask has no caller to throw to
             getWindowOf(node).reportError(err);
@@ -78,7 +83,18 @@ export function readOptions<T extends object>(getOptions: () => Options<T>): Opt
     return { ...getOptions() };
 }
 
-export type Zone<T extends object> = { update(o: Options<T>): void; destroy(): void };
+/**
+ * The zone's update for options that were validated already. updateOnceRendered validates them when they are given,
+ * and applies them with this later, so they are validated once.
+ */
+export const UPDATE_VALIDATED: unique symbol = Symbol("updateValidated");
+
+export type Zone<T extends object> = {
+    update(o: Options<T>): void;
+    destroy(): void;
+    [UPDATE_VALIDATED]?: (o: Options<T>) => void;
+};
+type ValidatingZone<T extends object> = Zone<T> & { [UPDATE_VALIDATED]: (o: Options<T>) => void };
 
 /**
  * Sets up the pointer and keyboard zones on a node. `dndzone` calls it once per element, then calls `update` with the
@@ -89,8 +105,8 @@ export type Zone<T extends object> = { update(o: Options<T>): void; destroy(): v
  *
  * @param node - the element to enhance
  */
-export function createZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
-    let zone: Zone<T> | undefined;
+export function createZone<T extends object>(node: HTMLElement, options: Options<T>): ValidatingZone<T> {
+    let zone: ValidatingZone<T> | undefined;
     let observer: MutationObserver | undefined;
 
     const hinted = closestHintedAncestor(node);
@@ -129,19 +145,23 @@ export function createZone<T extends object>(node: HTMLElement, options: Options
     });
     observer.observe(watched, { attributeFilter: [SHADOW_ELEMENT_HINT_ATTRIBUTE_NAME] });
 
+    const updateValidated = (newOptions: Options<T>): void => {
+        if (zone) {
+            zone[UPDATE_VALIDATED](newOptions);
+            return;
+        }
+        latestOptions = newOptions;
+        // the hint is gone but setting up failed: try again with the new options
+        if (!observer) {
+            untrack(setUp);
+        }
+    };
     return {
         update: (newOptions: Options<T>) => {
-            if (zone) {
-                zone.update(newOptions);
-                return;
-            }
             untrack(() => validateOptions(newOptions));
-            latestOptions = newOptions;
-            // the hint is gone but setting up failed: try again with the new options
-            if (!observer) {
-                untrack(setUp);
-            }
+            updateValidated(newOptions);
         },
+        [UPDATE_VALIDATED]: updateValidated,
         destroy: () => {
             observer?.disconnect();
             observer = undefined;
@@ -151,20 +171,23 @@ export function createZone<T extends object>(node: HTMLElement, options: Options
     };
 }
 
-function createLiveZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
+function createLiveZone<T extends object>(node: HTMLElement, options: Options<T>): ValidatingZone<T> {
     validateOptions(options);
     const pointerZone = pointerDndZone(node, toEngineOptions(options));
     const keyboardZone = keyboardDndZone(node, toEngineOptions(options));
+    // fromAction calls the update inside an effect. Untracked, so the engine's reads of the options (copying items,
+    // the id check) add no dependencies: the zone updates only when what the getter reads changes.
+    const updateValidated = (newOptions: Options<T>): void =>
+        untrack(() => {
+            pointerZone.update(toEngineOptions(newOptions));
+            keyboardZone.update(toEngineOptions(newOptions));
+        });
     return {
         update: (newOptions: Options<T>) => {
-            // fromAction calls this inside an effect. Untracked, so the engine's reads of the options (copying items,
-            // the id check) add no dependencies: the zone updates only when what the getter reads changes.
-            untrack(() => {
-                validateOptions(newOptions);
-                pointerZone.update(toEngineOptions(newOptions));
-                keyboardZone.update(toEngineOptions(newOptions));
-            });
+            untrack(() => validateOptions(newOptions));
+            updateValidated(newOptions);
         },
+        [UPDATE_VALIDATED]: updateValidated,
         destroy: () => {
             pointerZone.destroy();
             keyboardZone.destroy();

@@ -1,6 +1,6 @@
 import { SOURCES, TRIGGERS, printDebug } from "../constants";
 import { isKeyboardDragTriggerKey } from "../keyboardDragTrigger";
-import { createZone, readOptions, updateOnceRendered } from "../action";
+import { createZone, readOptions, updateOnceRendered, UPDATE_VALIDATED, type Zone } from "../action";
 import { createStore } from "./simpleStore";
 import { getWindowOf } from "../helpers/util";
 import { registerZoneInternalHooks } from "../helpers/dispatcher";
@@ -77,10 +77,7 @@ function adoptHandles(node: HTMLElement, state: HandleZoneState): void {
  *
  * @param node - the element to enhance
  */
-export function createHandleZone<T extends object>(
-    node: HTMLElement,
-    options: Options<T>,
-): { update(o: Options<T>): void; destroy(): void } {
+export function createHandleZone<T extends object>(node: HTMLElement, options: Options<T>): Zone<T> {
     const state: HandleZoneState = {
         userDragDisabled: createStore(options?.dragDisabled ?? false),
         keyboardDragDisabled: createStore(options?.keyboardDragDisabled ?? false),
@@ -102,6 +99,18 @@ export function createHandleZone<T extends object>(
 
     function updateZone(): void {
         zone.update({
+            ...currentOptions,
+            ...getAddedOptions(),
+        });
+    }
+
+    // The added options are valid by construction, so options that were validated stay valid with them
+    function applyOptions(newOptions: Options<T>, update: (o: Options<T>) => void): void {
+        currentOptions = newOptions;
+        // keep store in sync with external prop
+        state.userDragDisabled.set(currentOptions?.dragDisabled ?? false);
+        state.keyboardDragDisabled.set(currentOptions?.keyboardDragDisabled ?? false);
+        update({
             ...currentOptions,
             ...getAddedOptions(),
         });
@@ -139,13 +148,8 @@ export function createHandleZone<T extends object>(
     adoptHandles(node, state);
 
     return {
-        update: (newOptions: Options<T>) => {
-            currentOptions = newOptions;
-            // keep store in sync with external prop
-            state.userDragDisabled.set(currentOptions?.dragDisabled ?? false);
-            state.keyboardDragDisabled.set(currentOptions?.keyboardDragDisabled ?? false);
-            updateZone();
-        },
+        update: (newOptions: Options<T>) => applyOptions(newOptions, zone.update),
+        [UPDATE_VALIDATED]: (newOptions: Options<T>) => applyOptions(newOptions, zone[UPDATE_VALIDATED]),
         destroy: () => {
             zone.destroy();
             isItemsDragDisabled.unsubscribe(updateZone);
