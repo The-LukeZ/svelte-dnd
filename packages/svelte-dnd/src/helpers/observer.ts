@@ -18,7 +18,7 @@ let next: ReturnType<typeof setTimeoutIn> | undefined;
 // removing the drag's window, and the tick must not carry on with a drag that has ended.
 let currentObservation: object | undefined;
 // Adds a zone to the observation in progress, for a zone created mid-drag
-let addToCurrentObservation: ((dz: HTMLElement) => void) | undefined;
+let addToCurrentObservation: ((dz: HTMLElement, intervalMs: number) => void) | undefined;
 // Tells the observation in progress that something other than its multiScroller scrolled, such as the wheel
 let markCurrentObservationScrolled: (() => void) | undefined;
 
@@ -44,8 +44,10 @@ export function observe(
     currentObservation = observation;
     // We are sorting to make sure that in case of nested zones of the same type the one "on top" is considered first
     const dropZonesFromDeepToShallow = Array.from(dropZones).sort((dz1, dz2) => getDepth(dz2) - getDepth(dz1));
-    addToCurrentObservation = (dz) => {
+    addToCurrentObservation = (dz, newIntervalMs) => {
         if (dropZonesFromDeepToShallow.includes(dz)) return;
+        // the ticks from the next one on use it
+        intervalMs = newIntervalMs;
         dropZonesFromDeepToShallow.push(dz);
         dropZonesFromDeepToShallow.sort((dz1, dz2) => getDepth(dz2) - getDepth(dz1));
         // the next tick decides again even if the dragged element has not moved: the zone may be under it already
@@ -133,9 +135,10 @@ export function unobserve(): void {
 /**
  * Adds a drop zone to the observation in progress, keeping what the observation knows about where the dragged element
  * is. Does nothing when there is none.
+ * @param intervalMs - the observation interval for the zones watched now, the new one included
  */
-export function observeDropZone(dz: HTMLElement): void {
-    addToCurrentObservation?.(dz);
+export function observeDropZone(dz: HTMLElement, intervalMs: number): void {
+    addToCurrentObservation?.(dz, intervalMs);
 }
 
 /**

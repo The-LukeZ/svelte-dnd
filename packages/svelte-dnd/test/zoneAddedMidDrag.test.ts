@@ -157,6 +157,30 @@ describe("a zone created mid-drag", () => {
         expect(scroller.scrollTop, "no scrolling after a zone was added").to.equal(0);
     });
 
+    // the observation is not faster than the flip animation of any watched zone, so the items do not jump back and forth
+    it("slows the observation down to its flip duration", async () => {
+        const { dragged } = startDragInOrigin();
+        await waitFor(() => dragged.isConnected && dragged.style.display === "none", "original element hidden");
+        const setTimeoutSpy = vi.spyOn(window, "setTimeout");
+        try {
+            const observationDelays = () =>
+                setTimeoutSpy.mock.calls
+                    .filter(([callback]) => (callback as () => void).name === "andNow")
+                    .map(([, ms]) => ms);
+            const lastObservationDelay = () => observationDelays()[observationDelays().length - 1];
+            await waitFor(() => observationDelays().length > 0, "observation ticks");
+            expect(lastObservationDelay(), "the zones at drag start have no flip animation").to.be.lessThan(100);
+
+            createLateZone({ flipDurationMs: 300 });
+            setTimeoutSpy.mockClear();
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            expect(observationDelays().length, "observation ticks after the zone was added").to.be.greaterThan(0);
+            expect(lastObservationDelay()).to.be.at.least(300);
+        } finally {
+            setTimeoutSpy.mockRestore();
+        }
+    });
+
     it("is not watched when its type differs from the dragged item's", async () => {
         const { dragged } = startDragInOrigin();
         await waitFor(() => dragged.isConnected && dragged.style.display === "none", "original element hidden");

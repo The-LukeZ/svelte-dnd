@@ -164,13 +164,6 @@ function watchDraggedElement(): void {
     }
     dragWindow!.addEventListener(DRAGGED_LEFT_DOCUMENT_EVENT_NAME, handleDrop);
 
-    // it is important that we don't have an interval that is faster than the flip duration because it can cause elements to jump bach and forth
-    // every watched zone is registered, so it has a config
-    const setIntervalMs = Math.max(
-        ...Array.from(watchedDropZones).map((dz) => dzToConfig.get(dz)!.dropAnimationDurationMs),
-    );
-    const observationIntervalMs =
-        setIntervalMs === 0 ? DISABLED_OBSERVATION_INTERVAL_MS : Math.max(setIntervalMs, MIN_OBSERVATION_INTERVAL_MS); // if setIntervalMs is 0 it goes to 20, otherwise it is max between it and min observation.
     multiScroller = createMultiScroller(watchedDropZones, getScrollPointerPosition);
     // Returns reference point in document coordinates - either cursor position or element center
     // currentMousePosition is set from the mousedown on for the whole drag
@@ -185,7 +178,17 @@ function watchDraggedElement(): void {
         multiScrollIfNeeded: () => multiScroller?.multiScrollIfNeeded() ?? false,
         destroy: () => multiScroller?.destroy(),
     };
-    observe(draggedEl!, watchedDropZones, observationIntervalMs * 1.07, currentMultiScroller, getReferencePoint);
+    observe(draggedEl!, watchedDropZones, getObservationIntervalMs(), currentMultiScroller, getReferencePoint);
+}
+// it is important that we don't have an interval that is faster than the flip duration because it can cause elements to jump bach and forth
+function getObservationIntervalMs(): number {
+    // every watched zone is registered, so it has a config
+    const setIntervalMs = Math.max(
+        ...Array.from(watchedDropZones).map((dz) => dzToConfig.get(dz)!.dropAnimationDurationMs),
+    );
+    const observationIntervalMs =
+        setIntervalMs === 0 ? DISABLED_OBSERVATION_INTERVAL_MS : Math.max(setIntervalMs, MIN_OBSERVATION_INTERVAL_MS); // if setIntervalMs is 0 it goes to 20, otherwise it is max between it and min observation.
+    return observationIntervalMs * 1.07;
 }
 // A zone of the dragged item's type created mid-drag (#479 upstream) joins the watched zones. Before the watching starts
 // there is nothing to do: watchDraggedElement picks up every registered zone.
@@ -199,7 +202,8 @@ function watchDropZoneAddedMidDrag(dz: HTMLElement): void {
     // the new zone's scroll containers can scroll too
     multiScroller?.destroy();
     multiScroller = createMultiScroller(watchedDropZones, getScrollPointerPosition);
-    observeDropZone(dz);
+    // a longer flip animation in the new zone slows the observation down too
+    observeDropZone(dz, getObservationIntervalMs());
 }
 function unWatchDraggedElement(): void {
     printDebug(() => "unwatching dragged element");
