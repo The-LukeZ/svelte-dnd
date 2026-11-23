@@ -17,7 +17,7 @@ Also: `pnpm lint`, `pnpm format`, `pnpm check:package`.
 
 ## Contributing
 
-Branch off `master` and open a pull request to `master`. Any change to the package needs a changeset: run `pnpm changeset` and commit the file it creates.
+See [CONTRIBUTING.md](CONTRIBUTING.md). In short: branch off `master`, open a pull request to `master`, and add a changeset (`pnpm changeset`) for any change to the package.
 
 ## Releasing
 
