@@ -1,6 +1,6 @@
 ---
 title: Recipes
-description: "Code for a single-slot drop area that copies, a reusable list component, and items that keep their own scroll position."
+description: "Code for a single-slot drop area that copies, a reusable list component, items that keep their own scroll position, and web components in a draggable."
 section: Guides
 order: 18
 ---
@@ -223,3 +223,39 @@ An item that scrolls on its own loses its scroll position in a drag: the dragged
 ```
 
 See [scrolling](/docs/guides/scrolling) for how a drag scrolls the containers around the zones.
+
+## Web components in a draggable
+
+The dragged element is a copy made with `cloneNode`, which copies attributes but not JavaScript properties. A web component that keeps its state in properties, as Lit components do, starts over with its defaults in the copy, and its shadow root shows them. Set the properties again in `transformDraggedElement`, from the item's data:
+
+```svelte
+<script lang="ts">
+    import { dndzone, type DndEvent } from "@lukez/svelte-dnd";
+    import "./my-badge.js"; // defines <my-badge> with a `label` property
+
+    type Badge = { id: number; label: string };
+
+    let badges = $state<Badge[]>([
+        { id: 1, label: "First" },
+        { id: 2, label: "Second" },
+    ]);
+
+    function update(e: DndEvent<Badge>) {
+        badges = e.items;
+    }
+
+    // The dragged element is a copy without the component's properties, so give them back.
+    function transformDraggedElement(element?: HTMLElement, badge?: Badge) {
+        const copy = element?.querySelector<HTMLElement & { label: string }>("my-badge");
+        if (copy && badge) copy.label = badge.label;
+    }
+</script>
+
+<ul {@attach dndzone(() => ({ items: badges, transformDraggedElement, onconsider: update, onfinalize: update }))}>
+    {#each badges as badge (badge.id)}
+        <li><my-badge label={badge.label}></my-badge></li>
+    {/each}
+</ul>
+```
+
+`transformDraggedElement` runs each time the zone renders the placeholder, starting right after the drag starts, so it should set the same values for the same item. The items in the zone are the elements your `#each` block renders, so they keep their properties.
